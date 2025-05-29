@@ -1,0 +1,76 @@
+{
+  "name": "grafana-mcp-analyzer",
+  "version": "1.0.0",
+  "description": "让AI助手直接分析你的Grafana监控数据 - A Model Context Protocol server for Grafana data analysis",
+  "main": "dist/server/mcp-server.js",
+  "types": "dist/types/index.d.ts",
+  "type": "module",
+  "bin": {
+    "grafana-mcp-analyzer": "dist/server/mcp-server.js"
+  },
+  "files": [
+    "dist/**/*",
+    "config/query-config.simple.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "grafana",
+    "mcp",
+    "model-context-protocol",
+    "monitoring",
+    "ai",
+    "claude",
+    "chatgpt",
+    "cursor",
+    "prometheus",
+    "elasticsearch",
+    "mysql",
+    "influxdb",
+    "query",
+    "analyzer",
+    "typescript",
+    "devops",
+    "sre",
+    "observability",
+    "dashboard",
+    "metrics",
+    "logs"
+  ],
+  "author": {
+    "name": "Sailing",
+    "url": "https://github.com/SailingCoder"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "CONFIG_PATH=./config/query-config.simple.js ts-node src/server/mcp-server.ts",
+    "start": "CONFIG_PATH=./config/query-config.simple.js node dist/server/mcp-server.js",
+    "build": "tsc",
+    "test": "npm run build && node tests/test-minimal-version.js",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit --skipLibCheck",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.5",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SailingCoder/grafana-mcp-analyzer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SailingCoder/grafana-mcp-analyzer/issues"
+  },
+  "homepage": "https://github.com/SailingCoder/grafana-mcp-analyzer#readme"
+}
