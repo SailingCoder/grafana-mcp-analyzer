@@ -23,6 +23,7 @@ Grafana MCP Analyzer 是一个基于 **MCP (Model Context Protocol)** 的服务�
 3. 📊 **多数据源支持**：支持Prometheus、MySQL、Elasticsearch等各种Grafana数据源
 4. 💡 **智能建议**：不仅能展示监控数据，还能提供具体的优化建议
 5. 🚀 **效率提升**：无需手动分析图表，AI直接解读Grafana数据并给出分析结论
+6. 💡 **体积小**：包的体积很小，只有52KB
 
 ---
 
@@ -32,11 +33,17 @@ Grafana MCP Analyzer 是一个基于 **MCP (Model Context Protocol)** 的服务�
 
 打开 **Cursor设置** → 搜索 **"MCP"** → 添加以下配置：（以Cursor为例）
 
+```bash
+npm install -g grafana-mcp-analyzer
+```
+
+然后配置
+
 ```json
 {
   "mcpServers": {
     "grafana": {
-      "command": "npx grafana-mcp-analyzer",
+      "command": "grafana-mcp-analyzer",
       "env": {
         "CONFIG_PATH": "./grafana-config.js"
       }

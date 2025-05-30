@@ -23,6 +23,8 @@ Grafana MCP Analyzer is a server library based on **MCP (Model Context Protocol)
 3. 📊 **Multi-datasource support**: Supports various Grafana data sources like Prometheus, MySQL, Elasticsearch
 4. 💡 **Smart recommendations**: Not only displays monitoring data but also provides specific optimization suggestions
 5. 🚀 **Efficiency boost**: No need to manually analyze charts - AI directly interprets Grafana data and provides analysis conclusions
+6. 💡 **Small size**：The size of the package is very small, only 52KB
+
 
 ---
 
@@ -32,11 +34,15 @@ Grafana MCP Analyzer is a server library based on **MCP (Model Context Protocol)
 
 Open **Cursor Settings** → Search for **"MCP"** → Add the following configuration: (Using Cursor as example)
 
+```bash
+npm install -g grafana-mcp-analyzer
+```
+
 ```json
 {
   "mcpServers": {
     "grafana": {
-      "command": "npx grafana-mcp-analyzer",
+      "command": "grafana-mcp-analyzer",
       "env": {
         "CONFIG_PATH": "./grafana-config.js"
       }
