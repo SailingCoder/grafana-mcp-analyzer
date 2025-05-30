@@ -153,6 +153,8 @@ export default config;
 
 **配置完成！**
 
+![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
+
 ---
 
 ### 常见问题解决方案

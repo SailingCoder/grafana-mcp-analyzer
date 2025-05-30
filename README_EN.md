@@ -151,6 +151,8 @@ Use browser developer tools: Open DevTools → Switch to Network panel → Find 
 
 **Configuration Complete!**
 
+![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
+
 ---
 
 ### Common Issue Solutions
