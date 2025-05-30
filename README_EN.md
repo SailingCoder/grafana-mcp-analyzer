@@ -2,41 +2,47 @@
 
 ![Version](https://img.shields.io/npm/v/grafana-mcp-analyzer) ![License](https://img.shields.io/npm/l/grafana-mcp-analyzer)
 
-**Let AI directly understand your monitoring data and intelligently analyze operational status**
+**Let AI directly understand your monitoring data - Intelligent DevOps Analysis Assistant**
 
-[English](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README.md) | [中文文档](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README_EN.md)
+[English](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README_EN.md) | [中文文档](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README.md)
 
-## Overview
+## ✨ Project Overview
 
-Imagine this scenario:
-- You ask AI: "How is my server doing right now?"
+Imagine these scenarios:
+- You ask AI: "How is my server doing now?" 
 - AI directly checks your Grafana monitoring and responds: "CPU usage is high, recommend checking these processes..."
+- Complex monitoring charts analyzed by AI with one click!
 
-No more staring at complex monitoring charts - let AI analyze everything for you!
+Say goodbye to traditional manual monitoring and let AI become your dedicated DevOps assistant!
 
-## Features
+## 🚀 Core Features
 
-Grafana MCP Analyzer is a server library based on **MCP (Model Context Protocol)** that enables AI assistants like Claude and ChatGPT to:
+Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowering AI assistants like Claude and ChatGPT with the following superpowers:
 
-1. 💬 **Natural conversational queries**: "Help me check memory usage" → AI immediately analyzes and provides recommendations
-2. 🔍 **Intelligent anomaly detection**: AI proactively discovers and reports anomalies in monitoring data
-3. 📊 **Multi-datasource support**: Supports various Grafana data sources like Prometheus, MySQL, Elasticsearch
-4. 💡 **Smart recommendations**: Not only displays monitoring data but also provides specific optimization suggestions
-5. 🚀 **Efficiency boost**: No need to manually analyze charts - AI directly interprets Grafana data and provides analysis conclusions
-6. 💡 **Small size**：The size of the package is very small, only 52KB
-
+| Feature | Description | Value |
+|---------|-------------|-------|
+| **Natural Conversation Queries** | "Help me check memory usage" → AI immediately analyzes and provides professional advice | Lower technical barriers |
+| **Intelligent Anomaly Detection** | AI proactively discovers and reports performance bottlenecks and anomalies in monitoring data | Early risk warning |
+| **Multi-Data Source Support** | Perfect compatibility with mainstream data sources like Prometheus, MySQL, Elasticsearch | Unified monitoring view |
+| **Professional DevOps Recommendations** | Not just displaying data, but providing specific actionable optimization solutions | Improve DevOps efficiency |
+| **Real-time Response Analysis** | No need to manually interpret charts, AI provides analysis conclusions in seconds | Save time costs |
+| **Lightweight Deployment** | Ultra-small 52KB footprint for quick integration and deployment | Zero-burden usage |
 
 ---
 
-## Quick Start 🚀
+## 🛠️ Quick Start
 
-### Step 1: Configure AI Assistant
+### Step 1: Installation and Configuration
 
-Open **Cursor Settings** → Search for **"MCP"** → Add the following configuration: (Using Cursor as example)
-
+#### Global Installation
 ```bash
 npm install -g grafana-mcp-analyzer
 ```
+
+#### Configure AI Assistant (Using Cursor as example)
+
+1. Open **Cursor Settings** → Search **"MCP"**
+2. Add the following server configuration:
 
 ```json
 {
@@ -51,131 +57,153 @@ npm install -g grafana-mcp-analyzer
 }
 ```
 
-Note: Any AI assistant that supports MCP can be configured similarly. Also, you need Node.js environment locally, version >= 18+.
+> 💡 **Tip**: Any AI assistant supporting MCP protocol can use similar configuration. Requires Node.js 18+ environment support.
 
-> **Note**: `CONFIG_PATH` supports relative paths, absolute paths, and remote addresses. See [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md) for details
+> 💡 **Configuration Path Guide**: `CONFIG_PATH` supports relative paths, absolute paths, and remote addresses. See [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md) for details.
 
 ### Step 2: Create Configuration File
 
-Create a `grafana-config.js` file in your project root directory:
-
-> **Complete configuration example**: See [query-config.simple.js](./config/query-config.simple.js)
+Create a `grafana-config.js` configuration file in your project root directory:
 
 ```javascript
 const config = {
-  baseUrl: 'https://your-grafana-address.com',  // Replace with your Grafana address
+  // Grafana service basic configuration
+  baseUrl: 'https://your-grafana-domain.com',  // Replace with your Grafana address
   defaultHeaders: {
-    'Authorization': 'Bearer your-api-key',  // Replace with your API key
+    'Authorization': 'Bearer your-api-token',  // Replace with your API key
     'Content-Type': 'application/json'
   },
+  
+  // Predefined query configurations
   queries: {
-    // Frontend performance monitoring
+    // Frontend performance monitoring query
     frontend_performance: {
       url: "api/ds/es/query",
       method: "POST",
       data: {
         es: {
-          index: 'your_index',
-          query: 'your_query_statement'
+          index: 'frontend_metrics',
+          query: 'your_elasticsearch_query'
         }
-        // More configuration...
       },
-      systemPrompt: 'You are a frontend performance analysis expert. Please analyze FCP (First Contentful Paint) performance data, focusing on: 1. Page first content paint time trends 2. 75th percentile performance 3. Performance degradation detection 4. User experience impact assessment 5. Performance optimization recommendations. Please provide detailed analysis and practical optimization suggestions in English.'
+      systemPrompt: `You are a frontend performance analysis expert. Please conduct in-depth analysis of FCP (First Contentful Paint) performance data:
+      
+      **Analysis Focus**:
+      1. Page first contentful paint time trend analysis
+      2. 75th percentile performance evaluation  
+      3. Performance degradation issue identification
+      4. User experience impact assessment
+      5. Targeted optimization recommendations
+      
+      Please provide detailed performance analysis reports and practical optimization suggestions in English.`
     },
     
-    // CPU usage monitoring
+    // CPU usage monitoring query
     cpu_usage: {
       url: 'api/ds/sql/query',
       method: 'POST',
       data: {
-        sql: 'SELECT * FROM your_table'
-        // More configuration...
+        sql: 'SELECT time, cpu_usage FROM system_metrics WHERE time > now() - 1h'
       },
-      systemPrompt: 'You are a CPU performance analysis expert. Please analyze CPU usage data, identify performance issues and provide optimization recommendations. Focus on: 1. Usage trends 2. Peak time points 3. Performance bottlenecks 4. Optimization suggestions'
-    },
+      systemPrompt: `You are a CPU performance analysis expert. Please comprehensively analyze CPU usage data:
+      
+      **Key Metrics**:
+      1. CPU usage trends and change patterns
+      2. Performance peak time point analysis
+      3. Potential performance bottleneck identification
+      4. System load health assessment
+      5. Professional optimization recommendations
+      
+      Please provide professional CPU performance analysis reports and improvement solutions.`
+    }
   },
-  healthCheck: { url: 'api/health' }
+  
+  // Health check configuration
+  healthCheck: { 
+    url: 'api/health',
+    timeout: 5000
+  }
 };
 
 export default config;
 ```
 
->Note: The data section contains query configuration, and systemPrompt is the AI analysis prompt used to guide how AI analyzes the data.
+📌 Configuration Retrieval Tips:
 
-#### How to get query configuration?
+- Method 1 (Recommended):
+Get configuration through Grafana: Go to chart → Click "Query Inspector" → Copy query configuration.
+If copying fails, try parsing panel JSON and then extract again.
 
-1. **Method 1** (Recommended): Go to Grafana → Open any chart → Click "Query inspector" → Copy the Query configuration
-2. **Method 2**: Check the Network panel in browser developer tools and copy the relevant API request parameters
+- Method 2:
+Use browser developer tools: Open DevTools → Switch to Network panel → Find corresponding API request → Copy request parameters.
 
 ### Step 3: Test Run
 
-Completely close and restart Cursor, then try:
+**Completely restart Cursor**, then experience intelligent analysis:
 
-> **You**: Analyze frontend performance monitoring  
-> **AI**: Analyzing...
+```
+👤 You: Analyze frontend performance monitoring data
+🤖 AI: Connecting to Grafana and analyzing frontend performance metrics...
 
-> **You**: Analyze CPU usage monitoring  
-> **AI**: Analyzing...
+👤 You: Check if CPU usage is normal  
+🤖 AI: Retrieving CPU monitoring data and conducting intelligent analysis...
+```
 
-**Configuration complete!** 🎉
+**Configuration Complete!**
 
 ---
 
-## Troubleshooting 💡
+### Common Issue Solutions
 
-### Common Issues and Solutions
+<details>
+<summary>❌ Unable to connect to Grafana service</summary>
 
-**❌ Cannot connect to Grafana?**
-- Check if Grafana address format is correct (must include `https://`)
-- Confirm API key is valid and not expired
-- Verify network connection is working
+**Possible causes and solutions:**
+- ✅ Check Grafana address format: Must include `https://` or `http://`
+- ✅ Verify API key validity: Ensure not expired and has sufficient permissions
+- ✅ Test network connectivity: Use ping command to check network status
+- ✅ Firewall settings: Ensure ports are not blocked
 
-**❌ AI says tools not found?**
-- Completely exit Cursor and restart
-- Check if configuration file path is correct
-- Ensure Node.js version ≥ 18, if using nvm, set with `nvm alias default 18.**.**`
+</details>
+
+<details>
+<summary>❌ AI reports MCP tools not found</summary>
+
+**Solution steps:**
+1. 🔄 Completely exit Cursor and restart
+2. 📁 Check if configuration file path is correct
+3. 🔍 Ensure Node.js version ≥ 18
+4. ⚙️ If using nvm: `nvm alias default 18.x.x`
+
+</details>
+
+<details>
+<summary>❌ Query execution failure or timeout</summary>
+
+**Troubleshooting directions:**
+- 🕐 Increase timeout settings
+- 📊 Simplify query statement complexity
+- 🔍 Check data source connection status
+- 📈 Verify query syntax correctness
+
+</details>
 
 ---
 
 ## Advanced Configuration
 
 <details>
-<summary> Local Installation (Recommended for production)</summary>
+<summary>Protecting Sensitive Information with Environment Variables</summary>
 
-If you want stable usage without depending on network downloads:
-
-```bash
-npm install -g grafana-mcp-analyzer
-```
-
-Then modify the command in configuration file:
-```json
-{
-  "mcpServers": {
-    "grafana": {
-      "command": "node",
-      "args": ["/Users/username/Downloads/grafana-mcp-analyzer/dist/server/mcp-server.js"],
-      "env": {
-        "CONFIG_PATH": "/Users/username/Downloads/grafana-mcp-analyzer/grafana-config.js"
-      }
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary>Protect Sensitive Information with Environment Variables</summary>
-
-For better security, it's recommended to store sensitive information in environment variables:
+To improve security, it's recommended to store sensitive information in environment variables:
 
 ```bash
+# Set environment variables
 export GRAFANA_URL="https://your-grafana-domain.com"
-export GRAFANA_TOKEN="your-api-key"
+export GRAFANA_TOKEN="your-secure-api-token"
 ```
 
-Then modify the configuration file:
+Modify configuration file:
 ```javascript
 const config = {
   baseUrl: process.env.GRAFANA_URL,
@@ -183,21 +211,24 @@ const config = {
     'Authorization': `Bearer ${process.env.GRAFANA_TOKEN}`,
     'Content-Type': 'application/json'
   },
-  // ... other configurations
+  // ... other configurations remain unchanged
 };
+
+export default config;
 ```
 
 </details>
 
 <details>
-<summary>MCP List</summary>
+<summary>MCP Tools List</summary>
 
-| Tool | Function | Use Case |
-|------|----------|----------|
-| `analyze_query` | 🧠 Execute query and intelligent analysis | Need AI insights and recommendations |
-| `execute_query` | 📊 Execute raw query | Only need data |
-| `check_health` | 🏥 Health check | Check service status |
-| `list_queries` | 📋 Query list | View available queries |
+| Tool Name | Function Description | Use Case | Return Content |
+|-----------|---------------------|----------|----------------|
+| `analyze_query` | Execute query and provide AI intelligent analysis | When professional insights and recommendations are needed | Data + analysis report |
+| `execute_query` | Execute raw data query | When only raw data is needed | Pure data results |
+| `check_health` | Grafana service health check | Service status monitoring | Health status information |
+| `list_queries` | List all available queries | View configured query list | Query configuration list |
+| `server_status` | MCP server status check | MCP connection status confirmation | Server status |
 
 </details>
 
