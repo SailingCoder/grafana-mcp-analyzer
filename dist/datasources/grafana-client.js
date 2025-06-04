@@ -22,6 +22,15 @@ export async function executeQuery(request, baseUrl = '') {
             headers: request.headers || {},
             timeout: request.timeout || DEFAULT_TIMEOUT,
             validateStatus: (status) => status < 500, // 允许4xx状态码
+            // 确保原始数据不被转换，特别是对于NDJSON格式
+            transformRequest: [(data) => {
+                    // 如果是字符串且包含换行符，很可能是NDJSON格式，直接返回
+                    if (typeof data === 'string' && data.includes('\n')) {
+                        return data;
+                    }
+                    // 其他情况使用默认转换
+                    return data;
+                }],
             ...request.axiosConfig
         });
         return {

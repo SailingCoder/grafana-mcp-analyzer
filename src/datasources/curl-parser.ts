@@ -63,13 +63,21 @@ export function parseCurlCommand(curlCommand: string): HttpRequest {
     } else if (token === '-d' || token === '--data' || token === '--data-raw') {
       // 请求体数据
       if (i + 1 < tokens.length) {
-        const dataStr = tokens[i + 1];
-        // 尝试解析为JSON，如果失败则作为字符串
-        try {
-          request.data = JSON.parse(dataStr);
-        } catch {
+        let dataStr = tokens[i + 1];
+        
+        // 检查是否是NDJSON格式（多行JSON）
+        if (dataStr.includes('\n')) {
+          // 对于NDJSON格式，直接作为字符串发送
           request.data = dataStr;
+        } else {
+          // 尝试解析为JSON，如果失败则作为字符串
+          try {
+            request.data = JSON.parse(dataStr);
+          } catch {
+            request.data = dataStr;
+          }
         }
+        
         // 如果有数据，默认方法改为POST
         if (request.method === 'GET') {
           request.method = 'POST';
@@ -151,6 +159,7 @@ function tokenizeCurlCommand(command: string): string[] {
   let inQuotes = false;
   let quoteChar = '';
   let escaped = false;
+  let dollarQuote = false; // 处理$'...'格式
 
   for (let i = 0; i < command.length; i++) {
     const char = command[i];
@@ -161,20 +170,56 @@ function tokenizeCurlCommand(command: string): string[] {
       continue;
     }
 
-    if (char === '\\') {
+    if (char === '\\' && inQuotes && !dollarQuote) {
       escaped = true;
       continue;
     }
 
     if (inQuotes) {
-      if (char === quoteChar) {
+      if (char === quoteChar && !dollarQuote) {
         inQuotes = false;
         quoteChar = '';
+      } else if (char === "'" && dollarQuote) {
+        inQuotes = false;
+        quoteChar = '';
+        dollarQuote = false;
       } else {
-        current += char;
+        // 在$'...'格式中处理转义字符
+        if (dollarQuote && char === '\\' && i + 1 < command.length) {
+          const nextChar = command[i + 1];
+          if (nextChar === 'n') {
+            current += '\n';
+            i++; // 跳过下一个字符
+          } else if (nextChar === 't') {
+            current += '\t';
+            i++;
+          } else if (nextChar === 'r') {
+            current += '\r';
+            i++;
+          } else if (nextChar === '\\') {
+            current += '\\';
+            i++;
+          } else if (nextChar === "'") {
+            current += "'";
+            i++;
+          } else if (nextChar === '"') {
+            current += '"';
+            i++;
+          } else {
+            current += char;
+          }
+        } else {
+          current += char;
+        }
       }
     } else {
-      if (char === '"' || char === "'") {
+      // 检查$'...'格式
+      if (char === '$' && i + 1 < command.length && command[i + 1] === "'") {
+        dollarQuote = true;
+        inQuotes = true;
+        quoteChar = "'";
+        i++; // 跳过下一个'字符
+      } else if (char === '"' || char === "'") {
         inQuotes = true;
         quoteChar = char;
       } else if (char === ' ' || char === '\t' || char === '\n') {
