@@ -223,7 +223,7 @@ function tokenizeCurlCommand(command) {
                         i++;
                     }
                     else if (nextChar === '"') {
-                        current += '"';
+                        current += '\\"'; // 保留转义的双引号
                         i++;
                     }
                     else {
