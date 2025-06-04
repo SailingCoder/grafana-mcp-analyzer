@@ -21,28 +21,30 @@ const config = {
 
   // 预定义查询 - 常用的监控查询
   queries: {
-    // 前端性能监控
+    // 前端性能监控（HTTP API方式）
     frontend_performance: {
       url: "api/ds/es/query",
       method: "POST",
       data: {},
       systemPrompt: '你是前端性能分析专家。请分析FCP（First Contentful Paint）性能数据，重点关注：1. 页面首次内容绘制时间趋势 2. 75百分位数性能表现 3. 是否存在性能劣化 4. 用户体验影响评估 5. 性能优化建议。请用中文详细分析性能数据并提供实用的优化建议。'
     },
-    // CPU使用率监控 - 查看服务器CPU负载情况
+    
+    // CPU使用率监控（curl命令方式）
     cpu_usage: {
-      url: 'api/ds/sql/query',
-      method: 'POST',
-      data: {},
+      curl: `curl 'api/ds/query' \\
+        -X POST \\
+        -H 'Content-Type: application/json' \\
+        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
       // AI分析提示 - 告诉AI如何分析这个数据
       systemPrompt: '你是一个CPU性能分析专家。请分析CPU使用率数据，识别性能问题并提供优化建议。重点关注：1. 使用率趋势 2. 峰值时间点 3. 是否存在性能瓶颈 4. 优化建议'
     },
 
-    // 内存使用率监控 - 查看内存消耗情况
+    // 内存使用率监控（curl命令方式示例）
     memory_usage: {
-      url: 'api/ds/query',
-      method: 'POST',
-      data: {},
-      // 专门针对内存分析的AI提示
+      curl: `curl 'api/ds/query' \\
+        -X POST \\
+        -H 'Content-Type: application/json' \\
+        -d '{"queries":[{"refId":"B","expr":"(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100","range":{"from":"now-6h","to":"now"}}]}'`,
       systemPrompt: '你是一个内存分析专家。请分析内存使用情况，识别内存泄漏风险和优化机会。重点关注：1. 内存使用趋势 2. 是否接近内存上限 3. 内存泄漏风险 4. 优化建议'
     },
 
@@ -68,8 +70,18 @@ export default config;
 //   export GRAFANA_URL="https://你的grafana.com"
 //   export GRAFANA_TOKEN="你的API密钥"
 // 
-// 第2步：添加自定义查询（可选）
-//   在上面的 queries 中添加你需要的查询（queries中所需的数据，可以直接去grafana query中复制，或者浏览器接口直接复制）
+// 第2步：添加自定义查询（两种方式）
+//   
+//   方式1：curl命令（推荐，v1.1.0新增）
+//   1. 在Grafana中执行查询
+//   2. 按F12打开开发者工具 → Network标签页
+//   3. 找到查询请求，右键 → Copy → Copy as cURL
+//   4. 粘贴到下面的curl字段中
+//   
+//   方式2：HTTP API配置
+//   在上面的 queries 中添加你需要的查询（可以从grafana query inspector中复制）
+//   
+//   注意：
 //   （1）查询名称必须用英文（如 cpu_usage, memory_check）
 //   （2）避免中文名称，AI无法正确识别
 // 
@@ -87,5 +99,5 @@ export default config;
 // 
 // 第4步：开始使用
 //   重启Cursor后，直接问AI：
-//   "帮我分析前端性能监控" → AI会自动调用对应的预定义查询
+//   "帮我分析CPU使用率" → AI会自动调用对应的查询
 //   "检查系统健康状态" → AI会执行 health_check 查询

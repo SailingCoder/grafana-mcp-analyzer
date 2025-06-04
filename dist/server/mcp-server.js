@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { executeQuery, extractData, checkHealth } from '../datasources/grafana-client.js';
 import { analyzeWithAI, formatDataForClientAI } from '../services/monitoring-analyzer.js';
+import { parseCurlCommand } from '../datasources/curl-parser.js';
 import { isValidHttpMethod } from '../types/index.js';
 // 基本配置
 const DEFAULT_CONFIG_PATH = './config/query-config.simple.js';
@@ -64,10 +65,29 @@ async function loadConfig() {
     }
 }
 // 执行查询
-async function executeGrafanaQuery(request, queryName) {
+async function executeGrafanaQuery(request, queryName, curl) {
     let queryConfig;
     if (queryName && config.queries?.[queryName]) {
         queryConfig = config.queries[queryName];
+        // 如果预定义查询中有curl命令，使用curl命令
+        if (queryConfig.curl) {
+            const parsedCurl = parseCurlCommand(queryConfig.curl);
+            // 合并curl解析结果和配置中的其他设置
+            queryConfig = {
+                ...parsedCurl,
+                ...queryConfig,
+                url: parsedCurl.url || queryConfig.url,
+                method: parsedCurl.method || queryConfig.method,
+                headers: { ...parsedCurl.headers, ...queryConfig.headers },
+                data: parsedCurl.data !== undefined ? parsedCurl.data : queryConfig.data
+            };
+        }
+    }
+    else if (curl) {
+        // 直接解析curl命令
+        queryConfig = parseCurlCommand(curl);
+        // 应用默认headers
+        queryConfig.headers = { ...config.defaultHeaders, ...queryConfig.headers };
     }
     else if (request) {
         const method = request.method || 'POST';
@@ -82,7 +102,7 @@ async function executeGrafanaQuery(request, queryName) {
         };
     }
     else {
-        throw new Error('必须提供request配置或queryName');
+        throw new Error('必须提供request配置、curl命令或queryName');
     }
     const queryResponse = await executeQuery(queryConfig, config.baseUrl || '');
     if (!queryResponse.success) {
@@ -104,10 +124,11 @@ server.tool('analyze_query', {
         timeout: z.number().optional().describe('超时时间（毫秒）'),
         axiosConfig: z.record(z.any()).optional().describe('自定义Axios配置')
     }).optional().describe('查询请求配置'),
-    queryName: z.string().optional().describe('预定义查询名称')
-}, async ({ prompt, request, queryName }) => {
+    queryName: z.string().optional().describe('预定义查询名称'),
+    curl: z.string().optional().describe('curl命令字符串')
+}, async ({ prompt, request, queryName, curl }) => {
     try {
-        const extractedData = await executeGrafanaQuery(request, queryName);
+        const extractedData = await executeGrafanaQuery(request, queryName, curl);
         // 获取查询级别的AI配置
         const queryLevelConfig = queryName && config.queries?.[queryName] ? {
             systemPrompt: config.queries[queryName].systemPrompt,
@@ -149,10 +170,11 @@ server.tool('execute_query', {
         timeout: z.number().optional().describe('超时时间（毫秒）'),
         axiosConfig: z.record(z.any()).optional().describe('自定义Axios配置')
     }).optional().describe('查询请求配置'),
-    queryName: z.string().optional().describe('预定义查询名称')
-}, async ({ request, queryName }) => {
+    queryName: z.string().optional().describe('预定义查询名称'),
+    curl: z.string().optional().describe('curl命令字符串')
+}, async ({ request, queryName, curl }) => {
     try {
-        const extractedData = await executeGrafanaQuery(request, queryName);
+        const extractedData = await executeGrafanaQuery(request, queryName, curl);
         return createResponse({
             success: true,
             data: extractedData,

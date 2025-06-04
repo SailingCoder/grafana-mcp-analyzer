@@ -1,6 +1,6 @@
 {
   "name": "grafana-mcp-analyzer",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "让AI助手直接分析你的Grafana监控数据 - A Model Context Protocol server for Grafana data analysis",
   "main": "dist/server/mcp-server.js",
   "types": "dist/types/index.d.ts",
@@ -47,6 +47,7 @@
     "start": "CONFIG_PATH=./config/query-config.simple.js node dist/server/mcp-server.js",
     "build": "tsc",
     "test": "npm run build && node tests/test-minimal-version.js",
+    "test:curl": "npm run build && node tests/curl-parser.test.js",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit --skipLibCheck",
     "prepublishOnly": "npm run clean && npm run build && npm test"

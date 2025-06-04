@@ -22,10 +22,10 @@ Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowerin
 | Feature | Description | Value |
 |---------|-------------|-------|
 | **Natural Conversation Queries** | "Help me check memory usage" → AI immediately analyzes and provides professional advice | Lower technical barriers |
-| **Intelligent Anomaly Detection** | AI proactively discovers and reports performance bottlenecks and anomalies in monitoring data | Early risk warning |
-| **Multi-Data Source Support** | Perfect compatibility with mainstream data sources like Prometheus, MySQL, Elasticsearch | Unified monitoring view |
-| **Professional DevOps Recommendations** | Not just displaying data, but providing specific actionable optimization solutions | Improve DevOps efficiency |
-| **Real-time Response Analysis** | No need to manually interpret charts, AI provides analysis conclusions in seconds | Save time costs |
+| **cURL Command Support** | Support direct cURL command configuration, copy from browser and paste | Simplify configuration |
+| **Intelligent Anomaly Detection** | AI proactively discovers and reports performance bottlenecks and anomalies | Early risk warning |
+| **Multi-Data Source Support** | Perfect compatibility with Prometheus, MySQL, Elasticsearch, etc. | Unified monitoring view |
+| **Professional DevOps Recommendations** | Not just displaying data, but providing actionable optimization solutions | Improve DevOps efficiency |
 | **Lightweight Deployment** | Ultra-small 52KB footprint for quick integration and deployment | Zero-burden usage |
 
 ---
@@ -59,8 +59,6 @@ npm install -g grafana-mcp-analyzer
 
 > 💡 **Tip**: Any AI assistant supporting MCP protocol can use similar configuration. Requires Node.js 18+ environment support.
 
-> 💡 **Configuration Path Guide**: `CONFIG_PATH` supports relative paths, absolute paths, and remote addresses. See [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md) for details.
-
 ### Step 2: Create Configuration File
 
 Create a `grafana-config.js` configuration file in your project root directory:
@@ -76,7 +74,7 @@ const config = {
   
   // Predefined query configurations
   queries: {
-    // Frontend performance monitoring query
+    // HTTP API configuration method
     frontend_performance: {
       url: "api/ds/es/query",
       method: "POST",
@@ -86,7 +84,7 @@ const config = {
           query: 'your_elasticsearch_query'
         }
       },
-      systemPrompt: `You are a frontend performance analysis expert. Please conduct in-depth analysis of FCP (First Contentful Paint) performance data:
+      systemPrompt: `You are a frontend performance analysis expert. Please analyze FCP (First Contentful Paint) performance data:
       
       **Analysis Focus**:
       1. Page first contentful paint time trend analysis
@@ -95,17 +93,16 @@ const config = {
       4. User experience impact assessment
       5. Targeted optimization recommendations
       
-      Please provide detailed performance analysis reports and practical optimization suggestions in English.`
+      Please provide detailed performance analysis reports and practical optimization suggestions.`
     },
     
-    // CPU usage monitoring query
+    // cURL command configuration method (v1.1.0 new feature)
     cpu_usage: {
-      url: 'api/ds/sql/query',
-      method: 'POST',
-      data: {
-        sql: 'SELECT time, cpu_usage FROM system_metrics WHERE time > now() - 1h'
-      },
-      systemPrompt: `You are a CPU performance analysis expert. Please comprehensively analyze CPU usage data:
+      curl: `curl 'api/ds/query' \\
+        -X POST \\
+        -H 'Content-Type: application/json' \\
+        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
+      systemPrompt: `You are a CPU performance analysis expert. Please analyze CPU usage data:
       
       **Key Metrics**:
       1. CPU usage trends and change patterns
@@ -130,12 +127,15 @@ export default config;
 
 📌 Configuration Retrieval Tips:
 
-- Method 1 (Recommended):
-Get configuration through Grafana: Go to chart → Click "Query Inspector" → Copy query configuration.
-If copying fails, try parsing panel JSON and then extract again.
+**Recommended: Copy cURL Command from Browser**
+1. Execute query in Grafana → Press F12 to open developer tools → Network tab
+2. Find query request → Right-click → Copy as cURL → Paste to config file curl field
 
-- Method 2:
-Use browser developer tools: Open DevTools → Switch to Network panel → Find corresponding API request → Copy request parameters.
+**Other Methods:**
+- **Query Inspector**: Go to chart → "Query Inspector" → "JSON" tab → Copy to data field
+- **Manual Construction**: View request parameters through Network panel and manually construct HTTP config
+
+💡 For detailed cURL configuration methods, see [Advanced Configuration](#advanced-configuration) section.
 
 ### Step 3: Test Run
 
@@ -155,87 +155,78 @@ Use browser developer tools: Open DevTools → Switch to Network panel → Find 
 
 ---
 
-### Common Issue Solutions
+## 🔧 Common Issues
 
 <details>
 <summary>❌ Unable to connect to Grafana service</summary>
 
-**Possible causes and solutions:**
 - ✅ Check Grafana address format: Must include `https://` or `http://`
 - ✅ Verify API key validity: Ensure not expired and has sufficient permissions
-- ✅ Test network connectivity: Use ping command to check network status
-- ✅ Firewall settings: Ensure ports are not blocked
+- ✅ Test network connectivity and firewall settings
 
 </details>
 
 <details>
 <summary>❌ AI reports MCP tools not found</summary>
 
-**Solution steps:**
 1. 🔄 Completely exit Cursor and restart
 2. 📁 Check if configuration file path is correct
 3. 🔍 Ensure Node.js version ≥ 18
-4. ⚙️ If using nvm: `nvm alias default 18.x.x`
 
 </details>
 
 <details>
 <summary>❌ Query execution failure or timeout</summary>
 
-**Troubleshooting directions:**
 - 🕐 Increase timeout settings
 - 📊 Simplify query statement complexity
 - 🔍 Check data source connection status
-- 📈 Verify query syntax correctness
 
 </details>
 
 ---
 
-## Advanced Configuration
+## 🔧 Advanced Configuration
 
-<details>
-<summary>Protecting Sensitive Information with Environment Variables</summary>
+### cURL Command Support (v1.1.0)
 
-To improve security, it's recommended to store sensitive information in environment variables:
+**Two configuration methods:**
+
+```javascript
+// Method 1: Traditional HTTP configuration
+cpu_usage: {
+  url: 'api/ds/query',
+  method: 'POST',
+  data: { queries: [...] }
+},
+
+// Method 2: cURL command (Recommended)
+memory_usage: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[...]}'`,
+  systemPrompt: 'Analyze memory usage...'
+}
+```
+
+**cURL Parameters Supported:** `-X`, `-H`, `-d`, `-u`, `--connect-timeout`, `--max-time`
+
+### Environment Variables Configuration
 
 ```bash
-# Set environment variables
-export GRAFANA_URL="https://your-grafana-domain.com"
-export GRAFANA_TOKEN="your-secure-api-token"
+export GRAFANA_URL="https://your-grafana.com"
+export GRAFANA_TOKEN="your-api-token"
 ```
 
-Modify configuration file:
-```javascript
-const config = {
-  baseUrl: process.env.GRAFANA_URL,
-  defaultHeaders: {
-    'Authorization': `Bearer ${process.env.GRAFANA_TOKEN}`,
-    'Content-Type': 'application/json'
-  },
-  // ... other configurations remain unchanged
-};
+### MCP Tools List
 
-export default config;
-```
-
-</details>
-
-<details>
-<summary>MCP Tools List</summary>
-
-| Tool Name | Function Description | Use Case | Return Content |
-|-----------|---------------------|----------|----------------|
-| `analyze_query` | Execute query and provide AI intelligent analysis | When professional insights and recommendations are needed | Data + analysis report |
-| `execute_query` | Execute raw data query | When only raw data is needed | Pure data results |
-| `check_health` | Grafana service health check | Service status monitoring | Health status information |
-| `list_queries` | List all available queries | View configured query list | Query configuration list |
-| `server_status` | MCP server status check | MCP connection status confirmation | Server status |
-
-</details>
+| Tool | Function | Use Case |
+|------|----------|----------|
+| `analyze_query` | Query + AI analysis | Need professional advice |
+| `execute_query` | Raw data query | Only need data |
+| `check_health` | Health check | Status monitoring |
+| `list_queries` | Query list | View configuration |
 
 ---
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details. 
+MIT License. See the [LICENSE](LICENSE) file for details. 

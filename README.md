@@ -20,14 +20,14 @@
 
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
-| 特性 | 描述 | 价值 |
+| 功能 | 描述 | 价值 |
 |------|------|------|
-| **自然对话查询** | "帮我看看内存使用情况" → AI立即分析并给出专业建议 | 降低技术门槛 |
-| **智能异常识别** | AI主动发现并告知监控数据中的性能瓶颈和异常 | 提前预警风险 |
-| **多数据源支持** | 完美兼容Prometheus、MySQL、Elasticsearch等主流数据源 | 统一监控视图 |
-| **专业运维建议** | 不仅展示数据，更提供具体可行的优化方案 | 提升运维效率 |
-| **即时响应分析** | 无需手动解读图表，AI秒级给出分析结论 | 节省时间成本 |
-| **轻量级部署** | 仅52KB的极小体积，快速集成部署 | 零负担使用 |
+| **自然对话查询** | "帮我看看内存使用情况" → AI立即分析并提供专业建议 | 降低技术门槛 |
+| **curl命令支持** | 支持直接使用curl命令配置查询，从浏览器复制粘贴即可 | 简化配置流程 |
+| **智能异常检测** | AI主动发现并报告性能瓶颈和异常情况 | 提前预警风险 |
+| **多数据源支持** | 完美兼容Prometheus、MySQL、Elasticsearch等 | 统一监控视图 |
+| **专业DevOps建议** | 不只是展示数据，更提供可执行的优化方案 | 提升DevOps效率 |
+| **轻量化部署** | 超小52KB体积，快速集成部署 | 零负担使用 |
 
 ---
 
@@ -77,7 +77,7 @@ const config = {
   
   // 预定义查询配置
   queries: {
-    // 前端性能监控查询
+    // HTTP API配置方式
     frontend_performance: {
       url: "api/ds/es/query",
       method: "POST",
@@ -99,13 +99,12 @@ const config = {
       请用中文提供详细的性能分析报告和实用的优化建议。`
     },
     
-    // CPU使用率监控查询
+    // curl命令配置方式（v1.1.0新增）
     cpu_usage: {
-      url: 'api/ds/sql/query',
-      method: 'POST',
-      data: {
-        sql: 'SELECT time, cpu_usage FROM system_metrics WHERE time > now() - 1h'
-      },
+      curl: `curl 'api/ds/query' \\
+        -X POST \\
+        -H 'Content-Type: application/json' \\
+        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
       systemPrompt: `您是CPU性能分析专家。请全面分析CPU使用率数据：
       
       **关键指标**：
@@ -131,114 +130,105 @@ export default config;
 
 📌 配置获取技巧：
 
-- 方法一（推荐）：
-通过 Grafana 获取配置：进入图表 → 点击 "Query Inspector" → 复制查询配置。
-如遇复制失败，可尝试解析面板 JSON 后再次提取。
+**推荐：浏览器复制curl命令**
+1. 在Grafana中执行查询 → 按F12打开开发者工具 → Network标签页
+2. 找到查询请求 → 右键 → Copy as cURL → 粘贴到配置文件的curl字段
 
-- 方法二：
-使用浏览器开发者工具：打开 DevTools → 切换至 Network 面板 → 找到对应的接口请求 → 复制请求参数。
+**其他方式：**
+- **Query Inspector**：进入图表 → "Query Inspector" → "JSON"标签 → 复制到data字段
+- **手动构造**：通过Network面板查看请求参数手动构造HTTP配置
 
+💡 详细的curl命令配置方法请参考[高级配置](#高级配置)部分。
 
 ### 步骤3：测试运行
 
 **完全重启Cursor**，然后体验智能分析：
 
-```
 👤 您：分析前端性能监控数据
 🤖 AI：正在连接Grafana并分析前端性能指标...
 
 👤 您：检查CPU使用率是否正常  
 🤖 AI：正在获取CPU监控数据并进行智能分析...
-```
 
 **配置完成！**
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
 
+
 ---
 
-### 常见问题解决方案
+## 🔧 常见问题
 
 <details>
 <summary>❌ 无法连接到Grafana服务</summary>
 
-**可能原因和解决方案：**
 - ✅ 检查Grafana地址格式：必须包含`https://`或`http://`
 - ✅ 验证API密钥有效性：确保未过期且有足够权限
-- ✅ 测试网络连通性：ping命令检查网络状态
-- ✅ 防火墙设置：确保端口未被阻止
+- ✅ 测试网络连通性和防火墙设置
 
 </details>
 
 <details>
 <summary>❌ AI提示找不到MCP工具</summary>
 
-**解决步骤：**
 1. 🔄 完全退出Cursor并重新启动
 2. 📁 检查配置文件路径是否正确
 3. 🔍 确保Node.js版本 ≥ 18
-4. ⚙️ 如使用nvm：`nvm alias default 18.x.x`
 
 </details>
 
 <details>
 <summary>❌ 查询执行失败或超时</summary>
 
-**排查方向：**
 - 🕐 增加timeout设置
 - 📊 简化查询语句复杂度
 - 🔍 检查数据源连接状态
-- 📈 验证查询语法正确性
 
 </details>
 
 ---
 
-## 高级配置
+## 🔧 高级配置
 
-<details>
-<summary>环境变量保护敏感信息</summary>
+### curl命令支持（v1.1.0）
 
-为了提高安全性，建议将敏感信息存储在环境变量中：
+**两种配置方式：**
+
+```javascript
+// 方式1：传统HTTP配置
+cpu_usage: {
+  url: 'api/ds/query',
+  method: 'POST',
+  data: { queries: [...] }
+},
+
+// 方式2：curl命令（推荐）
+memory_usage: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[...]}'`,
+  systemPrompt: '分析内存使用情况...'
+}
+```
+
+**支持的curl参数：** `-X`, `-H`, `-d`, `-u`, `--connect-timeout`, `--max-time`
+
+### 环境变量配置
 
 ```bash
-# 设置环境变量
-export GRAFANA_URL="https://your-grafana-domain.com"
-export GRAFANA_TOKEN="your-secure-api-token"
+export GRAFANA_URL="https://your-grafana.com"
+export GRAFANA_TOKEN="your-api-token"
 ```
 
-修改配置文件：
-```javascript
-const config = {
-  baseUrl: process.env.GRAFANA_URL,
-  defaultHeaders: {
-    'Authorization': `Bearer ${process.env.GRAFANA_TOKEN}`,
-    'Content-Type': 'application/json'
-  },
-  // ... 其他配置保持不变
-};
+### MCP工具清单
 
-export default config;
-```
-
-</details>
-
-<details>
-<summary>MCP工具清单</summary>
-
-| 工具名称 | 功能描述 | 适用场景 | 返回内容 |
-|----------|----------|----------|----------|
-| `analyze_query` | 执行查询并提供AI智能分析 | 需要专业洞察和建议 | 数据+分析报告 |
-| `execute_query` | 执行原始数据查询 | 仅需要原始数据 | 纯数据结果 |
-| `check_health` | Grafana服务健康检查 | 服务状态监控 | 健康状态信息 |
-| `list_queries` | 列出所有可用查询 | 查看配置的查询列表 | 查询配置清单 |
-| `server_status` | MCP服务器状态检查 | MCP连接状态确认 | 服务器状态 |
-
-</details>
+| 工具 | 功能 | 使用场景 |
+|------|------|----------|
+| `analyze_query` | 查询+AI分析 | 需要专业建议 |
+| `execute_query` | 原始数据查询 | 仅需要数据 |
+| `check_health` | 健康检查 | 状态监控 |
+| `list_queries` | 查询列表 | 查看配置 |
 
 ---
 
-## 许可证
+## 📄 许可证
 
-本项目遵循 MIT 开源协议。详见 [LICENSE](LICENSE) 文件。
-
+MIT 开源协议。详见 [LICENSE](LICENSE) 文件。

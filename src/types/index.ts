@@ -13,6 +13,7 @@ export interface HttpRequest {
   params?: Record<string, string>;
   timeout?: number;
   axiosConfig?: any;
+  curl?: string;
 }
 
 export interface HttpResponse {
