@@ -95,19 +95,20 @@ async function executeGrafanaQuery(request?: any, queryName?: string, curl?: str
     if (queryConfig.curl) {
       const parsedCurl = parseCurlCommand(queryConfig.curl);
       // 合并curl解析结果和配置中的其他设置
+      // 注意：curl中的headers应该优先级更高，因为是用户明确指定的
       queryConfig = {
         ...parsedCurl,
         ...queryConfig,
         url: parsedCurl.url || queryConfig.url,
         method: parsedCurl.method || queryConfig.method,
-        headers: { ...parsedCurl.headers, ...queryConfig.headers },
+        headers: { ...config.defaultHeaders, ...queryConfig.headers, ...parsedCurl.headers },
         data: parsedCurl.data !== undefined ? parsedCurl.data : queryConfig.data
       };
     }
   } else if (curl) {
     // 直接解析curl命令
     queryConfig = parseCurlCommand(curl);
-    // 应用默认headers
+    // 应用默认headers，但curl中的headers优先级更高
     queryConfig.headers = { ...config.defaultHeaders, ...queryConfig.headers };
   } else if (request) {
     const method = request.method || 'POST';

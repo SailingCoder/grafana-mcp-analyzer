@@ -21,6 +21,25 @@ const config = {
 
   // 预定义查询 - 常用的监控查询
   queries: {
+    // 通用数据分析查询 - 用于分析各种监控数据
+    data_analysis: {
+      url: "api/ds/query",
+      method: "POST",
+      data: {
+        "queries": [
+          {
+            "refId": "A",
+            "expr": "up",
+            "range": {
+              "from": "now-1h",
+              "to": "now"
+            }
+          }
+        ]
+      },
+      systemPrompt: '你是一个专业的数据分析专家。请对提供的监控数据进行深入分析，包括：1. 数据概览和基本统计 2. 趋势分析和模式识别 3. 异常值检测 4. 关键指标解读 5. 业务影响评估 6. 具体的优化建议和行动项。请用中文提供详细且实用的分析报告。'
+    },
+    
     // 前端性能监控（HTTP API方式）
     frontend_performance: {
       url: "api/ds/es/query",

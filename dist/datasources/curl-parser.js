@@ -131,6 +131,16 @@ export function parseCurlCommand(curlCommand) {
                 i++;
             }
         }
+        else if (token === '-b' || token === '--cookie') {
+            // Cookie
+            if (i + 1 < tokens.length) {
+                request.headers['Cookie'] = tokens[i + 1];
+                i += 2;
+            }
+            else {
+                i++;
+            }
+        }
         else if (token.startsWith('-')) {
             // 跳过其他不支持的选项
             i++;
