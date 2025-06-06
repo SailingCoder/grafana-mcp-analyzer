@@ -19,15 +19,13 @@ const config = {
     'Content-Type': 'application/json'           // JSON格式请求
   },
 
-  // 🔧 智能摘要配置（可选）- 控制大数据处理策略
-  // 不配置 = 默认无限制，信任AI处理能力（推荐）
-  // 配置后 = 超过阈值时启用智能摘要，提供优化建议
+  // 智能摘要配置（可选）- 控制大数据处理策略
   dataProcessing: {
     enableSummary: false,     // 是否启用智能摘要，默认false（无限制）
     maxDataLength: 500000     // 数据大小阈值（字节），默认500KB
   },
   
-  // 💡 智能摘要使用说明：
+  // 智能摘要使用说明：
   // 推荐方案1：默认无限制（信任AI能力）
   //   dataProcessing: { enableSummary: false }  或者直接删除dataProcessing配置
   // 
@@ -37,10 +35,7 @@ const config = {
   // 严格方案3：更小阈值
   //   dataProcessing: { enableSummary: true, maxDataLength: 100000 }
   //
-  // 当数据超过阈值时，系统会：
-  // ✅ 启用智能摘要（96-97%压缩率）
-  // ✅ 提供友好的优化建议
-  // ✅ 明确提示数据处理状态
+  // 当数据超过阈值时，系统会：启用智能摘要（96-97%压缩率）；提供友好的优化建议；明确提示数据处理状态
 
   // 预定义查询 - 常用的监控查询
   queries: {

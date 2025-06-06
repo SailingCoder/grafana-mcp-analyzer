@@ -287,6 +287,30 @@ Tool Usage
 ```
 </details>
 
+<details>
+<summary>Intelligent Data Summarization Configuration</summary>
+
+When monitoring data volume is large, you can enable intelligent summarization to compress data:
+
+```javascript
+const config = {
+  baseUrl: 'https://your-grafana.com',
+  // Other configurations...
+  
+  // Data processing configuration, default unlimited (trust AI capabilities)
+  dataProcessing: {
+    enableSummary: true,      // Enable intelligent summary (default: false)
+    maxDataLength: 500000     // Threshold 500KB (default: 500KB)
+  }
+};
+```
+
+- Data size ≤ threshold: Send directly to AI for analysis
+- Data size > threshold: Automatically generate intelligent summary with up to 96% compression rate, then send to AI for analysis
+- Recommendation: For modern AI, don't enable summarization as AI can handle 500K-800K data
+
+</details>
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) file for details. 

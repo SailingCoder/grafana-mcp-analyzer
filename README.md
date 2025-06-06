@@ -297,7 +297,7 @@ const config = {
   baseUrl: 'https://your-grafana.com',
   // 其他配置...
   
-  // 数据处理配置
+  // 数据处理配置，默认无限制（信任AI能力）
   dataProcessing: {
     enableSummary: true,      // 启用智能摘要（默认false）
     maxDataLength: 500000     // 阈值500KB（默认500KB）
@@ -306,7 +306,7 @@ const config = {
 ```
 
 - 数据量 ≤ 阈值：直接发送给AI分析
-- 数据量 > 阈值：自动生成智能摘要，压缩率可达96%
+- 数据量 > 阈值：自动生成智能摘要，压缩率可达96%，发送给AI分析
 - 推荐：对于现代AI不启用摘要，AI可处理500K-800K数据
 
 </details>
