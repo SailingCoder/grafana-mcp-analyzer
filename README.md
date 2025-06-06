@@ -29,8 +29,6 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 | **专业DevOps建议** | 不只是展示数据，更提供可执行的优化方案 | 提升DevOps效率 |
 | **轻量化部署** | 超小52KB体积，快速集成部署 | 零负担使用 |
 
----
-
 ## 🛠️ 快速开始
 
 ### 步骤1：安装和配置
@@ -116,15 +114,13 @@ module.exports = config;
 
 📌 配置获取技巧：
 
-**推荐：浏览器复制curl命令**
+**浏览器复制curl命令：**（推荐）
 1. 在Grafana中执行查询 → 按F12打开开发者工具 → Network标签页
 2. 找到查询请求 → 右键 → Copy as cURL → 粘贴到配置文件的curl字段
 
-**其他方式：**
-- **Query Inspector**：进入图表 → "Query Inspector" → "JSON"标签 → 复制到data字段
-- **手动构造**：通过Network面板查看请求参数手动构造HTTP配置
-
-💡 详细的curl命令配置方法请参考[高级配置](#高级配置)部分。
+**HTTP API配置：**
+1. 获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
+2. 获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
 
 ### 步骤3：测试运行
 
@@ -143,36 +139,121 @@ module.exports = config;
 
 ---
 
-## 🔧 常见问题
+## 更多配置示例
+
+<details>
+<summary>指标监控配置</summary>
+
+```javascript
+// 指标查询
+prometheus_metrics: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{
+      "refId":"A",
+      "expr":"node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100",
+      "range":{"from":"now-2h","to":"now"}
+    }]}'`,
+  systemPrompt: `内存使用率专家分析：重点关注内存泄漏风险、使用趋势、异常波动和优化建议。`
+}
+```
+
+</details>
+
+<details>
+<summary>日志分析配置</summary>
+
+```javascript
+// Elasticsearch日志查询
+error_logs: {
+  url: "api/ds/es/query", 
+  method: "POST",
+  data: {
+    es: {
+      index: "app-logs-*",
+      query: {
+        "query": {
+          "bool": {
+            "must": [
+              {"term": {"level": "ERROR"}},
+              {"range": {"@timestamp": {"gte": "now-1h"}}}
+            ]
+          }
+        }
+      }
+    }
+  },
+  systemPrompt: `日志分析专家：识别错误模式、频率分析、影响评估和问题定位建议。`
+}
+```
+
+</details>
+
+<details>
+<summary>网络监控配置</summary>
+
+```javascript
+// 网络延迟监控
+network_latency: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -d '{"queries":[{
+      "refId":"A", 
+      "expr":"histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+      "range":{"from":"now-30m","to":"now"}
+    }]}'`,
+  systemPrompt: `网络性能专家：分析P95延迟、识别慢请求、网络瓶颈定位和优化策略。`
+}
+```
+
+</details>
+
+<details>
+<summary>数据库监控配置</summary>
+
+```javascript
+// MySQL性能监控
+mysql_performance: {
+  url: "api/ds/mysql/query",
+  method: "POST", 
+  data: {
+    sql: "SELECT * FROM performance_schema.events_statements_summary_by_digest ORDER BY avg_timer_wait DESC LIMIT 10"
+  },
+  systemPrompt: `数据库性能专家：慢查询分析、索引优化建议、查询性能趋势评估。`
+}
+```
+
+</details>
+
+## 常见问题
 
 <details>
 <summary>❌ 无法连接到Grafana服务</summary>
 
-- ✅ 检查Grafana地址格式：必须包含`https://`或`http://`
-- ✅ 验证API密钥有效性：确保未过期且有足够权限
-- ✅ 测试网络连通性和防火墙设置
+- 检查Grafana地址格式：必须包含`https://`或`http://`
+- 验证API密钥有效性：确保未过期且有足够权限
+- 测试网络连通性和防火墙设置
 
 </details>
 
 <details>
 <summary>❌ AI提示找不到MCP工具</summary>
 
-1. 🔄 完全退出Cursor并重新启动
-2. 📁 检查配置文件路径是否正确
-3. 🔍 确保Node.js版本 ≥ 18
+- 完全退出Cursor并重新启动
+- 检查配置文件路径是否正确
+- 确保Node.js版本 ≥ 18（node -v）
 
 </details>
 
 <details>
 <summary>❌ 查询执行失败或超时</summary>
 
-- 🕐 增加timeout设置
-- 📊 简化查询语句复杂度
-- 🔍 检查数据源连接状态
+- 增加timeout设置
+- 检查数据源连接状态
+- 数据量过大，减小时间范围
 
 </details>
-
----
 
 ## 高级配置
 
@@ -196,7 +277,17 @@ export GRAFANA_TOKEN="your-api-token"
 | `check_health` | 健康检查 | 状态监控 |
 | `list_queries` | 查询列表 | 查看配置 |
 
+工具使用方式
+
+```javascript
+// AI助手会自动选择合适的工具
+👤 "分析CPU使用情况" → 🤖 调用 analyze_query
+👤 "获取内存数据" → 🤖 调用 execute_query  
+👤 "检查服务状态" → 🤖 调用 check_health
+👤 "有哪些监控查询" → 🤖 调用 list_queries
+
 </details>
+
 
 ## 📄 许可证
 
