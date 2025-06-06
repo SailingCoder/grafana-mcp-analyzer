@@ -53,6 +53,10 @@ export interface QueryConfig {
         };
         timeout?: number;
     };
+    dataProcessing?: {
+        maxDataLength?: number;
+        enableSummary?: boolean;
+    };
     queries?: Record<string, HttpRequest & {
         systemPrompt?: string;
         aiService?: any;

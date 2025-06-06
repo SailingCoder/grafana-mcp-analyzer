@@ -145,7 +145,7 @@ server.tool('analyze_query', {
                 content: aiAnalysis
             } : {
                 source: 'client_ai',
-                context: formatDataForClientAI(prompt, extractedData)
+                context: formatDataForClientAI(prompt, extractedData, config)
             },
             metadata: {
                 timestamp: new Date().toISOString(),

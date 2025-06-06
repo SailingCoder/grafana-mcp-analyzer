@@ -287,6 +287,30 @@ export GRAFANA_TOKEN="your-api-token"
 ```
 </details>
 
+<details>
+<summary>智能数据摘要配置</summary>
+
+当监控数据量较大时，可以启用智能摘要功能压缩数据：
+
+```javascript
+const config = {
+  baseUrl: 'https://your-grafana.com',
+  // 其他配置...
+  
+  // 数据处理配置
+  dataProcessing: {
+    enableSummary: true,      // 启用智能摘要（默认false）
+    maxDataLength: 500000     // 阈值500KB（默认500KB）
+  }
+};
+```
+
+- 数据量 ≤ 阈值：直接发送给AI分析
+- 数据量 > 阈值：自动生成智能摘要，压缩率可达96%
+- 推荐：对于现代AI不启用摘要，AI可处理500K-800K数据
+
+</details>
+
 
 
 ## 许可证

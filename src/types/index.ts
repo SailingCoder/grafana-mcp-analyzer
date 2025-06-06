@@ -62,6 +62,10 @@ export interface QueryConfig {
     responseParser?: { contentPath: string };
     timeout?: number;
   };
+  dataProcessing?: {
+    maxDataLength?: number;  // 数据大小阈值，超过时启用智能摘要（字节）
+    enableSummary?: boolean; // 是否启用智能摘要功能，默认false（无限制）
+  };
   queries?: Record<string, HttpRequest & {
     systemPrompt?: string;
     aiService?: any;

@@ -9,4 +9,4 @@ export declare function analyzeWithAI(prompt: string, data: ExtractedData, globa
 /**
  * 为客户端AI格式化分析上下文
  */
-export declare function formatDataForClientAI(prompt: string, data: ExtractedData): string;
+export declare function formatDataForClientAI(prompt: string, data: ExtractedData, config?: QueryConfig): string;
