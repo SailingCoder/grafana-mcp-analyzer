@@ -11,9 +11,8 @@
 Imagine these scenarios:
 - You ask AI: "How is my server doing now?" 
 - AI directly checks your Grafana monitoring and responds: "CPU usage is high, recommend checking these processes..."
-- Complex monitoring charts analyzed by AI with one click!
 
-Say goodbye to traditional manual monitoring and let AI become your dedicated DevOps assistant!
+Complex monitoring charts analyzed by AI with one click! Say goodbye to traditional manual monitoring and let AI become your dedicated DevOps assistant!
 
 ## 🚀 Core Features
 
@@ -28,8 +27,6 @@ Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowerin
 | **Multi-Data Source Support** | Perfect compatibility with Prometheus, MySQL, Elasticsearch, etc. | Unified monitoring view |
 | **Professional DevOps Recommendations** | Not just displaying data, but providing actionable optimization solutions | Improve DevOps efficiency |
 | **Lightweight Deployment** | Ultra-small 52KB footprint for quick integration and deployment | Zero-burden usage |
-
----
 
 ## 🛠️ Quick Start
 
@@ -128,15 +125,16 @@ module.exports = config;
 
 **Completely restart Cursor**, then experience intelligent analysis:
 
-👤 You: Analyze frontend performance monitoring data
-🤖 AI: Connecting to Grafana and analyzing frontend performance metrics...
+> 👤 You: Analyze frontend performance monitoring data frontend_performance  
+> 🤖 AI: Connecting to Grafana and analyzing frontend performance metrics...
 
-👤 You: Check if CPU usage is normal  
-🤖 AI: Retrieving CPU monitoring data and conducting intelligent analysis...
+> 👤 You: Analyze cpu_usage is CPU usage normal  
+> 🤖 AI: Retrieving CPU monitoring data and conducting intelligent analysis...
 
 **Configuration Complete!**
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
+
 
 ---
 
