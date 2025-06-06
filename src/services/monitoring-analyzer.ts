@@ -260,6 +260,10 @@ function createDataSummary(data: any): string {
 
 /**
  * 为客户端AI格式化分析上下文
+ * @param prompt 用户的分析需求描述
+ * @param data 从Grafana提取的监控数据
+ * @param config 查询配置，包含数据处理策略
+ * @returns 格式化后的分析上下文字符串
  */
 export function formatDataForClientAI(
   prompt: string, 
@@ -271,38 +275,83 @@ export function formatDataForClientAI(
   const enableSummary = dataProcessing?.enableSummary ?? false; // 默认false（无限制）
   const maxDataLength = dataProcessing?.maxDataLength ?? DEFAULT_MAX_DATA_LENGTH;
   
-  let formattedData = data.data;
+  let formattedData: string = '无数据';
   let dataSize = 0;
   let isTruncated = false;
   let shouldWarn = false;
   
-  if (typeof formattedData === 'object') {
-    const jsonStr = JSON.stringify(formattedData, null, 2);
-    dataSize = jsonStr.length;
-    
-    if (enableSummary && jsonStr.length > maxDataLength) {
-      // 配置了智能摘要且数据超过阈值
-      console.log(`⚠️ 数据量过大 (${Math.round(dataSize/1024)}KB > ${Math.round(maxDataLength/1024)}KB)，启用智能摘要处理`);
-      formattedData = createDataSummary(formattedData);
-      isTruncated = true;
-      shouldWarn = true;
-    } else {
-      // 未配置摘要或数据在阈值内，发送完整数据
-      formattedData = jsonStr;
-      if (dataSize > 100000) { // 100KB以上提示（但不摘要）
-        console.log(`📊 数据量较大 (${Math.round(dataSize/1024)}KB)，发送完整数据给AI处理`);
+  // 安全处理data.data，确保即使为null或undefined也能正常工作
+  const rawData = data.data !== undefined ? data.data : null;
+  
+  try {
+    if (rawData === null || rawData === undefined) {
+      formattedData = '无数据';
+      dataSize = 8; // '无数据'的字符长度
+    } else if (typeof rawData === 'object') {
+      // 处理对象类型数据
+      try {
+        const jsonStr = JSON.stringify(rawData, null, 2);
+        dataSize = jsonStr.length;
+        
+        if (enableSummary && jsonStr.length > maxDataLength) {
+          // 配置了智能摘要且数据超过阈值
+          console.log(`⚠️ 数据量过大 (${Math.round(dataSize/1024)}KB > ${Math.round(maxDataLength/1024)}KB)，启用智能摘要处理`);
+          formattedData = createDataSummary(rawData);
+          isTruncated = true;
+          shouldWarn = true;
+        } else {
+          // 未配置摘要或数据在阈值内，发送完整数据
+          formattedData = jsonStr;
+          if (dataSize > 100000) { // 100KB以上提示（但不摘要）
+            console.log(`📊 数据量较大 (${Math.round(dataSize/1024)}KB)，发送完整数据给AI处理`);
+          }
+        }
+      } catch (error) {
+        // 处理JSON序列化错误（如循环引用）
+        console.error('数据序列化失败，可能包含循环引用:', error);
+        formattedData = '{"error": "数据序列化失败，可能包含循环引用或不支持的数据类型"}';
+        dataSize = formattedData.length;
       }
+    } else if (typeof rawData === 'string') {
+      // 处理字符串类型数据
+      dataSize = rawData.length;
+      
+      if (enableSummary && rawData.length > maxDataLength) {
+        // 字符串数据摘要处理 - 保持JSON格式一致性
+        console.log(`⚠️ 字符串数据过大 (${Math.round(dataSize/1024)}KB > ${Math.round(maxDataLength/1024)}KB)，使用摘要处理`);
+        const prefix = rawData.substring(0, SUMMARY_LENGTH);
+        formattedData = JSON.stringify({
+          type: 'string',
+          length: rawData.length,
+          sample: prefix,
+          note: `[字符串数据摘要] 原始长度: ${dataSize} 字符，已截取前${SUMMARY_LENGTH}字符`
+        }, null, 2);
+        isTruncated = true;
+        shouldWarn = true;
+      } else {
+        // 尝试解析字符串是否为JSON
+        try {
+          JSON.parse(rawData);
+          // 如果能解析为JSON，保持原样
+          formattedData = rawData;
+        } catch {
+          // 不是JSON，则包装为JSON字符串
+          formattedData = JSON.stringify(rawData);
+        }
+      }
+    } else {
+      // 处理其他基本类型(number, boolean等)
+      formattedData = JSON.stringify(rawData);
+      dataSize = formattedData.length;
     }
-  } else if (typeof formattedData === 'string') {
+  } catch (error) {
+    // 兜底错误处理
+    console.error('格式化数据时发生未预期错误:', error);
+    formattedData = JSON.stringify({
+      error: '数据处理失败',
+      message: error instanceof Error ? error.message : String(error)
+    }, null, 2);
     dataSize = formattedData.length;
-    
-    if (enableSummary && formattedData.length > maxDataLength) {
-      // 字符串数据摘要处理
-      console.log(`⚠️ 字符串数据过大 (${Math.round(dataSize/1024)}KB > ${Math.round(maxDataLength/1024)}KB)，使用摘要处理`);
-      formattedData = `${formattedData.substring(0, SUMMARY_LENGTH)}...\n\n[大数据摘要] 原始数据长度: ${dataSize} 字符，仅显示前${SUMMARY_LENGTH}字符`;
-      isTruncated = true;
-      shouldWarn = true;
-    }
   }
 
   return `请基于以下Grafana监控数据进行专业分析：
