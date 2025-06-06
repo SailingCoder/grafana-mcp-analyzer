@@ -1,8 +1,8 @@
 /**
- * 🚀 Grafana MCP 简化配置文件
+ * 🚀 Grafana MCP 标准配置文件
  * 
- * 这是一个简单易用的配置文件，适合快速开始使用。
- * 只需要修改几个关键配置就能让AI助手分析你的Grafana数据！
+ * 使用标准 ES 模块格式，确保兼容性
+ * 格式：export default config
  */
 
 // 从环境变量获取配置（推荐方式，更安全）
@@ -19,34 +19,22 @@ const config = {
     'Content-Type': 'application/json'           // JSON格式请求
   },
 
-  // 默认超时配置（可选）- 所有查询的默认超时时间
-  // defaultTimeout: 30000,  // 30秒，单个查询配置的timeout优先级更高
+  // 默认超时配置（可选）
+  defaultTimeout: 30000,  // 30秒
 
-  // 智能摘要配置（可选）- 控制大数据处理策略
+  // 智能摘要配置 - 解决大数据响应问题
   dataProcessing: {
-    enableSummary: false,     // 是否启用智能摘要，默认false（无限制）
-    maxDataLength: 500000     // 数据大小阈值（字节），默认500KB
+    enableSummary: true,      // 启用智能摘要，防止大数据导致响应问题
+    maxDataLength: 200000     // 数据大小阈值（字节），200KB
   },
   
-  // 智能摘要使用说明：
-  // 推荐方案1：默认无限制（信任AI能力）
-  //   dataProcessing: { enableSummary: false }  或者直接删除dataProcessing配置
-  // 
-  // 保守方案2：启用智能保护
-  //   dataProcessing: { enableSummary: true, maxDataLength: 500000 }
-  // 
-  // 严格方案3：更小阈值
-  //   dataProcessing: { enableSummary: true, maxDataLength: 100000 }
-  //
-  // 当数据超过阈值时，系统会：启用智能摘要（96-97%压缩率）；提供友好的优化建议；明确提示数据处理状态
-
   // 预定义查询 - 常用的监控查询
   queries: {
-    // 通用数据分析查询 - 用于分析各种监控数据
+    // 通用数据分析查询
     data_analysis: {
       url: "api/ds/query",
       method: "POST",
-      // timeout: 30000,  // 超时配置（毫秒），可选，默认30秒
+      timeout: 30000,
       data: {
         "queries": [
           {
@@ -62,49 +50,31 @@ const config = {
       systemPrompt: '你是一个专业的数据分析专家。请对提供的监控数据进行深入分析，包括：1. 数据概览和基本统计 2. 趋势分析和模式识别 3. 异常值检测 4. 关键指标解读 5. 业务影响评估 6. 具体的优化建议和行动项。请用中文提供详细且实用的分析报告。'
     },
     
-    // 前端性能监控（HTTP API方式）
+    // 前端性能监控
     frontend_performance: {
       url: "https://your-grafana-api.com/api/ds/es/query",
       method: "POST",
+      timeout: 45000,
       data: {},
-      systemPrompt: '你是前端性能分析专家。请分析FCP（First Contentful Paint）性能数据，重点关注：1. 页面首次内容绘制时间趋势 2. 75百分位数性能表现 3. 是否存在性能劣化 4. 用户体验影响评估 5. 性能优化建议。请用中文详细分析性能数据并提供实用的优化建议。'
+      systemPrompt: '你是前端性能分析专家。请分析FCP、LCP、TTFB性能数据，重点关注：1. 页面加载性能趋势 2. 75百分位数性能表现 3. 是否存在性能劣化 4. 用户体验影响评估 5. 性能优化建议。请用中文详细分析性能数据并提供实用的优化建议。'
     },
     
-    // CPU使用率监控（curl命令方式）
-    cpu_usage: {
-      curl: `curl 'https://your-grafana-api.comapi/ds/query' \\
-        -X POST \\
-        -H 'Content-Type: application/json' \\
-        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
-      // timeout: 15000,  // 15秒超时，优先于curl中的timeout参数
-      systemPrompt: '你是一个CPU性能分析专家。请分析CPU使用率数据，识别性能问题并提供优化建议。重点关注：1. 使用率趋势 2. 峰值时间点 3. 是否存在性能瓶颈 4. 优化建议'
-    },
-
-    // 内存使用率监控（curl命令方式示例）
-    memory_usage: {
-      curl: `curl 'https://your-grafana-api.com/api/ds/query' \\
-        --max-time 45 \\
-        -X POST \\
-        -H 'Content-Type: application/json' \\
-        -d '{"queries":[{"refId":"B","expr":"(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100","range":{"from":"now-6h","to":"now"}}]}'`,
-      // 注意：如不设置timeout，将使用curl中的--max-time 45秒
-      systemPrompt: '你是一个内存分析专家。请分析内存使用情况，识别内存泄漏风险和优化机会。重点关注：1. 内存使用趋势 2. 是否接近内存上限 3. 内存泄漏风险 4. 优化建议'
-    },
-
-    // 系统健康检查 - 快速检查Grafana服务状态
+    // 系统健康检查
     health_check: {
       url: 'api/health',
       method: 'GET',
+      timeout: 10000,
       systemPrompt: '你是一个系统健康检查专家。请分析服务健康状态，识别潜在问题。如果服务正常，请确认；如果有问题，请提供排查建议。'
     }
   },
 
-  // 健康检查配置，用于MCP工具的健康检查
+  // 健康检查配置
   healthCheck: {
     url: 'api/health'
   }
 };
 
+// 标准 ES 模块导出格式
 export default config; 
 
 // 快速使用指南

@@ -5,10 +5,13 @@ import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import { executeQuery, extractData, checkHealth } from '../datasources/grafana-client.js';
 import { analyzeWithAI, formatDataForClientAI } from '../services/monitoring-analyzer.js';
 import { parseCurlCommand } from '../datasources/curl-parser.js';
 import { isValidHttpMethod } from '../types/index.js';
+// 创建require函数，用于加载CommonJS模块
+const require = createRequire(import.meta.url);
 // 基本配置
 const DEFAULT_CONFIG_PATH = './config/query-config.simple.js';
 // 读取版本号
@@ -38,7 +41,7 @@ function createErrorResponse(error) {
         timestamp: new Date().toISOString()
     }, true);
 }
-// 配置加载
+// 配置加载 - 智能支持ES模块和CommonJS格式
 async function loadConfig() {
     try {
         const configPath = process.env['CONFIG_PATH'] || DEFAULT_CONFIG_PATH;
@@ -46,20 +49,41 @@ async function loadConfig() {
         if (!fs.existsSync(resolvedPath)) {
             throw new Error(`配置文件不存在: ${resolvedPath}`);
         }
-        const fileUrl = `file://${resolvedPath}`;
-        const configModule = await import(fileUrl);
-        const loadedConfig = configModule.default || configModule;
+        let loadedConfig;
+        // 优先尝试ES模块加载（标准格式）
+        try {
+            const fileUrl = `file://${resolvedPath}`;
+            const configModule = await import(fileUrl);
+            loadedConfig = configModule.default || configModule;
+            console.error('使用ES模块格式加载配置文件');
+        }
+        catch (importError) {
+            console.error('ES模块加载失败，尝试CommonJS:', importError.message);
+            // 如果ES模块失败，尝试CommonJS（向后兼容）
+            try {
+                loadedConfig = require(resolvedPath);
+                console.error('使用CommonJS格式加载配置文件');
+            }
+            catch (requireError) {
+                throw new Error(`配置文件加载完全失败 - ES模块: ${importError.message}, CommonJS: ${requireError.message}`);
+            }
+        }
         if (!loadedConfig || typeof loadedConfig !== 'object') {
             throw new Error('配置文件格式无效');
         }
-        console.error('✅ 配置加载成功，包含查询:', Object.keys(loadedConfig.queries || {}).length, '个');
+        console.error('配置加载成功，包含查询:', Object.keys(loadedConfig.queries || {}).length, '个');
+        console.error('dataProcessing配置:', loadedConfig.dataProcessing ? '已启用' : '未启用');
         return loadedConfig;
     }
     catch (error) {
-        console.warn('⚠️ 配置文件加载失败，使用默认配置:', error.message);
+        console.warn('配置文件加载失败，使用默认配置:', error.message);
         return {
             baseUrl: 'https://your-grafana-instance.com',
             defaultHeaders: { 'Content-Type': 'application/json' },
+            dataProcessing: {
+                enableSummary: true,
+                maxDataLength: 200000
+            },
             queries: {}
         };
     }
