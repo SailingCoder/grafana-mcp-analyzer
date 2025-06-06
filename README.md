@@ -68,16 +68,26 @@ npm install -g grafana-mcp-analyzer
 
 ```javascript
 const config = {
-  // Grafana服务基础配置
-  baseUrl: 'https://your-grafana-domain.com',  // 替换为您的Grafana地址
+  // 连接你的Grafana
+  baseUrl: 'https://your-grafana-domain.com',
   defaultHeaders: {
-    'Authorization': 'Bearer your-api-token',  // 替换为您的API密钥
+    'Authorization': 'Bearer your-api-token',
     'Content-Type': 'application/json'
   },
-  
-  // 预定义查询配置
   queries: {
-    // HTTP API配置方式
+    // 方式1：curl命令（推荐，浏览器直接复制）
+    cpu_usage: {
+      curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
+        -X POST \\
+        -H 'Content-Type: application/json' \\
+        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
+      systemPrompt: `您是CPU性能分析专家。请从以下维度分析CPU使用率：
+      1. 趋势变化与异常点识别；
+      2. 性能瓶颈及根因分析；
+      3. 优化建议与预警阈值；
+      4. 对业务系统的潜在影响评估。`
+    },
+    // 方式2：HTTP API配置（适合复杂查询）
     frontend_performance: {
       url: "api/ds/es/query",
       method: "POST",
@@ -87,45 +97,21 @@ const config = {
           query: 'your_elasticsearch_query'
         }
       },
-      systemPrompt: `您是前端性能分析专家。请深度分析FCP（First Contentful Paint）性能数据：
-      
-      **分析重点**：
-      1. 页面首次内容绘制时间趋势分析
-      2. 75百分位数性能表现评估  
-      3. 性能劣化问题识别
-      4. 用户体验影响评估
-      5. 针对性优化建议
-      
-      请用中文提供详细的性能分析报告和实用的优化建议。`
+      systemPrompt: `您是前端性能分析专家，请分析FCP指标并给出建议，包括：
+      1. 页面加载趋势；
+      2. P75表现；
+      3. 性能预警；
+      4. 用户体验评估；
+      5. 针对性优化方案。`
     },
-    
-    // curl命令配置方式（v1.1.0新增）
-    cpu_usage: {
-      curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
-        -X POST \\
-        -H 'Content-Type: application/json' \\
-        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
-      systemPrompt: `您是CPU性能分析专家。请全面分析CPU使用率数据：
-      
-      **关键指标**：
-      1. CPU使用率趋势和变化模式
-      2. 性能峰值时间点分析
-      3. 潜在性能瓶颈识别
-      4. 系统负载健康度评估
-      5. 专业优化建议
-      
-      请提供专业的CPU性能分析报告和改进方案。`
-    }
   },
-  
-  // 健康检查配置
   healthCheck: { 
     url: 'api/health',
     timeout: 5000
   }
 };
 
-export default config;
+module.exports = config;
 ```
 
 📌 配置获取技巧：
@@ -188,37 +174,20 @@ export default config;
 
 ---
 
-## 🔧 高级配置
+## 高级配置
 
-### curl命令支持（v1.1.0）
-
-**两种配置方式：**
-
-```javascript
-// 方式1：传统HTTP配置
-cpu_usage: {
-  url: 'api/ds/query',
-  method: 'POST',
-  data: { queries: [...] }
-},
-
-// 方式2：curl命令（推荐）
-memory_usage: {
-  curl: `curl 'api/ds/query' -X POST -d '{"queries":[...]}'`,
-  systemPrompt: '分析内存使用情况...'
-}
-```
-
-**支持的curl参数：** `-X`, `-H`, `-d`, `-u`, `--connect-timeout`, `--max-time`
-
-### 环境变量配置
+<details>
+<summary>环境变量配置</summary>
 
 ```bash
 export GRAFANA_URL="https://your-grafana.com"
 export GRAFANA_TOKEN="your-api-token"
 ```
 
-### MCP工具清单
+</details>
+
+<details>
+<summary>MCP工具清单</summary>
 
 | 工具 | 功能 | 使用场景 |
 |------|------|----------|
@@ -227,7 +196,7 @@ export GRAFANA_TOKEN="your-api-token"
 | `check_health` | 健康检查 | 状态监控 |
 | `list_queries` | 查询列表 | 查看配置 |
 
----
+</details>
 
 ## 📄 许可证
 
