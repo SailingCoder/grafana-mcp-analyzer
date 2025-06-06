@@ -71,6 +71,8 @@ const config = {
     'Authorization': 'Bearer your-api-token',
     'Content-Type': 'application/json'
   },
+  // Default timeout configuration (optional)
+  // defaultTimeout: 45000,  // 45s, defaults to 30s if not set
   queries: {
     // Method 1: cURL command (Recommended, copy directly from browser)
     cpu_usage: {
@@ -215,7 +217,8 @@ network_latency: {
 // MySQL performance monitoring
 mysql_performance: {
   url: "api/ds/mysql/query",
-  method: "POST", 
+  method: "POST",
+  timeout: 45000,  // 45 seconds timeout, suitable for complex SQL queries
   data: {
     sql: "SELECT * FROM performance_schema.events_statements_summary_by_digest ORDER BY avg_timer_wait DESC LIMIT 10"
   },
@@ -248,9 +251,9 @@ mysql_performance: {
 <details>
 <summary>❌ Query execution failure or timeout</summary>
 
-- Increase timeout settings
-- Check data source connection status
-- Data volume too large, reduce time range
+- **timeout config**: Add `timeout: 60000` (ms) in query or `--max-time 60` in curl
+- **network issues**: Check Grafana connection and API permissions
+- **large data**: Reduce time range (e.g. 24h to 1h)
 
 </details>
 
@@ -285,6 +288,36 @@ Tool Usage
 👤 "Check service status" → 🤖 Calls check_health
 👤 "What monitoring queries are available" → 🤖 Calls list_queries
 ```
+</details>
+
+<details>
+<summary>Timeout Configuration</summary>
+
+```javascript
+const config = {
+  // Default timeout configuration
+  defaultTimeout: 45000,  // 45s default timeout for all queries, defaults to 30s if not set
+  
+  queries: {
+    // Use default timeout (45s)
+    cpu_usage: {
+      url: "api/ds/query"
+    },
+    // Use query-level timeout (15s)
+    memory_usage: {
+      timeout: 15000,  // Override default config
+      url: "api/ds/query"
+    },
+    // curl command timeout
+    disk_usage: {
+      curl: `curl 'api/query' --max-time 30`
+    }
+  }
+}
+
+// Priority: Query config > default config > curl command > system default 30s
+```
+
 </details>
 
 <details>

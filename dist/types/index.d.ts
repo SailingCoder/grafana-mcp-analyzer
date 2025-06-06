@@ -44,6 +44,7 @@ export interface QueryConfig {
     baseUrl?: string;
     defaultHeaders?: Record<string, string>;
     systemPrompt?: string;
+    defaultTimeout?: number;
     aiService?: {
         url: string;
         headers?: Record<string, string>;

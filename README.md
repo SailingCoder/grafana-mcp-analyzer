@@ -71,6 +71,8 @@ const config = {
     'Authorization': 'Bearer your-api-token',
     'Content-Type': 'application/json'
   },
+  // 默认超时配置（可选）
+  // defaultTimeout: 45000,  // 45秒，不填默认30秒
   queries: {
     // 方式1：curl命令（推荐，浏览器直接复制）
     cpu_usage: {
@@ -215,7 +217,7 @@ network_latency: {
 // MySQL性能监控
 mysql_performance: {
   url: "api/ds/mysql/query",
-  method: "POST", 
+  method: "POST",
   data: {
     sql: "SELECT * FROM performance_schema.events_statements_summary_by_digest ORDER BY avg_timer_wait DESC LIMIT 10"
   },
@@ -248,9 +250,9 @@ mysql_performance: {
 <details>
 <summary>❌ 查询执行失败或超时</summary>
 
-- 增加timeout设置
-- 检查数据源连接状态
-- 数据量过大，减小时间范围
+- **timeout配置**: 查询中添加 `timeout: 60000` (毫秒) 或 curl中添加 `--max-time 60`
+- **网络问题**: 检查Grafana连接和API权限
+- **数据量过大**: 缩小时间范围（如从24h改为1h）
 
 </details>
 
@@ -285,6 +287,36 @@ export GRAFANA_TOKEN="your-api-token"
 👤 "检查服务状态" → 🤖 调用 check_health
 👤 "有哪些监控查询" → 🤖 调用 list_queries
 ```
+</details>
+
+<details>
+<summary>超时配置</summary>
+
+```javascript
+  const config = {
+    // 默认超时配置
+    defaultTimeout: 45000,  // 45秒，所有查询默认超时，不填默认30秒
+    
+    queries: {
+      // 使用默认超时（45秒）
+      cpu_usage: {
+        url: "api/ds/query"
+      },
+      // 使用查询级超时（15秒）
+      memory_usage: {
+        timeout: 15000,  // 优先于默认配置
+        url: "api/ds/query"
+      },
+      // curl命令中的超时
+      disk_usage: {
+        curl: `curl 'api/query' --max-time 30`
+      }
+    }
+  }
+  
+  // 优先级：查询配置 > 默认配置 > curl命令 > 系统默认30秒
+```
+
 </details>
 
 <details>

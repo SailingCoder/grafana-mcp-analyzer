@@ -102,7 +102,9 @@ async function executeGrafanaQuery(request?: any, queryName?: string, curl?: str
         url: parsedCurl.url || queryConfig.url,
         method: parsedCurl.method || queryConfig.method,
         headers: { ...config.defaultHeaders, ...queryConfig.headers, ...parsedCurl.headers },
-        data: parsedCurl.data !== undefined ? parsedCurl.data : queryConfig.data
+        data: parsedCurl.data !== undefined ? parsedCurl.data : queryConfig.data,
+        // timeout优先级：查询配置 > curl解析的timeout
+        timeout: queryConfig.timeout || parsedCurl.timeout
       };
     }
   } else if (curl) {
@@ -123,6 +125,17 @@ async function executeGrafanaQuery(request?: any, queryName?: string, curl?: str
     };
   } else {
     throw new Error('必须提供request配置、curl命令或queryName');
+  }
+  
+  // 最终的timeout优先级处理：
+  // 1. request.timeout（直接传入的请求配置，最高优先级）
+  // 2. queryConfig.timeout（查询级配置或curl解析的timeout）
+  // 3. config.defaultTimeout（默认配置）
+  // 4. DEFAULT_TIMEOUT将在executeQuery函数中处理
+  if (request?.timeout) {
+    queryConfig.timeout = request.timeout;
+  } else if (!queryConfig.timeout && config.defaultTimeout) {
+    queryConfig.timeout = config.defaultTimeout;
   }
   
   const queryResponse = await executeQuery(queryConfig, config.baseUrl || '');

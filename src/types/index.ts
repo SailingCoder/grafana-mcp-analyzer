@@ -55,6 +55,7 @@ export interface QueryConfig {
   baseUrl?: string;
   defaultHeaders?: Record<string, string>;
   systemPrompt?: string;
+  defaultTimeout?: number;  // 默认超时配置（毫秒），所有查询的默认超时时间
   aiService?: {
     url: string;
     headers?: Record<string, string>;

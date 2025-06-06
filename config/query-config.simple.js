@@ -19,6 +19,9 @@ const config = {
     'Content-Type': 'application/json'           // JSON格式请求
   },
 
+  // 默认超时配置（可选）- 所有查询的默认超时时间
+  // defaultTimeout: 30000,  // 30秒，单个查询配置的timeout优先级更高
+
   // 智能摘要配置（可选）- 控制大数据处理策略
   dataProcessing: {
     enableSummary: false,     // 是否启用智能摘要，默认false（无限制）
@@ -43,6 +46,7 @@ const config = {
     data_analysis: {
       url: "api/ds/query",
       method: "POST",
+      // timeout: 30000,  // 超时配置（毫秒），可选，默认30秒
       data: {
         "queries": [
           {
@@ -72,16 +76,18 @@ const config = {
         -X POST \\
         -H 'Content-Type: application/json' \\
         -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
-      // AI分析提示 - 告诉AI如何分析这个数据
+      // timeout: 15000,  // 15秒超时，优先于curl中的timeout参数
       systemPrompt: '你是一个CPU性能分析专家。请分析CPU使用率数据，识别性能问题并提供优化建议。重点关注：1. 使用率趋势 2. 峰值时间点 3. 是否存在性能瓶颈 4. 优化建议'
     },
 
     // 内存使用率监控（curl命令方式示例）
     memory_usage: {
       curl: `curl 'https://your-grafana-api.com/api/ds/query' \\
+        --max-time 45 \\
         -X POST \\
         -H 'Content-Type: application/json' \\
         -d '{"queries":[{"refId":"B","expr":"(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100","range":{"from":"now-6h","to":"now"}}]}'`,
+      // 注意：如不设置timeout，将使用curl中的--max-time 45秒
       systemPrompt: '你是一个内存分析专家。请分析内存使用情况，识别内存泄漏风险和优化机会。重点关注：1. 内存使用趋势 2. 是否接近内存上限 3. 内存泄漏风险 4. 优化建议'
     },
 
@@ -118,9 +124,10 @@ export default config;
 //   方式2：HTTP API配置
 //   在上面的 queries 中添加你需要的查询（可以从grafana query inspector中复制）
 //   
-//   注意：
-//   （1）查询名称必须用英文（如 cpu_usage, memory_check）
-//   （2）避免中文名称，AI无法正确识别
+  //   注意：
+  //   （1）查询名称必须用英文（如 cpu_usage, memory_check）
+  //   （2）避免中文名称，AI无法正确识别
+  //   （3）timeout优先级：查询配置 > defaultTimeout > curl命令 > 默认30秒
 // 
 // 第3步：在Cursor中配置MCP
 //   {
