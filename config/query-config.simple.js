@@ -42,7 +42,7 @@ const config = {
     
     // 前端性能监控（HTTP API方式）
     frontend_performance: {
-      url: "api/ds/es/query",
+      url: "https://your-grafana-api.com/api/ds/es/query",
       method: "POST",
       data: {},
       systemPrompt: '你是前端性能分析专家。请分析FCP（First Contentful Paint）性能数据，重点关注：1. 页面首次内容绘制时间趋势 2. 75百分位数性能表现 3. 是否存在性能劣化 4. 用户体验影响评估 5. 性能优化建议。请用中文详细分析性能数据并提供实用的优化建议。'
@@ -50,7 +50,7 @@ const config = {
     
     // CPU使用率监控（curl命令方式）
     cpu_usage: {
-      curl: `curl 'api/ds/query' \\
+      curl: `curl 'https://your-grafana-api.comapi/ds/query' \\
         -X POST \\
         -H 'Content-Type: application/json' \\
         -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
@@ -60,7 +60,7 @@ const config = {
 
     // 内存使用率监控（curl命令方式示例）
     memory_usage: {
-      curl: `curl 'api/ds/query' \\
+      curl: `curl 'https://your-grafana-api.com/api/ds/query' \\
         -X POST \\
         -H 'Content-Type: application/json' \\
         -d '{"queries":[{"refId":"B","expr":"(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100","range":{"from":"now-6h","to":"now"}}]}'`,
