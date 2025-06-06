@@ -101,7 +101,7 @@ const config = {
     
     // curl命令配置方式（v1.1.0新增）
     cpu_usage: {
-      curl: `curl 'api/ds/query' \\
+      curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
         -X POST \\
         -H 'Content-Type: application/json' \\
         -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
