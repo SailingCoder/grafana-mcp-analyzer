@@ -22,7 +22,8 @@ Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowerin
 | Feature | Description | Value |
 |---------|-------------|-------|
 | **Natural Conversation Queries** | "Help me check memory usage" → AI immediately analyzes and provides professional advice | Lower technical barriers |
-| **cURL Command Support** | Support direct cURL command configuration, copy from browser and paste | Simplify configuration |
+| **cURL Command Support** | Support direct cURL command configuration, copy from browser and paste | Simplify configuration process |
+| **Multi-Level Analysis** | Support precise analysis of individual charts and aggregated analysis of entire dashboards | Flexible analysis granularity |
 | **Intelligent Anomaly Detection** | AI proactively discovers and reports performance bottlenecks and anomalies | Early risk warning |
 | **Multi-Data Source Support** | Perfect compatibility with Prometheus, MySQL, Elasticsearch, etc. | Unified monitoring view |
 | **Professional DevOps Recommendations** | Not just displaying data, but providing actionable optimization solutions | Improve DevOps efficiency |
@@ -59,22 +60,34 @@ npm install -g grafana-mcp-analyzer
 
 > 💡 **Tip**: Any AI assistant supporting MCP protocol can use similar configuration. Requires Node.js 18+ environment support.
 
+> 💡 **CONFIG_PATH Description**: `CONFIG_PATH` supports relative paths, absolute paths, and remote URLs. See [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md) for details
+
 ### Step 2: Create Configuration File
 
 Create a `grafana-config.js` configuration file in your project root directory:
 
 ```javascript
 const config = {
-  // Grafana service basic configuration
-  baseUrl: 'https://your-grafana-domain.com',  // Replace with your Grafana address
+  // Connect to your Grafana
+  baseUrl: 'https://your-grafana-domain.com',
   defaultHeaders: {
-    'Authorization': 'Bearer your-api-token',  // Replace with your API key
+    'Authorization': 'Bearer your-api-token',
     'Content-Type': 'application/json'
   },
-  
-  // Predefined query configurations
   queries: {
-    // HTTP API configuration method
+    // Method 1: cURL command (Recommended, copy directly from browser)
+    cpu_usage: {
+      curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
+        -X POST \\
+        -H 'Content-Type: application/json' \\
+        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
+      systemPrompt: `You are a CPU performance analysis expert. Please analyze CPU usage from the following dimensions:
+      1. Trend changes and anomaly point identification;
+      2. Performance bottleneck and root cause analysis;
+      3. Optimization recommendations and alert thresholds;
+      4. Potential impact assessment on business systems.`
+    },
+    // Method 2: HTTP API configuration (suitable for complex queries)
     frontend_performance: {
       url: "api/ds/es/query",
       method: "POST",
@@ -84,70 +97,42 @@ const config = {
           query: 'your_elasticsearch_query'
         }
       },
-      systemPrompt: `You are a frontend performance analysis expert. Please analyze FCP (First Contentful Paint) performance data:
-      
-      **Analysis Focus**:
-      1. Page first contentful paint time trend analysis
-      2. 75th percentile performance evaluation  
-      3. Performance degradation issue identification
-      4. User experience impact assessment
-      5. Targeted optimization recommendations
-      
-      Please provide detailed performance analysis reports and practical optimization suggestions.`
+      systemPrompt: `You are a frontend performance analysis expert. Please analyze FCP metrics and provide recommendations, including:
+      1. Page loading trends;
+      2. P75 performance;
+      3. Performance alerts;
+      4. User experience assessment;
+      5. Targeted optimization solutions.`
     },
-    
-    // cURL command configuration method (v1.1.0 new feature)
-    cpu_usage: {
-      curl: `curl 'api/ds/query' \\
-        -X POST \\
-        -H 'Content-Type: application/json' \\
-        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
-      systemPrompt: `You are a CPU performance analysis expert. Please analyze CPU usage data:
-      
-      **Key Metrics**:
-      1. CPU usage trends and change patterns
-      2. Performance peak time point analysis
-      3. Potential performance bottleneck identification
-      4. System load health assessment
-      5. Professional optimization recommendations
-      
-      Please provide professional CPU performance analysis reports and improvement solutions.`
-    }
   },
-  
-  // Health check configuration
   healthCheck: { 
     url: 'api/health',
     timeout: 5000
   }
 };
 
-export default config;
+module.exports = config;
 ```
 
 📌 Configuration Retrieval Tips:
 
-**Recommended: Copy cURL Command from Browser**
+**Copy cURL command from browser:** (Recommended)
 1. Execute query in Grafana → Press F12 to open developer tools → Network tab
 2. Find query request → Right-click → Copy as cURL → Paste to config file curl field
 
-**Other Methods:**
-- **Query Inspector**: Go to chart → "Query Inspector" → "JSON" tab → Copy to data field
-- **Manual Construction**: View request parameters through Network panel and manually construct HTTP config
-
-💡 For detailed cURL configuration methods, see [Advanced Configuration](#advanced-configuration) section.
+**HTTP API Configuration:**
+1. Get Data parameters: Go to chart → "Query Inspector" → "JSON" parse → Copy request body
+2. Get URL and Headers Token: View request parameters through Network panel, manually construct HTTP configuration.
 
 ### Step 3: Test Run
 
 **Completely restart Cursor**, then experience intelligent analysis:
 
-```
 👤 You: Analyze frontend performance monitoring data
 🤖 AI: Connecting to Grafana and analyzing frontend performance metrics...
 
 👤 You: Check if CPU usage is normal  
 🤖 AI: Retrieving CPU monitoring data and conducting intelligent analysis...
-```
 
 **Configuration Complete!**
 
@@ -155,68 +140,136 @@ export default config;
 
 ---
 
-## 🔧 Common Issues
+## More Configuration Examples
+
+<details>
+<summary>Metrics Monitoring Configuration</summary>
+
+```javascript
+// Metrics query
+prometheus_metrics: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{
+      "refId":"A",
+      "expr":"node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100",
+      "range":{"from":"now-2h","to":"now"}
+    }]}'`,
+  systemPrompt: `Memory usage expert analysis: Focus on memory leak risks, usage trends, abnormal fluctuations, and optimization recommendations.`
+}
+```
+
+</details>
+
+<details>
+<summary>Log Analysis Configuration</summary>
+
+```javascript
+// Elasticsearch log query
+error_logs: {
+  url: "api/ds/es/query", 
+  method: "POST",
+  data: {
+    es: {
+      index: "app-logs-*",
+      query: {
+        "query": {
+          "bool": {
+            "must": [
+              {"term": {"level": "ERROR"}},
+              {"range": {"@timestamp": {"gte": "now-1h"}}}
+            ]
+          }
+        }
+      }
+    }
+  },
+  systemPrompt: `Log analysis expert: Identify error patterns, frequency analysis, impact assessment, and troubleshooting recommendations.`
+}
+```
+
+</details>
+
+<details>
+<summary>Network Monitoring Configuration</summary>
+
+```javascript
+// Network latency monitoring
+network_latency: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -d '{"queries":[{
+      "refId":"A", 
+      "expr":"histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+      "range":{"from":"now-30m","to":"now"}
+    }]}'`,
+  systemPrompt: `Network performance expert: Analyze P95 latency, identify slow requests, locate network bottlenecks, and optimization strategies.`
+}
+```
+
+</details>
+
+<details>
+<summary>Database Monitoring Configuration</summary>
+
+```javascript
+// MySQL performance monitoring
+mysql_performance: {
+  url: "api/ds/mysql/query",
+  method: "POST", 
+  data: {
+    sql: "SELECT * FROM performance_schema.events_statements_summary_by_digest ORDER BY avg_timer_wait DESC LIMIT 10"
+  },
+  systemPrompt: `Database performance expert: Slow query analysis, index optimization recommendations, query performance trend assessment.`
+}
+```
+
+</details>
+
+## Common Issues
 
 <details>
 <summary>❌ Unable to connect to Grafana service</summary>
 
-- ✅ Check Grafana address format: Must include `https://` or `http://`
-- ✅ Verify API key validity: Ensure not expired and has sufficient permissions
-- ✅ Test network connectivity and firewall settings
+- Check Grafana address format: Must include `https://` or `http://`
+- Verify API key validity: Ensure not expired and has sufficient permissions
+- Test network connectivity and firewall settings
 
 </details>
 
 <details>
 <summary>❌ AI reports MCP tools not found</summary>
 
-1. 🔄 Completely exit Cursor and restart
-2. 📁 Check if configuration file path is correct
-3. 🔍 Ensure Node.js version ≥ 18
+- Completely exit Cursor and restart
+- Check if configuration file path is correct
+- Ensure Node.js version ≥ 18 (node -v)
 
 </details>
 
 <details>
 <summary>❌ Query execution failure or timeout</summary>
 
-- 🕐 Increase timeout settings
-- 📊 Simplify query statement complexity
-- 🔍 Check data source connection status
+- Increase timeout settings
+- Check data source connection status
+- Data volume too large, reduce time range
 
 </details>
 
----
+## Advanced Configuration
 
-## 🔧 Advanced Configuration
-
-### cURL Command Support (v1.1.0)
-
-**Two configuration methods:**
-
-```javascript
-// Method 1: Traditional HTTP configuration
-cpu_usage: {
-  url: 'api/ds/query',
-  method: 'POST',
-  data: { queries: [...] }
-},
-
-// Method 2: cURL command (Recommended)
-memory_usage: {
-  curl: `curl 'api/ds/query' -X POST -d '{"queries":[...]}'`,
-  systemPrompt: 'Analyze memory usage...'
-}
-```
-
-**cURL Parameters Supported:** `-X`, `-H`, `-d`, `-u`, `--connect-timeout`, `--max-time`
-
-### Environment Variables Configuration
+<details>
+<summary>Environment Variables Configuration</summary>
 
 ```bash
 export GRAFANA_URL="https://your-grafana.com"
 export GRAFANA_TOKEN="your-api-token"
 ```
 
-### MCP Tools List
+</details>
+
+<details>
+<summary>MCP Tools List</summary>
 
 | Tool | Function | Use Case |
 |------|----------|----------|
@@ -225,8 +278,17 @@ export GRAFANA_TOKEN="your-api-token"
 | `check_health` | Health check | Status monitoring |
 | `list_queries` | Query list | View configuration |
 
----
+Tool Usage
 
-## 📄 License
+```javascript
+// AI assistant automatically selects appropriate tools
+👤 "Analyze CPU usage" → 🤖 Calls analyze_query
+👤 "Get memory data" → 🤖 Calls execute_query  
+👤 "Check service status" → 🤖 Calls check_health
+👤 "What monitoring queries are available" → 🤖 Calls list_queries
+```
+</details>
 
-MIT License. See the [LICENSE](LICENSE) file for details. 
+## License
+
+MIT License. See [LICENSE](LICENSE) file for details. 
