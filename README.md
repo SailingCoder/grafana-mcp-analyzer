@@ -286,10 +286,12 @@ export GRAFANA_TOKEN="your-api-token"
 👤 "获取内存数据" → 🤖 调用 execute_query  
 👤 "检查服务状态" → 🤖 调用 check_health
 👤 "有哪些监控查询" → 🤖 调用 list_queries
-
+```
 </details>
 
 
-## 📄 许可证
+
+## 许可证
 
 MIT 开源协议。详见 [LICENSE](LICENSE) 文件。
+
