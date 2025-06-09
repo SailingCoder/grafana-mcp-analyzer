@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { executeQuery, extractData, checkHealth } from '../datasources/grafana-client.js';
 import { analyzeWithAI, formatDataForClientAI } from '../services/monitoring-analyzer.js';
-import { parseCurlCommand, httpRequestToCurl } from '../datasources/curl-parser.js';
+import { parseCurlCommand } from '../datasources/curl-parser.js';
 import { isValidHttpMethod } from '../types/index.js';
 import type { 
   QueryConfig, 
@@ -75,14 +75,14 @@ async function loadConfig(): Promise<QueryConfig> {
       const fileUrl = `file://${resolvedPath}`;
       const configModule = await import(fileUrl);
       loadedConfig = configModule.default || configModule;
-      console.error('使用ES模块格式加载配置文件');
+      console.log('使用ES模块格式加载配置文件');
     } catch (importError: any) {
-      console.error('ES模块加载失败，尝试CommonJS:', importError.message);
+      console.log('ES模块加载失败，尝试CommonJS:', importError.message);
       
       // 如果ES模块失败，尝试CommonJS（向后兼容）
       try {
         loadedConfig = require(resolvedPath);
-        console.error('使用CommonJS格式加载配置文件');
+        console.log('使用CommonJS格式加载配置文件');
       } catch (requireError: any) {
         throw new Error(`配置文件加载完全失败 - ES模块: ${importError.message}, CommonJS: ${requireError.message}`);
       }
@@ -92,8 +92,8 @@ async function loadConfig(): Promise<QueryConfig> {
       throw new Error('配置文件格式无效');
     }
     
-    console.error('配置加载成功，包含查询:', Object.keys(loadedConfig.queries || {}).length, '个');
-    console.error('dataProcessing配置:', loadedConfig.dataProcessing ? '已启用' : '未启用');
+    console.log('配置加载成功，包含查询:', Object.keys(loadedConfig.queries || {}).length, '个');
+    console.log('dataProcessing配置:', loadedConfig.dataProcessing ? '已启用' : '未启用');
     
     return loadedConfig;
     
