@@ -18,15 +18,13 @@ Complex monitoring charts analyzed by AI with one click! Say goodbye to traditio
 
 Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowering AI assistants like Claude and ChatGPT with the following superpowers:
 
-| Feature | Description | Value |
-|---------|-------------|-------|
-| **Natural Conversation Queries** | "Help me check memory usage" → AI immediately analyzes and provides professional advice | Lower technical barriers |
-| **cURL Command Support** | Support direct cURL command configuration, copy from browser and paste | Simplify configuration process |
-| **Multi-Level Analysis** | Support precise analysis of individual charts and aggregated analysis of entire dashboards | Flexible analysis granularity |
-| **Intelligent Anomaly Detection** | AI proactively discovers and reports performance bottlenecks and anomalies | Early risk warning |
-| **Multi-Data Source Support** | Perfect compatibility with Prometheus, MySQL, Elasticsearch, etc. | Unified monitoring view |
-| **Professional DevOps Recommendations** | Not just displaying data, but providing actionable optimization solutions | Improve DevOps efficiency |
-| **Lightweight Deployment** | Ultra-small 52KB footprint for quick integration and deployment | Zero-burden usage |
+- **Natural Conversation Queries**: "Help me check memory usage" → AI immediately analyzes and provides professional advice, lowering technical barriers
+- **cURL Command Support**: Support direct cURL command configuration, copy from browser and paste, simplifying configuration process
+- **Multi-Level Analysis**: Support precise analysis of individual charts and aggregated analysis of entire dashboards, flexible analysis granularity
+- **Intelligent Anomaly Detection**: AI proactively discovers and reports performance bottlenecks and anomalies, early risk warning
+- **Full Data Source Support**: Perfect compatibility with Prometheus, MySQL, Elasticsearch and all data sources/query commands, unified monitoring view
+- **Professional DevOps Recommendations**: Not just displaying data, but providing actionable optimization solutions, improving DevOps efficiency
+- **Lightweight Deployment**: Ultra-small KB footprint for quick integration and deployment, zero-burden usage
 
 ## 🛠️ Quick Start
 
@@ -36,6 +34,7 @@ Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowerin
 ```bash
 npm install -g grafana-mcp-analyzer
 ```
+> MCP relies on the ` Node.js 18+` environment. For recommended installation methods, please refer to the [Complete Guide to Quick Installation of Node.js](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
 #### Configure AI Assistant (Using Cursor as example)
 
@@ -254,6 +253,18 @@ mysql_performance: {
 
 </details>
 
+<details>
+<summary>⚠️ Current Limitations</summary>
+
+(Limited by AI model context processing capabilities)
+
+- **More suitable for small to medium-scale data analysis**: Current analysis capabilities mainly focus on small to medium volume monitoring data, suitable for daily inspections, local anomaly location and other scenarios, covering basic routine operations needs
+- **Challenges remain for large data volume scenarios**: When processing large-scale monitoring data, limited by the current AI models' context processing capabilities, repeated custom Tool calls may occur. It is recommended to **reduce query scope** as a temporary solution at this stage
+
+With the continuous advancement of AI models in context capabilities, better support for large data volume processing is expected in the future. Meanwhile, this library will also iterate to provide more robust capability optimization solutions for big data scenarios in subsequent releases.
+
+</details>
+
 ## Advanced Configuration
 
 <details>
@@ -286,6 +297,12 @@ Tool Usage
 👤 "What monitoring queries are available" → 🤖 Calls list_queries
 ```
 </details>
+
+---
+
+## 📖 Recommended Articles
+
+- [grafana-mcp-analyzer：基于 MCP 的轻量 AI 分析监控图表的运维神器！](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - In-depth Analysis on CSDN Tech Blog
 
 ## License
 
