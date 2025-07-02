@@ -423,3 +423,59 @@ const report = await generateReport({
 });
 ```
 
+### 数据访问
+
+新的存储结构提供了灵活的数据访问方式：
+
+```javascript
+// 访问请求数据
+const metadata = await getRequestMetadata(requestId);
+const responseData = await getResponseData(requestId);
+const analysis = await getAnalysis(requestId);
+
+// 处理大数据集
+const dataFiles = await listDataFiles(requestId);
+if (dataFiles.includes('chunk-0.json')) {
+  const firstChunk = await getResponseData(requestId, 'chunk-0');
+}
+
+// 获取请求统计
+const stats = await getRequestStats(requestId);
+console.log(`数据类型: ${stats.dataType}, 文件数: ${stats.dataFiles}, 大小: ${stats.totalSize}`);
+```
+
+## 📊 数据存储
+
+### 存储结构
+
+项目采用以请求为中心的存储模式：
+
+```
+~/.grafana-mcp-analyzer/data-store/
+  ├── request-{timestamp}-{id}/
+  │   ├── metadata.json    # 请求元数据
+  │   ├── analysis.json    # 分析结果
+  │   └── data/           # 响应数据
+  │       ├── full.json   # 完整数据(小数据)
+  │       └── chunk-*.json # 数据分块(大数据)
+  └── ...
+```
+
+### 大数据处理
+
+- **自动分块**: 数据超过1MB时自动分块存储
+- **透明访问**: 通过ResourceLinks统一访问接口
+- **按需加载**: 支持加载完整数据或特定数据块
+
+### ResourceLinks
+
+通过MCP ResourceLinks技术提供数据访问：
+
+```
+monitoring-data://{requestId}/data        # 访问响应数据
+monitoring-data://{requestId}/analysis    # 访问分析结果
+monitoring-data://{requestId}/chunk-0     # 访问特定数据块
+monitoring-data-index://requests          # 查看所有请求
+monitoring-data-index://session/{id}      # 查看会话请求
+```
+

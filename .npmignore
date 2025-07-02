@@ -5,6 +5,7 @@ tsconfig.json
 # Development files
 .env
 .env.*
+.data-store/
 *.log
 *.tmp
 .DS_Store

@@ -2,15 +2,15 @@ import type { HttpRequest, HttpResponse, ExtractedData, HealthStatus } from '../
 /**
  * 执行Grafana查询
  */
-export declare function executeQuery(request: HttpRequest, baseUrl?: string): Promise<HttpResponse>;
+export declare function executeQuery(request: HttpRequest, baseUrl: string): Promise<HttpResponse>;
 /**
- * 从查询响应中提取数据
+ * 从HTTP响应中提取数据
  */
 export declare function extractData(response: HttpResponse): ExtractedData;
 /**
- * 健康检查
+ * 检查健康状态
  */
-export declare function checkHealth(healthUrl: string, options?: {
+export declare function checkHealth(url: string, options?: {
     timeout?: number;
     expectedStatus?: number;
 }): Promise<HealthStatus>;

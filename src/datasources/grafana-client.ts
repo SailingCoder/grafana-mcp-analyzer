@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 import type { HttpRequest, HttpResponse, ExtractedData, HealthStatus } from '../types/index.js';
 
 const DEFAULT_TIMEOUT = 30000; // 默认请求超时时间（30秒） - 避免长时间等待
@@ -7,138 +7,154 @@ const HEALTH_CHECK_TIMEOUT = 5000; // 健康检查超时时间（5秒） - 快�
 /**
  * 执行Grafana查询
  */
-export async function executeQuery(request: HttpRequest, baseUrl: string = ''): Promise<HttpResponse> {
+export async function executeQuery(request: HttpRequest, baseUrl: string): Promise<HttpResponse> {
   try {
-    // 构建完整URL
-    let fullUrl = request.url;
-    if (baseUrl && !request.url.startsWith('http')) {
-      const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      const cleanUrl = request.url.replace(/^\//, '');
-      fullUrl = `${cleanBaseUrl}/${cleanUrl}`;
-    }
-
-    // 发送请求
-    const response: AxiosResponse = await axios({
+    const url = request.url.startsWith('http') ? request.url : `${baseUrl}/${request.url}`;
+    
+    const response = await axios({
+      url,
       method: request.method || 'POST',
-      url: fullUrl,
+      headers: request.headers || { 'Content-Type': 'application/json' },
       data: request.data,
       params: request.params,
-      headers: request.headers || {},
-      timeout: request.timeout || DEFAULT_TIMEOUT,
-      validateStatus: (status) => status < 500, // 允许4xx状态码
-      // 确保原始数据不被转换，特别是对于NDJSON格式
-      transformRequest: [(data) => {
-        // 如果是字符串且包含换行符，很可能是NDJSON格式，直接返回
-        if (typeof data === 'string' && data.includes('\n')) {
-          return data;
-        }
-        // 其他情况使用默认转换
-        return data;
-      }],
+      timeout: request.timeout || 30000,
       ...request.axiosConfig
     });
-
+    
     return {
       success: true,
-      data: response.data,
       status: response.status,
-      headers: response.headers
+      statusText: response.statusText,
+      headers: Object.fromEntries(
+        Object.entries(response.headers).map(([k, v]) => [k, String(v)])
+      ),
+      data: response.data
     };
-
   } catch (error: any) {
-    // 统一错误处理
     if (error.response) {
-      const status = error.response.status;
-      let errorMessage = `HTTP ${status}`;
-      
-      if (status === 401) errorMessage += ': 认证失败，请检查API令牌';
-      else if (status === 403) errorMessage += ': 权限不足';
-      else if (status === 404) errorMessage += ': 资源不存在，请检查URL';
-      else if (status >= 500) errorMessage += ': 服务器错误';
-      else errorMessage += `: ${error.message}`;
-
+      // 服务器返回了错误响应
       return {
         success: false,
-        error: errorMessage,
         status: error.response.status,
-        data: error.response.data
+        statusText: error.response.statusText,
+        headers: Object.fromEntries(
+          Object.entries(error.response.headers || {}).map(([k, v]) => [k, String(v)])
+        ),
+        data: error.response.data,
+        error: `HTTP错误: ${error.response.status} ${error.response.statusText}`
+      };
+    } else if (error.request) {
+      // 请求已发送但未收到响应
+      return {
+        success: false,
+        error: `无响应: ${error.message || '请求超时或网络错误'}`
+      };
+    } else {
+      // 请求设置时出现问题
+      return {
+        success: false,
+        error: `请求错误: ${error.message || '未知错误'}`
       };
     }
-
-    // 网络错误
-    let errorMessage = error.message;
-    if (error.code === 'ECONNABORTED') errorMessage = '请求超时';
-    else if (error.code === 'ENOTFOUND') errorMessage = '无法连接到服务器';
-    else if (error.code === 'ECONNREFUSED') errorMessage = '连接被拒绝';
-
-    return {
-      success: false,
-      error: errorMessage
-    };
   }
 }
 
 /**
- * 从查询响应中提取数据
+ * 从HTTP响应中提取数据
  */
 export function extractData(response: HttpResponse): ExtractedData {
   if (!response.success) {
     return {
       hasData: false,
       type: 'error',
-      error: response.error || '查询失败',
-      status: response.status,
-      timestamp: new Date().toISOString()
+      status: String(response.status || 'error'),
+      timestamp: new Date().toISOString(),
+      data: { error: response.error },
+      metadata: {
+        error: response.error,
+        status: response.status
+      }
     };
   }
-
-  // 简单判断是否有数据
-  const hasData = response.data != null && 
-    (typeof response.data === 'object' ? Object.keys(response.data).length > 0 : true);
-
+  
+  // 检测数据类型
+  let type = 'unknown';
+  let hasData = false;
+  
+  if (response.data) {
+    if (response.data.results) {
+      type = 'grafana-query';
+      hasData = true;
+    } else if (response.data.series) {
+      type = 'timeseries';
+      hasData = Array.isArray(response.data.series) && response.data.series.length > 0;
+    } else if (response.data.tables) {
+      type = 'tables';
+      hasData = Array.isArray(response.data.tables) && response.data.tables.length > 0;
+    } else if (response.data.responses) {
+      type = 'elasticsearch';
+      hasData = Array.isArray(response.data.responses) && response.data.responses.length > 0;
+    } else if (Array.isArray(response.data)) {
+      type = 'array';
+      hasData = response.data.length > 0;
+    } else if (typeof response.data === 'object') {
+      type = 'object';
+      hasData = Object.keys(response.data).length > 0;
+    } else {
+      type = typeof response.data;
+      hasData = response.data !== null && response.data !== undefined;
+    }
+  }
+  
   return {
     hasData,
-    type: 'grafana',
-    data: response.data,
-    status: response.status,
+    type,
+    status: String(response.status || 200),
     timestamp: new Date().toISOString(),
+    data: response.data,
     metadata: {
-      responseSize: JSON.stringify(response.data || {}).length,
-      contentType: response.headers?.['content-type']
+      contentType: response.headers?.['content-type'],
+      responseSize: JSON.stringify(response.data).length
     }
   };
 }
 
 /**
- * 健康检查
+ * 检查健康状态
  */
 export async function checkHealth(
-  healthUrl: string, 
-  options: { timeout?: number; expectedStatus?: number } = {}
+  url: string, 
+  options?: { 
+    timeout?: number; 
+    expectedStatus?: number;
+  }
 ): Promise<HealthStatus> {
-  const { timeout = HEALTH_CHECK_TIMEOUT, expectedStatus = 200 } = options;
-  
   try {
-    const response = await axios.get(healthUrl, { 
-      timeout,
-      validateStatus: (status) => status < 500
+    const response = await axios.get(url, { 
+      timeout: options?.timeout || 5000 
     });
     
+    const expectedStatus = options?.expectedStatus || 200;
+    
     return {
-      status: response.status === expectedStatus ? 'healthy' : 'degraded',
+      status: response.status === expectedStatus ? 'healthy' : 'warning',
       timestamp: new Date().toISOString(),
-      response: response.status,
-      data: response.data,
+      message: `状态码: ${response.status}`,
       details: {
-        responseTime: response.headers['x-response-time'],
-        server: response.headers['server']
+        status: response.status,
+        statusText: response.statusText,
+        expectedStatus
       }
     };
   } catch (error: any) {
     return {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      error: error.code === 'ECONNABORTED' ? '健康检查超时' : error.message
+      message: error.code === 'ECONNABORTED' ? '健康检查超时' : error.message,
+      details: {
+        code: error.code,
+        isTimeout: error.code === 'ECONNABORTED'
+      }
     };
   }
 }

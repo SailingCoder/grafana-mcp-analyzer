@@ -25,11 +25,62 @@ AI助手可以读取的数据源（文件、数据库等）
 
 ## 🔧 本项目的MCP实现
 
+## 📊 数据存储架构
+
+### 以请求为中心的存储模式
+
+本项目采用以请求为中心的数据存储模式，每个请求都是独立的数据单元：
+
+```
+~/.grafana-mcp-analyzer/data-store/
+  ├── request-1751457026755-nsegn2dj6/
+  │   ├── metadata.json         // 请求元数据
+  │   ├── analysis.json         // 分析结果
+  │   └── data/                 // 响应数据文件夹
+  │       └── full.json         // 完整数据(小数据)
+  │
+  └── request-1751457026758-tbbaa3ema/
+      ├── metadata.json         // 请求元数据
+      └── data/                 // 响应数据文件夹
+          ├── chunk-0.json      // 数据分块1
+          ├── chunk-1.json      // 数据分块2
+          └── ...               // 更多数据分块
+```
+
+### 数据文件说明
+
+1. **metadata.json**: 包含请求的完整信息
+   ```json
+   {
+     "id": "request-1751457026755-nsegn2dj6",
+     "timestamp": "2025-07-02T11:50:26.755Z",
+     "url": "api/ds/query",
+     "method": "POST",
+     "params": {},
+     "data": { "targets": [...] },
+     "prompt": "分析CPU使用率",
+     "sessionId": "session-test"
+   }
+   ```
+
+2. **data/full.json**: 小数据的完整响应（< 1MB）
+
+3. **data/chunk-*.json**: 大数据的分块存储（≥ 1MB）
+
+4. **analysis.json**: AI分析结果
+   ```json
+   {
+     "prompt": "分析CPU使用率",
+     "timestamp": "2025-07-02T11:50:26.755Z",
+     "result": "CPU使用率正常，平均值为30%"
+   }
+   ```
+
 ### 工具清单
 | 工具名 | 功能 | 参数 |
 |--------|------|------|
-| `analyze_query` | 执行查询并AI分析 | `prompt`, `queryName`, `request` |
-| `execute_query` | 执行原始查询 | `queryName`, `request` |
+| `analyze_query` | 执行查询并AI分析 | `prompt`, `queryName`, `request`, `curl`, `sessionId` |
+| `execute_query` | 执行原始查询 | `queryName`, `request`, `curl`, `sessionId` |
 | `check_health` | 健康检查 | `expectedStatus`, `timeout` |
 | `list_queries` | 查询列表 | `includeConfig` |
 | `manage_sessions` | 会话管理 | `action`, `sessionId`, `metadata` |
@@ -39,47 +90,27 @@ AI助手可以读取的数据源（文件、数据库等）
 ### 资源清单
 | 资源名 | URI模式 | 功能 |
 |--------|---------|------|
-| `monitoring-data` | `monitoring-data://{sessionId}/{responseId}/{dataType}` | 访问监控数据块 |
-| `monitoring-data-legacy` | `monitoring-data://{dataId}` | 访问旧版监控数据 |
-| `monitoring-data-index` | `monitoring-data-index://sessions` | 查看所有可用会话 |
-| `monitoring-data-index` | `monitoring-data-index://session/{sessionId}` | 查看会话详情 |
-| `monitoring-data-index-legacy` | `monitoring-data-index://list` | 查看旧版数据集 |
+| `monitoring-data` | `monitoring-data://{requestId}/{dataType}` | 访问监控数据 |
+| `monitoring-data-index` | `monitoring-data-index://requests` | 查看所有请求 |
+| `monitoring-data-index` | `monitoring-data-index://session/{sessionId}` | 查看会话请求 |
 
 ### 大数据处理
-本项目使用MCP的ResourceLinks功能处理大型监控数据集：
 
-1. **数据分块存储**：大型数据集会被自动分割成多个较小的块
-2. **按需加载**：AI可以根据需要选择性地加载数据块
-3. **元数据索引**：提供数据结构和内容的概览信息
-4. **完整性保证**：确保不会因为数据截断而丢失关键信息
-5. **自动清理**：过期数据会被自动清理，避免存储空间无限增长
+系统自动处理大型数据集：
 
-#### 数据清理机制
+1. **自动分块**: 数据超过1MB时自动分块存储
+2. **透明访问**: 通过ResourceLinks提供统一访问接口
+3. **按需加载**: 客户端可以选择加载完整数据或特定数据块
 
-- 默认情况下，数据在24小时后自动过期并被清理
-- 可以通过环境变量`MCP_DATA_EXPIRY_HOURS`自定义过期时间
-- 清理操作在服务启动时自动执行
-- 也可以通过`npm run clean-data`手动清理所有数据
-
-#### 实现原理
 ```typescript
-// 大数据处理流程
-if (dataSize > MAX_DATA_LENGTH) {
-  // 1. 创建数据摘要
-  const dataSummary = { ... };
-  
-  // 2. 分割数据并存储
-  const chunks = splitDataIntoChunks(data);
-  
-  // 3. 创建ResourceLinks
-  return {
-    content: [
-      { type: "text", text: "数据概览..." },
-      { type: "resource", resource: { uri: "monitoring-data://..." } },
-      // 更多资源链接...
-    ]
-  };
-}
+// 访问完整数据
+const data = await getResponseData(requestId);
+
+// 访问特定数据块
+const chunk = await getResponseData(requestId, 'chunk-0');
+
+// 列出所有数据文件
+const files = await listDataFiles(requestId);
 ```
 
 ### 核心代码结构
@@ -150,8 +181,25 @@ const result = await analyzeQuery({
   request: { ... }
 });
 
-// 获取会话信息
-const sessionInfo = await getSessionInfo(sessionId);
+// 获取会话中的所有请求
+const requests = await listRequestsBySession(sessionId);
+```
+
+#### 数据访问模式
+
+新的存储结构提供了更灵活的数据访问方式：
+
+```typescript
+// 按请求ID访问
+const metadata = await getRequestMetadata(requestId);
+const data = await getResponseData(requestId);
+const analysis = await getAnalysis(requestId);
+
+// 按会话访问
+const sessionRequests = await listRequestsBySession(sessionId);
+
+// 全局访问
+const allRequests = await listAllRequests();
 ```
 
 #### 聚合分析
@@ -190,6 +238,27 @@ const report = await generateReport({
   aggregateId: 'aggregate-123',
   format: 'html'
 });
+```
+
+### ResourceLinks使用
+
+ResourceLinks提供了统一的数据访问接口：
+
+```typescript
+// 访问请求数据
+`monitoring-data://${requestId}/data`
+
+// 访问分析结果
+`monitoring-data://${requestId}/analysis`
+
+// 访问特定数据块
+`monitoring-data://${requestId}/chunk-0`
+
+// 查看所有请求
+`monitoring-data-index://requests`
+
+// 查看会话请求
+`monitoring-data-index://session/${sessionId}`
 ```
 
 ### 添加新的MCP工具

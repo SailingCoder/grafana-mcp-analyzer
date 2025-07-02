@@ -11,15 +11,19 @@ import { analyzeWithAI, formatDataForClientAI } from '../services/monitoring-ana
 import { parseCurlCommand, httpRequestToCurl } from '../datasources/curl-parser.js';
 import { isValidHttpMethod } from '../types/index.js';
 import { 
-  storeMonitoringData, 
-  getMonitoringData, 
-  splitDataIntoChunks,
-  getMostRecentDataId,
-  listAvailableDataIds,
-  describeDataStructure,
-  storeMonitoringDataInSession,
-  getMonitoringDataFromSession,
-  listSessionResponses
+  generateRequestId,
+  storeRequestMetadata,
+  getRequestMetadata,
+  storeResponseData,
+  getResponseData,
+  listDataFiles,
+  storeAnalysis,
+  getAnalysis,
+  listAllRequests,
+  listRequestsBySession,
+  deleteRequest,
+  requestExists,
+  getRequestStats
 } from '../services/data-store.js';
 import {
   createSession,
@@ -80,46 +84,8 @@ function createErrorResponse(error: string | Error) {
 }
 
 // 执行查询
-async function executeGrafanaQuery(request?: any, queryName?: string, curl?: string): Promise<ExtractedData> {
-  let queryConfig: HttpRequest;
-  
-  if (queryName && config.queries?.[queryName]) {
-    queryConfig = config.queries[queryName];
-    // 如果预定义查询中有curl命令，使用curl命令
-    if (queryConfig.curl) {
-      const parsedCurl = parseCurlCommand(queryConfig.curl);
-      // 合并curl解析结果和配置中的其他设置
-      // 注意：curl中的headers应该优先级更高，因为是用户明确指定的
-      queryConfig = {
-        ...parsedCurl,
-        ...queryConfig,
-        url: parsedCurl.url || queryConfig.url,
-        method: parsedCurl.method || queryConfig.method,
-        headers: { ...config.defaultHeaders, ...queryConfig.headers, ...parsedCurl.headers },
-        data: parsedCurl.data !== undefined ? parsedCurl.data : queryConfig.data
-      };
-    }
-  } else if (curl) {
-    // 直接解析curl命令
-    queryConfig = parseCurlCommand(curl);
-    // 应用默认headers，但curl中的headers优先级更高
-    queryConfig.headers = { ...config.defaultHeaders, ...queryConfig.headers };
-  } else if (request) {
-    const method = request.method || 'POST';
-    queryConfig = {
-      url: request.url,
-      method: isValidHttpMethod(method) ? method as HttpMethod : 'POST',
-      headers: { ...config.defaultHeaders, ...request.headers },
-      data: request.data,
-      ...(request.params && { params: request.params }),
-      ...(request.timeout && { timeout: request.timeout }),
-      ...(request.axiosConfig && { axiosConfig: request.axiosConfig })
-    };
-  } else {
-    throw new Error('必须提供request配置、curl命令或queryName');
-  }
-  
-  const queryResponse = await executeQuery(queryConfig, config.baseUrl || '');
+async function executeGrafanaQuery(request: HttpRequest): Promise<ExtractedData> {
+  const queryResponse = await executeQuery(request, config.baseUrl || '');
   
   if (!queryResponse.success) {
     throw new Error(`查询执行失败: ${queryResponse.error}`);
@@ -131,70 +97,39 @@ async function executeGrafanaQuery(request?: any, queryName?: string, curl?: str
 // MCP服务器
 const server = new McpServer(SERVER_INFO);
 
-// 注册监控数据资源 - 会话模式
+// 获取配置中的查询
+function getQueries() {
+  return config.queries || {};
+}
+
+// 注册监控数据资源 - 新的请求模式
 server.resource(
   "monitoring-data",
-  "monitoring-data://{sessionId}/{responseId}/{dataType}",
+  "monitoring-data://{requestId}/{dataType}",
   {
-    title: "会话监控数据",
-    description: "Grafana监控数据资源查看器（会话模式）"
+    title: "监控数据",
+    description: "Grafana监控数据资源查看器"
   },
   async (uri) => {
     try {
       // 从URI中提取参数
       const parts = uri.href.split('/');
-      const sessionId = parts[2];
-      const responseId = parts[3];
-      const dataType = parts[4];
+      const requestId = parts[2];
+      const dataType = parts[3];
       
-      // 获取数据
-      const data = await getMonitoringDataFromSession(sessionId, responseId, dataType);
-      
-      return {
-        contents: [{
-          uri: uri.href,
-          text: JSON.stringify(data, null, 2),
-          mimeType: "application/json"
-        }]
-      };
-    } catch (error) {
-      return {
-        contents: [{
-          uri: uri.href,
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-          mimeType: "text/plain"
-        }]
-      };
-    }
-  }
-);
-
-// 兼容旧版监控数据资源
-server.resource(
-  "monitoring-data-legacy",
-  "monitoring-data://{dataId}",
-  {
-    title: "监控数据资源",
-    description: "Grafana监控数据资源查看器（旧版）"
-  },
-  async (uri) => {
-    try {
-      // 从URI中提取dataId
-      const dataId = uri.href.split('/').pop() || '';
-      
-      // 特殊ID处理
-      let actualDataId = dataId;
-      if (dataId === 'recent' || dataId === 'latest') {
-        // 获取最近的数据ID
-        actualDataId = await getMostRecentDataId();
+      let data;
+      if (dataType === 'analysis') {
+        data = await getAnalysis(requestId);
+      } else if (dataType.startsWith('chunk-')) {
+        data = await getResponseData(requestId, dataType);
+      } else {
+        data = await getResponseData(requestId);
       }
       
-      const data = await getMonitoringData(actualDataId);
-      
       return {
         contents: [{
           uri: uri.href,
-          text: JSON.stringify(data, null, 2),
+          text: typeof data === 'string' ? data : JSON.stringify(data, null, 2),
           mimeType: "application/json"
         }]
       };
@@ -210,22 +145,22 @@ server.resource(
   }
 );
 
-// 会话列表资源
+// 请求列表资源
 server.resource(
   "monitoring-data-index",
-  "monitoring-data-index://sessions",
+  "monitoring-data-index://requests",
   {
-    title: "监控会话索引",
-    description: "可用的监控会话列表"
+    title: "所有请求",
+    description: "查看所有可用的监控请求"
   },
   async (uri) => {
     try {
-      const sessions = await listSessions();
+      const requests = await listAllRequests();
       
       return {
         contents: [{
           uri: uri.href,
-          text: JSON.stringify(sessions, null, 2),
+          text: JSON.stringify(requests, null, 2),
           mimeType: "application/json"
         }]
       };
@@ -241,33 +176,23 @@ server.resource(
   }
 );
 
-// 会话详情资源
+// 会话请求列表资源
 server.resource(
   "monitoring-data-index",
   "monitoring-data-index://session/{sessionId}",
   {
-    title: "监控会话详情",
-    description: "会话详细信息"
+    title: "会话请求",
+    description: "查看指定会话中的所有请求"
   },
   async (uri) => {
     try {
       const sessionId = uri.href.split('/').pop() || '';
-      const sessionInfo = await getSessionInfo(sessionId);
-      
-      // 获取会话的请求和响应
-      const requests = await listSessionRequests(sessionId);
-      const responses = await listSessionResponses(sessionId);
-      
-      const result = {
-        ...sessionInfo,
-        requests,
-        responses
-      };
+      const requests = await listRequestsBySession(sessionId);
       
       return {
         contents: [{
           uri: uri.href,
-          text: JSON.stringify(result, null, 2),
+          text: JSON.stringify(requests, null, 2),
           mimeType: "application/json"
         }]
       };
@@ -279,267 +204,6 @@ server.resource(
           mimeType: "text/plain"
         }]
       };
-    }
-  }
-);
-
-// 兼容旧版索引资源
-server.resource(
-  "monitoring-data-index-legacy",
-  "monitoring-data-index://list",
-  {
-    title: "监控数据索引（旧版）",
-    description: "可用的监控数据列表（旧版）"
-  },
-  async (uri) => {
-    try {
-      const dataIds = await listAvailableDataIds();
-      
-      return {
-        contents: [{
-          uri: uri.href,
-          text: JSON.stringify(dataIds, null, 2),
-          mimeType: "application/json"
-        }]
-      };
-    } catch (error) {
-      return {
-        contents: [{
-          uri: uri.href,
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-          mimeType: "text/plain"
-        }]
-      };
-    }
-  }
-);
-
-// 分析查询工具
-server.tool(
-  'analyze_query',
-  {
-    prompt: z.string().describe('分析需求描述'),
-    request: z.object({
-      url: z.string().describe('查询URL'),
-      method: z.string().optional().describe('请求方法').default('POST'),
-      headers: z.record(z.string()).optional().describe('请求头'),
-      data: z.any().optional().describe('请求数据'),
-      params: z.record(z.string()).optional().describe('URL参数'),
-      timeout: z.number().optional().describe('超时时间（毫秒）'),
-      axiosConfig: z.record(z.any()).optional().describe('自定义Axios配置'),
-      sessionId: z.string().optional().describe('会话ID')
-    }).optional().describe('查询请求配置'),
-    queryName: z.string().optional().describe('预定义查询名称'),
-    curl: z.string().optional().describe('curl命令字符串')
-  },
-  async ({ prompt, request, queryName, curl }) => {
-    try {
-      // 创建或使用现有会话
-      let sessionId = request?.sessionId;
-      let requestId = `request-${Date.now()}`;
-      
-      if (!sessionId) {
-        // 创建新会话
-        sessionId = await createSession({
-          description: prompt?.substring(0, 100) || '未命名会话',
-          createdBy: 'user'
-        });
-      }
-      
-      // 存储请求信息
-      await storeRequestInfo(sessionId, requestId, {
-        timestamp: new Date().toISOString(),
-        prompt,
-        request,
-        queryName,
-        curl
-      });
-      
-      // 更新会话信息
-      await updateSessionInfo(sessionId, {
-        requestCount: (await getSessionInfo(sessionId)).requestCount + 1,
-        lastPrompt: prompt?.substring(0, 100)
-      });
-      
-      // 执行查询
-      const extractedData = await executeGrafanaQuery(request, queryName, curl);
-      
-      // 检查数据大小
-      const dataSize = JSON.stringify(extractedData.data).length;
-      const responseId = `response-${Date.now()}`;
-      
-      // 存储响应摘要
-      await storeMonitoringDataInSession(
-        sessionId,
-        responseId,
-        'summary',
-        {
-          type: extractedData.type,
-          hasData: extractedData.hasData,
-          status: extractedData.status,
-          timestamp: extractedData.timestamp,
-          metadata: extractedData.metadata,
-          dataSize: dataSize,
-          dataStructure: describeDataStructure(extractedData.data)
-        }
-      );
-      
-      // 如果数据较小，直接存储
-      if (dataSize <= MAX_DATA_LENGTH) {
-        await storeMonitoringDataInSession(
-          sessionId,
-          responseId,
-          'data',
-          extractedData.data
-        );
-        
-        // 获取查询级别的AI配置
-        const queryLevelConfig = queryName && config.queries?.[queryName] ? {
-          systemPrompt: config.queries[queryName].systemPrompt,
-          aiService: config.queries[queryName].aiService
-        } : undefined;
-        
-        // AI分析
-        const aiAnalysis = await analyzeWithAI(prompt, extractedData, config, queryLevelConfig);
-        
-        if (aiAnalysis) {
-          await storeMonitoringDataInSession(
-            sessionId,
-            responseId,
-            'analysis',
-            aiAnalysis
-          );
-        }
-        
-        const result: AnalysisResult = {
-          success: true,
-          sessionId,
-          requestId,
-          responseId,
-          extractedData,
-          analysis: aiAnalysis ? {
-            source: 'external_ai',
-            content: aiAnalysis
-          } : {
-            source: 'client_ai',
-            context: formatDataForClientAI(prompt, extractedData)
-          },
-          metadata: {
-            timestamp: new Date().toISOString(),
-            queryType: extractedData.type,
-            hasData: extractedData.hasData,
-            aiServiceConfigured: !!config?.aiService?.url
-          }
-        };
-        
-        return createResponse(result);
-      }
-      
-      // 处理大型数据
-      // 1. 分割数据并存储
-      const chunks = splitDataIntoChunks(extractedData.data);
-      const resourceLinks = [];
-      
-      // 存储数据块
-      for (let i = 0; i < chunks.length; i++) {
-        await storeMonitoringDataInSession(
-          sessionId,
-          responseId,
-          `chunk-${i}`,
-          chunks[i]
-        );
-        
-        let chunkName = `数据块 ${i+1}`;
-        
-        // 如果是时间序列数据，使用更有意义的名称
-        if (chunks[i]._meta?.seriesName) {
-          chunkName = chunks[i]._meta.seriesName;
-        } else if (chunks[i]._meta?.responseName) {
-          chunkName = chunks[i]._meta.responseName;
-        }
-        
-        resourceLinks.push({
-          type: "resource" as const,
-          resource: {
-            uri: `monitoring-data://${sessionId}/${responseId}/chunk-${i}`,
-            text: chunkName,
-            mimeType: "application/json"
-          }
-        });
-      }
-      
-      // 2. 更新会话索引
-      await updateSessionInfo(sessionId, {
-        lastResponseId: responseId,
-        dataChunks: chunks.length
-      });
-      
-      // 3. 构建响应
-      return {
-        content: [
-          { 
-            type: "text" as const, 
-            text: `## Grafana监控数据分析\n\n**分析需求:** ${prompt}\n\n**数据概览:**\n- 类型: ${extractedData.type}\n- 时间戳: ${extractedData.timestamp}\n- 数据大小: ${(dataSize/1024).toFixed(2)} KB\n\n由于数据较大，已将其分成${chunks.length}个部分。请查看以下资源链接获取详细数据:`
-          },
-          {
-            type: "resource" as const,
-            resource: {
-              uri: `monitoring-data-index://sessions`,
-              text: "所有会话",
-              mimeType: "application/json"
-            }
-          },
-          {
-            type: "resource" as const,
-            resource: {
-              uri: `monitoring-data-index://session/${sessionId}`,
-              text: "当前会话",
-              mimeType: "application/json"
-            }
-          },
-          ...resourceLinks
-        ]
-      };
-      
-    } catch (error: any) {
-      return createErrorResponse(error);
-    }
-  }
-);
-
-// 执行查询工具
-server.tool(
-  'execute_query',
-  {
-    request: z.object({
-      url: z.string().describe('查询URL'),
-      method: z.string().optional().describe('请求方法').default('POST'),
-      headers: z.record(z.string()).optional().describe('请求头'),
-      data: z.any().optional().describe('请求数据'),
-      params: z.record(z.string()).optional().describe('URL参数'),
-      timeout: z.number().optional().describe('超时时间（毫秒）'),
-      axiosConfig: z.record(z.any()).optional().describe('自定义Axios配置'),
-      sessionId: z.string().optional().describe('会话ID')
-    }).optional().describe('查询请求配置'),
-    queryName: z.string().optional().describe('预定义查询名称'),
-    curl: z.string().optional().describe('curl命令字符串')
-  },
-  async ({ request, queryName, curl }) => {
-    try {
-      const extractedData = await executeGrafanaQuery(request, queryName, curl);
-      
-      return createResponse({
-        success: true,
-        data: extractedData,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          queryType: extractedData.type,
-          hasData: extractedData.hasData
-        }
-      });
-      
-    } catch (error: any) {
-      return createErrorResponse(error);
     }
   }
 );
@@ -646,11 +310,8 @@ server.tool(
   },
   async ({ sessionId, requestIds, prompt }) => {
     try {
-      // 获取会话信息
-      const sessionInfo = await getSessionInfo(sessionId);
-      
       // 获取请求列表
-      let requests = await listSessionRequests(sessionId);
+      let requests = await listRequestsBySession(sessionId);
       
       // 如果指定了请求ID，则过滤
       if (requestIds && requestIds.length > 0) {
@@ -664,72 +325,16 @@ server.tool(
       // 获取每个请求对应的响应数据
       const responsesData = await Promise.all(
         requests.map(async (req) => {
-          // 查找与请求关联的响应
-          const responses = await listSessionResponses(sessionId);
-          // 根据时间戳找到最接近请求时间的响应
-          const reqTime = new Date(req.timestamp).getTime();
-          let closestResponse = null;
-          let minTimeDiff = Infinity;
-          
-          for (const resp of responses) {
-            const respTime = new Date(resp.timestamp).getTime();
-            const timeDiff = Math.abs(respTime - reqTime);
-            if (timeDiff < minTimeDiff) {
-              minTimeDiff = timeDiff;
-              closestResponse = resp;
-            }
-          }
-          
-          if (!closestResponse) return null;
-          
           try {
-            // 获取响应数据
-            let data;
-            try {
-              // 先尝试获取完整数据
-              data = await getMonitoringDataFromSession(
-                sessionId,
-                closestResponse.id,
-                'data'
-              );
-            } catch (e) {
-              // 如果数据被分块，则尝试获取摘要和第一个块
-              const summary = await getMonitoringDataFromSession(
-                sessionId,
-                closestResponse.id,
-                'summary'
-              );
-              
-              try {
-                const chunk = await getMonitoringDataFromSession(
-                  sessionId,
-                  closestResponse.id,
-                  'chunk-0'
-                );
-                
-                data = {
-                  ...summary,
-                  sampleData: chunk,
-                  isPartial: true
-                };
-              } catch (chunkError) {
-                data = {
-                  ...summary,
-                  isPartial: true,
-                  noDataAvailable: true
-                };
-              }
-            }
-            
+            const data = await getResponseData(req.id);
             return {
               requestId: req.id,
-              responseId: closestResponse.id,
               prompt: req.prompt,
               timestamp: req.timestamp,
               data
             };
           } catch (e) {
-            console.error(`获取响应数据失败: ${e}`);
+            console.error(`获取请求数据失败: ${req.id}`, e);
             return null;
           }
         })
@@ -744,7 +349,7 @@ server.tool(
       
       // 生成聚合分析的上下文
       const context = {
-        sessionInfo,
+        sessionId,
         prompt,
         responses: validResponses,
         timestamp: new Date().toISOString()
@@ -763,24 +368,26 @@ server.tool(
         config
       );
       
-      // 存储聚合分析结果
-      const aggregateId = `aggregate-${Date.now()}`;
-      await storeMonitoringDataInSession(
-        sessionId,
-        aggregateId,
-        'analysis',
-        {
-          prompt,
-          timestamp: new Date().toISOString(),
-          result: analysisResult,
-          requests: requests.map(req => req.id)
-        }
-      );
+      // 生成聚合分析请求ID
+      const aggregateId = generateRequestId();
       
-      // 更新会话信息
-      await updateSessionInfo(sessionId, {
-        lastAggregateId: aggregateId,
-        lastAggregateTimestamp: new Date().toISOString()
+      // 存储聚合分析元数据
+      await storeRequestMetadata(aggregateId, {
+        timestamp: new Date().toISOString(),
+        url: 'internal://aggregate-analysis',
+        method: 'POST',
+        data: { sessionId, requestIds: requests.map(r => r.id) },
+        prompt,
+        sessionId
+      });
+      
+      // 存储聚合分析结果
+      await storeAnalysis(aggregateId, {
+        prompt,
+        timestamp: new Date().toISOString(),
+        result: analysisResult,
+        requests: requests.map(req => req.id),
+        type: 'aggregate'
       });
       
       // 构建响应
@@ -794,7 +401,7 @@ server.tool(
             {
               type: "resource" as const,
               resource: {
-                uri: `monitoring-data://${sessionId}/${aggregateId}/analysis`,
+                uri: `monitoring-data://${aggregateId}/analysis`,
                 text: "完整分析结果",
                 mimeType: "application/json"
               }
@@ -811,11 +418,7 @@ server.tool(
             status: 'ok',
             timestamp: new Date().toISOString(),
             data: {
-              sessionInfo: {
-                id: sessionInfo.id,
-                created: sessionInfo.created,
-                requestCount: sessionInfo.requestCount
-              },
+              sessionId,
               responseCount: validResponses.length,
               responseSummaries: validResponses.map(r => {
                 if (!r) return null;
@@ -832,7 +435,6 @@ server.tool(
         
         return createResponse({
           success: true,
-          sessionId,
           aggregateId,
           requestCount: requests.length,
           validResponseCount: validResponses.length,
@@ -856,47 +458,43 @@ server.tool(
   },
   async ({ sessionId, aggregateId, format }) => {
     try {
-      // 获取会话信息
-      const sessionInfo = await getSessionInfo(sessionId);
+      // 获取会话中的请求
+      const requests = await listRequestsBySession(sessionId);
       
-      // 如果没有提供聚合ID，则使用最新的
+      if (requests.length === 0) {
+        return createErrorResponse('会话中没有找到请求');
+      }
+      
+      // 如果没有提供聚合ID，查找最新的聚合分析
       let actualAggregateId = aggregateId;
       if (!actualAggregateId) {
-        if (!sessionInfo.lastAggregateId) {
-          throw new Error('会话没有聚合分析结果');
+        const aggregateRequests = requests.filter(req => 
+          req.url === 'internal://aggregate-analysis'
+        );
+        
+        if (aggregateRequests.length === 0) {
+          return createErrorResponse('会话没有聚合分析结果');
         }
-        actualAggregateId = sessionInfo.lastAggregateId;
+        
+        // 使用最新的聚合分析
+        actualAggregateId = aggregateRequests[0].id;
       }
       
       // 获取聚合分析结果
-      const analysis = await getMonitoringDataFromSession(
-        sessionId,
-        actualAggregateId,
-        'analysis'
-      );
-      
-      // 获取会话中的请求和响应
-      const requests = await listSessionRequests(sessionId);
-      const responses = await listSessionResponses(sessionId);
+      const analysis = await getAnalysis(actualAggregateId!);
       
       // 生成报告
-      const reportId = `report-${Date.now()}`;
-      const reportData = {
-        sessionInfo,
-        analysis,
-        requests,
-        responses,
-        format,
-        timestamp: new Date().toISOString()
-      };
+      const reportId = generateRequestId();
       
-      // 存储报告数据
-      await storeMonitoringDataInSession(
-        sessionId,
-        reportId,
-        'report',
-        reportData
-      );
+      // 存储报告元数据
+      await storeRequestMetadata(reportId, {
+        timestamp: new Date().toISOString(),
+        url: 'internal://report-generation',
+        method: 'POST',
+        data: { sessionId, aggregateId: actualAggregateId, format },
+        prompt: `生成${format}格式报告`,
+        sessionId
+      });
       
       // 生成报告内容
       let reportContent = '';
@@ -905,9 +503,9 @@ server.tool(
         reportContent = `# 监控数据分析报告
 
 ## 会话信息
-- ID: ${sessionInfo.id}
-- 创建时间: ${new Date(sessionInfo.created).toLocaleString()}
-- 请求数量: ${sessionInfo.requestCount}
+- 会话ID: ${sessionId}
+- 请求数量: ${requests.length}
+- 生成时间: ${new Date().toLocaleString()}
 
 ## 分析概要
 ${analysis.result || '无分析结果'}
@@ -917,16 +515,13 @@ ${requests.map((req, i) => `${i+1}. ${req.prompt || '无描述'} (${new Date(req
 
 ## 详细分析
 请查看完整JSON报告获取更多详细信息。
-
-## 生成时间
-${new Date().toLocaleString()}
 `;
       } else {
         // HTML格式
         reportContent = `<!DOCTYPE html>
 <html>
 <head>
-  <title>监控数据分析报告 - ${sessionInfo.id}</title>
+  <title>监控数据分析报告 - ${sessionId}</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
     h1 { color: #333; }
@@ -940,9 +535,9 @@ ${new Date().toLocaleString()}
   
   <div class="section">
     <h2>会话信息</h2>
-    <p><strong>ID:</strong> ${sessionInfo.id}</p>
-    <p><strong>创建时间:</strong> ${new Date(sessionInfo.created).toLocaleString()}</p>
-    <p><strong>请求数量:</strong> ${sessionInfo.requestCount}</p>
+    <p><strong>会话ID:</strong> ${sessionId}</p>
+    <p><strong>请求数量:</strong> ${requests.length}</p>
+    <p><strong>生成时间:</strong> ${new Date().toLocaleString()}</p>
   </div>
   
   <div class="section">
@@ -964,26 +559,21 @@ ${new Date().toLocaleString()}
     <h2>详细分析</h2>
     <p>请查看完整JSON报告获取更多详细信息。</p>
   </div>
-  
-  <div class="timestamp">
-    生成时间: ${new Date().toLocaleString()}
-  </div>
 </body>
 </html>`;
       }
       
       // 存储报告内容
-      await storeMonitoringDataInSession(
-        sessionId,
-        reportId,
-        'content',
-        reportContent
-      );
+      await storeResponseData(reportId, reportContent);
       
-      // 更新会话信息
-      await updateSessionInfo(sessionId, {
-        lastReportId: reportId,
-        lastReportTimestamp: new Date().toISOString()
+      // 存储报告数据
+      await storeAnalysis(reportId, {
+        sessionId,
+        analysis,
+        requests,
+        format,
+        timestamp: new Date().toISOString(),
+        type: 'report'
       });
       
       return {
@@ -995,7 +585,7 @@ ${new Date().toLocaleString()}
           {
             type: "resource" as const,
             resource: {
-              uri: `monitoring-data://${sessionId}/${reportId}/content`,
+              uri: `monitoring-data://${reportId}/data/full`,
               text: "完整报告",
               mimeType: format === 'markdown' ? "text/markdown" : "text/html"
             }
@@ -1003,7 +593,7 @@ ${new Date().toLocaleString()}
           {
             type: "resource" as const,
             resource: {
-              uri: `monitoring-data://${sessionId}/${reportId}/report`,
+              uri: `monitoring-data://${reportId}/analysis`,
               text: "报告数据",
               mimeType: "application/json"
             }

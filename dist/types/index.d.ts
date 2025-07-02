@@ -1,7 +1,7 @@
 /**
  * Grafana MCP 分析器类型定义
  */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 export interface HttpRequest {
     url: string;
     method?: HttpMethod;
@@ -9,61 +9,59 @@ export interface HttpRequest {
     data?: any;
     params?: Record<string, string>;
     timeout?: number;
-    axiosConfig?: any;
+    axiosConfig?: Record<string, any>;
     curl?: string;
 }
 export interface HttpResponse {
     success: boolean;
-    data?: any;
     status?: number;
-    headers?: Record<string, any>;
+    statusText?: string;
+    headers?: Record<string, string>;
+    data?: any;
     error?: string;
 }
 export interface ExtractedData {
-    hasData: boolean;
     type: string;
-    data?: any;
-    status?: number;
+    hasData: boolean;
+    status: string;
     timestamp: string;
-    error?: string;
-    metadata?: {
-        responseSize?: number;
-        contentType?: string;
-    };
+    data: any;
+    metadata?: Record<string, any>;
 }
-export type HealthStatusType = 'healthy' | 'degraded' | 'unhealthy';
 export interface HealthStatus {
-    status: HealthStatusType;
+    status: 'healthy' | 'unhealthy' | 'warning';
     timestamp: string;
-    response?: number;
-    data?: any;
-    error?: string;
+    message?: string;
     details?: Record<string, any>;
 }
 export interface QueryConfig {
     baseUrl?: string;
     defaultHeaders?: Record<string, string>;
-    systemPrompt?: string;
+    healthCheck?: {
+        url: string;
+        expectedStatus?: number;
+    };
     aiService?: {
         url: string;
+        apiKey?: string;
+        model?: string;
         headers?: Record<string, string>;
-        bodyTemplate?: any;
-        responseParser?: {
-            contentPath: string;
-        };
+        systemPrompt?: string;
+        temperature?: number;
+        maxTokens?: number;
         timeout?: number;
     };
     queries?: Record<string, HttpRequest & {
         systemPrompt?: string;
         aiService?: any;
     }>;
-    healthCheck?: {
-        url: string;
-    };
 }
 export interface AnalysisResult {
     success: boolean;
     extractedData: ExtractedData;
+    sessionId?: string;
+    requestId?: string;
+    responseId?: string;
     analysis: {
         source: 'external_ai' | 'client_ai';
         content?: string;
@@ -76,5 +74,35 @@ export interface AnalysisResult {
         aiServiceConfigured: boolean;
     };
 }
-export declare function isValidHttpMethod(method: string): method is HttpMethod;
-export declare function isValidHealthStatus(status: string): status is HealthStatusType;
+export interface SessionInfo {
+    id: string;
+    created: string;
+    lastUpdated: string;
+    description?: string;
+    createdBy?: string;
+    requestCount: number;
+    lastPrompt?: string;
+    lastResponseId?: string;
+    dataChunks?: number;
+    lastAggregateId?: string;
+    lastAggregateTimestamp?: string;
+    lastReportId?: string;
+    lastReportTimestamp?: string;
+}
+export interface RequestInfo {
+    id: string;
+    timestamp: string;
+    prompt?: string;
+    request?: any;
+    queryName?: string;
+    curl?: string;
+}
+export interface ResponseInfo {
+    id: string;
+    timestamp: string;
+    type: string;
+    dataSize?: number;
+    dataStructure?: any;
+}
+export declare function isValidHttpMethod(method: string): boolean;
+export declare function isValidHealthStatus(status: string): boolean;

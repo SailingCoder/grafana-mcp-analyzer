@@ -43,14 +43,15 @@
   },
   "license": "MIT",
   "scripts": {
-    "dev": "CONFIG_PATH=./config/query-config.simple.js ts-node src/server/mcp-server.ts",
-    "start": "CONFIG_PATH=./config/query-config.simple.js node dist/server/mcp-server.js",
+    "dev": "tsx watch src/server/mcp-server.ts",
+    "start": "node dist/server/mcp-server.js",
     "build": "tsc",
-    "test": "npm run build && node tests/test-minimal-version.js",
-    "test:curl": "npm run build && node tests/curl-parser.test.js",
+    "test": "node tests/test-minimal-version.js",
+    "test:resource-links": "node --experimental-modules tests/test-resource-links.js",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit --skipLibCheck",
-    "prepublishOnly": "npm run clean && npm run build && npm test"
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "clean-data": "node --experimental-modules -e \"import('./dist/services/data-store.js').then(module => module.cleanupExpiredData(true).then(count => console.log('清理完成，共删除', count, '个文件')));\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -59,6 +60,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
+    "rimraf": "^5.0.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },

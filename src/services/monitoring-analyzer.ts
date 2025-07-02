@@ -20,112 +20,255 @@ const DEFAULT_SYSTEM_PROMPT = `你是专业的Grafana监控数据分析专家。
 4. 具体行动项`;
 
 /**
- * 使用AI分析监控数据
+ * 使用AI服务分析监控数据
  */
 export async function analyzeWithAI(
   prompt: string,
-  data: ExtractedData,
+  extractedData: ExtractedData,
   globalConfig?: QueryConfig,
   queryConfig?: { systemPrompt?: string; aiService?: any }
 ): Promise<string | null> {
-  // 获取AI配置
-  const aiConfig = queryConfig?.aiService || globalConfig?.aiService;
-  if (!aiConfig?.url) {
-    return null; // 无AI配置，使用客户端AI
-  }
-
   try {
-    // 获取系统提示词
-    const systemPrompt = queryConfig?.systemPrompt || 
-                        globalConfig?.systemPrompt || 
-                        DEFAULT_SYSTEM_PROMPT;
-
-    const userMessage = `${prompt}\n\n监控数据：\n${JSON.stringify(data, null, 2)}`;
-    
-    // 构建请求体
-    let requestBody;
-    if (aiConfig.bodyTemplate) {
-      // 使用自定义模板
-      const template = JSON.stringify(aiConfig.bodyTemplate);
-      const replaced = template
-        .replace(/\{\{systemPrompt\}\}/g, systemPrompt.replace(/"/g, '\\"'))
-        .replace(/\{\{userMessage\}\}/g, userMessage.replace(/"/g, '\\"'));
-      requestBody = JSON.parse(replaced);
-    } else {
-      // 默认OpenAI格式
-      requestBody = {
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ]
-      };
+    // 如果没有配置AI服务，返回null
+    const aiServiceConfig = queryConfig?.aiService || globalConfig?.aiService;
+    if (!aiServiceConfig?.url) {
+      return null;
     }
 
-    // 发送请求
-    const response = await axios.post(aiConfig.url, requestBody, {
+    // 构建请求体
+    const requestBody = {
+      prompt,
+      data: extractedData.data,
+      metadata: {
+        type: extractedData.type,
+        hasData: extractedData.hasData,
+        timestamp: extractedData.timestamp
+      },
+      system: queryConfig?.systemPrompt || globalConfig?.aiService?.systemPrompt || undefined
+    };
+
+    // 发送请求到AI服务
+    const response = await axios({
+      method: 'POST',
+      url: aiServiceConfig.url,
       headers: {
         'Content-Type': 'application/json',
-        ...aiConfig.headers
+        ...(aiServiceConfig.apiKey && { 'Authorization': `Bearer ${aiServiceConfig.apiKey}` }),
+        ...aiServiceConfig.headers
       },
-      timeout: aiConfig.timeout || DEFAULT_TIMEOUT
+      data: requestBody,
+      timeout: aiServiceConfig.timeout || 30000
     });
 
-    // 解析响应
-    if (aiConfig.responseParser?.contentPath) {
-      // 自定义解析路径
-      const paths = aiConfig.responseParser.contentPath.split('.');
-      let result = response.data;
-      for (const path of paths) {
-        result = result?.[path];
-      }
-      return typeof result === 'string' ? result : null;
-    } else {
-      // 默认OpenAI格式
-      return response.data?.choices?.[0]?.message?.content || null;
-    }
-    
-  } catch (error: any) {
-    console.error('外部AI分析失败:', error.message);
-    return null; // 失败时回退到客户端AI
+    // 返回AI分析结果
+    return response.data?.analysis || response.data?.content || response.data?.result || response.data;
+  } catch (error) {
+    console.error('AI分析失败:', error);
+    return null;
   }
 }
 
 /**
- * 为客户端AI格式化分析上下文
+ * 格式化数据供客户端AI使用
  */
-export function formatDataForClientAI(prompt: string, data: ExtractedData): string {
-  // 智能数据处理而非简单截断
-  let processedData: string;
-  
-  if (!data.hasData || !data.data) {
-    processedData = '无有效数据';
-  } else if (typeof data.data === 'object') {
-    // 处理对象类型数据
-    processedData = processSmartDataSummary(data.data);
-  } else {
-    // 处理字符串或其他类型
-    processedData = String(data.data);
-    if (processedData.length > MAX_DATA_LENGTH) {
-      processedData = `${processedData.substring(0, MAX_DATA_LENGTH)}...`;
+export function formatDataForClientAI(prompt: string, extractedData: ExtractedData): string {
+  try {
+    // 数据摘要
+    const summary = {
+      type: extractedData.type,
+      hasData: extractedData.hasData,
+      timestamp: extractedData.timestamp
+    };
+
+    // 根据数据类型格式化
+    let formattedData = '';
+    
+    if (extractedData.type === 'timeseries') {
+      formattedData = formatTimeseriesData(extractedData.data);
+    } else if (extractedData.type === 'tables') {
+      formattedData = formatTableData(extractedData.data);
+    } else if (extractedData.type === 'elasticsearch') {
+      formattedData = formatElasticsearchData(extractedData.data);
+    } else {
+      // 限制数据大小，避免超出上下文窗口
+      const dataStr = JSON.stringify(extractedData.data, null, 2);
+      formattedData = dataStr.length > 5000 
+        ? dataStr.substring(0, 5000) + '...(数据已截断)'
+        : dataStr;
     }
+
+    return `
+## 监控数据分析上下文
+
+### 查询信息
+- 数据类型: ${summary.type}
+- 时间戳: ${summary.timestamp}
+- 是否有数据: ${summary.hasData ? '是' : '否'}
+
+### 用户问题
+${prompt}
+
+### 数据
+\`\`\`json
+${formattedData}
+\`\`\`
+
+请基于以上数据回答用户问题。如果数据不足以回答问题，请说明原因。
+`;
+  } catch (error) {
+    console.error('格式化数据失败:', error);
+    return `无法格式化数据: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+/**
+ * 格式化时间序列数据
+ */
+function formatTimeseriesData(data: any): string {
+  if (!data?.series || !Array.isArray(data.series)) {
+    return JSON.stringify(data, null, 2);
   }
 
-  return `请基于以下Grafana监控数据进行专业分析：
+  let result = '';
+  
+  for (let i = 0; i < Math.min(data.series.length, 3); i++) {
+    const series = data.series[i];
+    result += `Series ${i+1}: ${series.name || 'unnamed'}\n`;
+    
+    if (series.fields && Array.isArray(series.fields)) {
+      // 获取字段名
+      const fieldNames = series.fields.map((f: any) => f.name || 'unnamed');
+      result += `Fields: ${fieldNames.join(', ')}\n`;
+      
+      // 获取数据点数量
+      const dataLength = series.fields[0]?.values?.length || 0;
+      result += `Data points: ${dataLength}\n`;
+      
+      // 显示前几个数据点作为示例
+      if (dataLength > 0) {
+        result += 'Sample data:\n';
+        for (let j = 0; j < Math.min(dataLength, 5); j++) {
+          const row = fieldNames.map((_: string, idx: number) => series.fields[idx]?.values?.[j]).join(', ');
+          result += `  ${row}\n`;
+        }
+      }
+    }
+    
+    result += '\n';
+  }
+  
+  if (data.series.length > 3) {
+    result += `... and ${data.series.length - 3} more series\n`;
+  }
+  
+  return result;
+}
 
-用户需求：${prompt}
+/**
+ * 格式化表格数据
+ */
+function formatTableData(data: any): string {
+  if (!data?.tables || !Array.isArray(data.tables)) {
+    return JSON.stringify(data, null, 2);
+  }
 
-数据概览：
-- 数据类型：${data.type}
-- 有效数据：${data.hasData ? '是' : '否'}
-- HTTP状态：${data.status}
-- 时间戳：${data.timestamp}
-${data.metadata ? `- 数据大小：${data.metadata.responseSize || '未知'} 字节
-- 内容类型：${data.metadata.contentType || '未知'}` : ''}
+  let result = '';
+  
+  for (let i = 0; i < Math.min(data.tables.length, 3); i++) {
+    const table = data.tables[i];
+    result += `Table ${i+1}:\n`;
+    
+    if (table.columns && Array.isArray(table.columns)) {
+      // 获取列名
+      const columnNames = table.columns.map((c: any) => c.text || 'unnamed');
+      result += `Columns: ${columnNames.join(', ')}\n`;
+      
+      // 获取行数
+      const rowCount = table.rows?.length || 0;
+      result += `Rows: ${rowCount}\n`;
+      
+      // 显示前几行作为示例
+      if (rowCount > 0) {
+        result += 'Sample rows:\n';
+        for (let j = 0; j < Math.min(rowCount, 5); j++) {
+          result += `  ${JSON.stringify(table.rows[j])}\n`;
+        }
+      }
+    }
+    
+    result += '\n';
+  }
+  
+  if (data.tables.length > 3) {
+    result += `... and ${data.tables.length - 3} more tables\n`;
+  }
+  
+  return result;
+}
 
-数据分析：
-${processedData}
+/**
+ * 格式化Elasticsearch数据
+ */
+function formatElasticsearchData(data: any): string {
+  if (!data?.responses || !Array.isArray(data.responses)) {
+    return JSON.stringify(data, null, 2);
+  }
 
-请提供：数据解读、异常检测、趋势分析和优化建议。`;
+  let result = '';
+  
+  for (let i = 0; i < Math.min(data.responses.length, 3); i++) {
+    const response = data.responses[i];
+    result += `Response ${i+1}:\n`;
+    
+    // 基本信息
+    result += `Took: ${response.took}ms\n`;
+    result += `Timed out: ${response.timed_out}\n`;
+    
+    // 命中数
+    if (response.hits) {
+      const totalHits = typeof response.hits.total === 'object' 
+        ? response.hits.total.value 
+        : response.hits.total;
+      
+      result += `Total hits: ${totalHits}\n`;
+      
+      // 显示前几个命中作为示例
+      if (response.hits.hits && Array.isArray(response.hits.hits)) {
+        const hitsCount = response.hits.hits.length;
+        result += `Returned hits: ${hitsCount}\n`;
+        
+        if (hitsCount > 0) {
+          result += 'Sample hits:\n';
+          for (let j = 0; j < Math.min(hitsCount, 3); j++) {
+            const hit = response.hits.hits[j];
+            result += `  ID: ${hit._id}, Score: ${hit._score}\n`;
+            result += `  Source: ${JSON.stringify(hit._source).substring(0, 100)}...\n`;
+          }
+        }
+      }
+    }
+    
+    // 聚合
+    if (response.aggregations) {
+      const aggKeys = Object.keys(response.aggregations);
+      result += `Aggregations: ${aggKeys.join(', ')}\n`;
+      
+      // 显示前几个聚合作为示例
+      for (let j = 0; j < Math.min(aggKeys.length, 3); j++) {
+        const aggKey = aggKeys[j];
+        const agg = response.aggregations[aggKey];
+        result += `  ${aggKey}: ${JSON.stringify(agg).substring(0, 100)}...\n`;
+      }
+    }
+    
+    result += '\n';
+  }
+  
+  if (data.responses.length > 3) {
+    result += `... and ${data.responses.length - 3} more responses\n`;
+  }
+  
+  return result;
 }
 
 /**
