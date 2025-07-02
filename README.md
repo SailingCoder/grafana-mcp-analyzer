@@ -25,6 +25,18 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 - **全数据源支持**：完美兼容Prometheus、MySQL、Elasticsearch等所有数据源/查询命令，统一监控视图
 - **专业DevOps建议**：不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 - **轻量化部署**：超小KB体积，快速集成部署，零负担使用
+- **大数据处理**：通过ResourceLinks技术处理大型监控数据集，无需担心数据截断问题
+
+## 🚀 功能特性
+
+- 🔍 **智能分析**: 利用AI对Grafana监控数据进行深度分析
+- 📊 **查询转换**: 支持从curl命令自动解析查询参数
+- 🧩 **多数据源**: 支持多种Grafana数据源(Prometheus, InfluxDB等)
+- 📝 **上下文感知**: 保持分析上下文，支持后续提问
+- 💾 **数据持久化**: 保存分析结果，支持后续查询
+- 📚 **会话管理**: 组织和管理相关查询请求
+- 🔄 **聚合分析**: 对多个相关监控数据进行整体分析
+- 📑 **报告生成**: 生成格式化的分析报告(Markdown/HTML)
 
 ## 🛠️ 快速开始
 
@@ -47,7 +59,8 @@ npm install -g grafana-mcp-analyzer
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "./grafana-config.js"
+        "CONFIG_PATH": "./grafana-config.js",
+        "MCP_DATA_EXPIRY_HOURS": "24"
       }
     }
   }
@@ -57,6 +70,10 @@ npm install -g grafana-mcp-analyzer
 > 💡 **提示**：任何支持MCP协议的AI助手都可以使用类似配置。需要Node.js 18+环境支持。
 
 > 💡 **配置路径说明**：`CONFIG_PATH` 支持相对路径、绝对路径及远程地址。详见 [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md)
+
+> 💡 **环境变量说明**：
+> - `CONFIG_PATH`: 配置文件路径
+> - `MCP_DATA_EXPIRY_HOURS`: 数据过期时间（小时），默认24小时
 
 ### 步骤2：创建配置文件
 
@@ -321,4 +338,88 @@ MIT 开源协议。详见 [LICENSE](LICENSE) 文件。
 - **数据结构摘要** - 对于复杂对象，提供结构化摘要而非完整JSON
 
 这些改进确保了即使处理大型监控数据集，也能提供高质量的分析结果，而不会因为数据截断而丢失关键信息。
+
+<details>
+<summary>❌ 查询返回的数据过大</summary>
+
+- 使用ResourceLinks功能，自动将大型数据集分割成多个可管理的部分
+- 数据会被存储在临时目录中，AI可以按需访问
+- 无需担心数据截断问题，完整数据将被保留
+</details>
+
+## 💡 使用示例
+
+### 基本分析
+
+```javascript
+import { analyzeQuery } from 'grafana-mcp-analyzer';
+
+// 从curl命令分析
+const result = await analyzeQuery({
+  prompt: '分析CPU使用率趋势',
+  curl: 'curl -X POST -H "Content-Type: application/json" --data \'{"queries":[{"refId":"A","datasource":{"uid":"PBFA97CFB590B2093","type":"prometheus"},"expr":"sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance) * 100","legendFormat":"{{instance}}","interval":""}],"range":{"from":"now-1h","to":"now"}}\' http://localhost:3000/api/ds/query'
+});
+
+// 或直接提供请求配置
+const result = await analyzeQuery({
+  prompt: '分析内存使用情况',
+  request: {
+    url: 'api/ds/query',
+    data: {
+      queries: [{
+        refId: 'A',
+        datasource: { uid: 'prometheus', type: 'prometheus' },
+        expr: 'sum(node_memory_MemTotal_bytes - node_memory_MemFree_bytes) / sum(node_memory_MemTotal_bytes) * 100'
+      }]
+    }
+  }
+});
+```
+
+### 会话与聚合分析
+
+```javascript
+import { 
+  createSession, 
+  analyzeQuery, 
+  analyzeSession, 
+  generateReport 
+} from 'grafana-mcp-analyzer';
+
+// 创建会话
+const sessionId = await createSession({
+  description: '系统性能分析会话'
+});
+
+// 在会话中执行多个查询
+await analyzeQuery({
+  sessionId,
+  prompt: '分析CPU使用率',
+  request: { ... }
+});
+
+await analyzeQuery({
+  sessionId,
+  prompt: '分析内存使用情况',
+  request: { ... }
+});
+
+await analyzeQuery({
+  sessionId,
+  prompt: '分析磁盘I/O',
+  request: { ... }
+});
+
+// 对会话中的所有请求进行聚合分析
+const analysisResult = await analyzeSession({
+  sessionId,
+  prompt: '综合分析系统性能，找出可能的瓶颈'
+});
+
+// 生成分析报告
+const report = await generateReport({
+  sessionId,
+  format: 'markdown' // 或 'html'
+});
+```
 

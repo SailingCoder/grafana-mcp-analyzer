@@ -3,7 +3,7 @@
  */
 
 // HTTP相关类型
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 
 export interface HttpRequest {
   url: string;
@@ -12,41 +12,34 @@ export interface HttpRequest {
   data?: any;
   params?: Record<string, string>;
   timeout?: number;
-  axiosConfig?: any;
+  axiosConfig?: Record<string, any>;
   curl?: string;
 }
 
 export interface HttpResponse {
   success: boolean;
-  data?: any;
   status?: number;
-  headers?: Record<string, any>;
+  statusText?: string;
+  headers?: Record<string, string>;
+  data?: any;
   error?: string;
 }
 
 // 数据提取相关
 export interface ExtractedData {
-  hasData: boolean;
   type: string;
-  data?: any;
-  status?: number;
+  hasData: boolean;
+  status: string;
   timestamp: string;
-  error?: string;
-  metadata?: {
-    responseSize?: number;
-    contentType?: string;
-  };
+  data: any;
+  metadata?: Record<string, any>;
 }
 
 // 健康检查
-export type HealthStatusType = 'healthy' | 'degraded' | 'unhealthy';
-
 export interface HealthStatus {
-  status: HealthStatusType;
+  status: 'healthy' | 'unhealthy' | 'warning';
   timestamp: string;
-  response?: number;
-  data?: any;
-  error?: string;
+  message?: string;
   details?: Record<string, any>;
 }
 
@@ -54,27 +47,33 @@ export interface HealthStatus {
 export interface QueryConfig {
   baseUrl?: string;
   defaultHeaders?: Record<string, string>;
-  systemPrompt?: string;
+  healthCheck?: {
+    url: string;
+    expectedStatus?: number;
+  };
   aiService?: {
     url: string;
+    apiKey?: string;
+    model?: string;
     headers?: Record<string, string>;
-    bodyTemplate?: any;
-    responseParser?: { contentPath: string };
+    systemPrompt?: string;
+    temperature?: number;
+    maxTokens?: number;
     timeout?: number;
   };
   queries?: Record<string, HttpRequest & {
     systemPrompt?: string;
     aiService?: any;
   }>;
-  healthCheck?: {
-    url: string;
-  };
 }
 
 // 分析结果
 export interface AnalysisResult {
   success: boolean;
   extractedData: ExtractedData;
+  sessionId?: string;
+  requestId?: string;
+  responseId?: string;
   analysis: {
     source: 'external_ai' | 'client_ai';
     content?: string;
@@ -88,11 +87,47 @@ export interface AnalysisResult {
   };
 }
 
-// 类型守卫函数
-export function isValidHttpMethod(method: string): method is HttpMethod {
-  return ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+// 会话信息
+export interface SessionInfo {
+  id: string;
+  created: string;
+  lastUpdated: string;
+  description?: string;
+  createdBy?: string;
+  requestCount: number;
+  lastPrompt?: string;
+  lastResponseId?: string;
+  dataChunks?: number;
+  lastAggregateId?: string;
+  lastAggregateTimestamp?: string;
+  lastReportId?: string;
+  lastReportTimestamp?: string;
 }
 
-export function isValidHealthStatus(status: string): status is HealthStatusType {
-  return ['healthy', 'degraded', 'unhealthy'].includes(status);
+// 请求信息
+export interface RequestInfo {
+  id: string;
+  timestamp: string;
+  prompt?: string;
+  request?: any;
+  queryName?: string;
+  curl?: string;
+}
+
+// 响应信息
+export interface ResponseInfo {
+  id: string;
+  timestamp: string;
+  type: string;
+  dataSize?: number;
+  dataStructure?: any;
+}
+
+// 类型守卫函数
+export function isValidHttpMethod(method: string): boolean {
+  return ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
+}
+
+export function isValidHealthStatus(status: string): boolean {
+  return ['healthy', 'unhealthy', 'warning'].includes(status);
 } 
