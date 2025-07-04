@@ -6,7 +6,7 @@
 
 [English](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README_EN.md) | [中文文档](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README.md)
 
-## ✨ 项目简介
+### ✨ 项目简介
 
 想象一下这样的场景：
 
@@ -15,16 +15,9 @@
 
 复杂的监控图表，AI帮您一键分析！告别传统的手动监控方式，让AI成为您的专属运维助手！
 
-> 🎉 **v2.0.0 重大更新**：全新架构重构，解决大数据量分析，提供9个核心工具。
-> 
-> ✨ **新功能特性**：
-> - **双重AI指引**：`systemPrompt` 配置 + 对话 `prompt` 参数，实现专业化分析
-> - **工具升级**：`execute_query` → `query_data`，功能更强大
-> - **新增工具**：`aggregate_analyze`、`manage_sessions`、`list_data`、`server_status`（`batch_analyze`不推荐使用）
-> - **智能数据处理**：小数据直接分析，大数据自动存储并提供ResourceLinks访问
-> - **专业分析**：每个查询可配置专属的 `systemPrompt` 实现领域专家级分析
+> 🎉 **v2.0.0 重大更新**：全新架构重构，解决大数据量分析。`systemPrompt` 配置 + 对话 `prompt` 参数，实现领域专家级分析。
 
-## 🚀 核心特性
+### 🚀 核心特性
 
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
@@ -36,9 +29,9 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 *   **全数据源支持**：完美兼容Prometheus、MySQL、Elasticsearch等所有数据源/查询命令，统一监控视图
 *   **专业DevOps建议**：不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 
-## 🛠️ 快速开始
+### 🛠️ 快速开始
 
-### 步骤1：安装和配置
+#### 步骤1：安装和配置
 
 #### 全局安装
 
@@ -70,7 +63,7 @@ npm install -g grafana-mcp-analyzer
 
 > 💡 **配置路径说明**：`CONFIG_PATH` 支持相对路径、绝对路径及远程地址。详见 [CONFIG\_PATH\_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md)
 
-### 步骤2：创建配置文件
+#### 步骤2：创建配置文件
 
 在项目根目录创建 `grafana-config.js` 配置文件：
 
@@ -158,12 +151,10 @@ export default {
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
 
-## 更多配置示例
-
-### 🎯 业务场景配置示例
+### 业务场景配置示例
 
 <details>
-<summary>📊 电商业务分析</summary>
+<summary>电商业务分析</summary>
 
 ```javascript
 // 电商转化率分析
@@ -179,7 +170,7 @@ ecommerce_conversion: {
 </details>
 
 <details>
-<summary>💰 金融数据分析</summary>
+<summary>金融数据分析</summary>
 
 ```javascript
 // 交易量分析
@@ -204,7 +195,7 @@ revenue_analysis: {
 </details>
 
 <details>
-<summary>👥 用户行为分析</summary>
+<summary>用户行为分析</summary>
 
 ```javascript
 // 用户活跃度分析
@@ -229,7 +220,7 @@ content_engagement: {
 </details>
 
 <details>
-<summary>🔍 安全分析</summary>
+<summary>安全分析</summary>
 
 ```javascript
 // 安全日志分析
@@ -253,7 +244,7 @@ security_logs: {
 </details>
 
 <details>
-<summary>🌐 IoT设备监控</summary>
+<summary>IoT设备监控</summary>
 
 ```javascript
 // IoT设备监控
@@ -278,7 +269,7 @@ sensor_data: {
 </details>
 
 <details>
-<summary>🔄 用户转化漏斗分析（聚合分析示例）</summary>
+<summary>用户转化漏斗分析（聚合分析示例）</summary>
 
 ```javascript
 // 用户转化漏斗 - 页面浏览
@@ -315,7 +306,7 @@ user_funnel_purchases: {
 
 </details>
 
-### 📋 系统监控配置示例
+### 系统监控配置示例
 
 <details>
 <summary>指标监控配置</summary>
@@ -430,7 +421,7 @@ system_disk_io: {
 </details>
 
 <details>
-<summary>⚠️ 批量分析配置（batch_analyze）- 不推荐使用</summary>
+<summary>批量分析配置（batch_analyze）- 不推荐使用</summary>
 
 ```javascript
 // ❌ 批量分析存在输出格式问题，不推荐在MCP环境中使用
@@ -460,7 +451,7 @@ app_request_volume: {
 
 </details>
 
-## ❓ 常见问题
+### 常见问题
 
 <details>
 <summary>❌ 无法连接到Grafana服务</summary>
@@ -489,7 +480,7 @@ app_request_volume: {
 
 </details>
 
-## 高级配置
+### 高级配置
 
 <details>
 <summary>环境变量配置</summary>
@@ -531,10 +522,10 @@ export GRAFANA_TOKEN="your-api-token"
 
 ---
 
-## 文章推荐
+### 文章推荐
 
 - [grafana-mcp-analyzer：基于 MCP 的轻量 AI 分析监控图表的运维神器！](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - CSDN技术博客深度解析
 
-## 许可证
+### 许可证
 
 MIT 开源协议。详见 [LICENSE](LICENSE) 文件。
