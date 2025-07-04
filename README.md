@@ -245,6 +245,60 @@ mysql_performance: {
 
 </details>
 
+<details>
+<summary>聚合分析配置（aggregate_analyze）</summary>
+
+```javascript
+// 聚合分析使用示例
+// 👤 您：使用aggregate_analyze聚合分析这些系统指标：system_cpu, system_memory, system_disk_io
+// 🤖 AI：同时查询多个指标并进行综合关联分析
+
+// 配置多个相关查询（扁平结构）
+system_cpu: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])"}]}'`,
+  systemPrompt: `您是CPU使用率分析专家。请分析CPU使用率数据，重点关注：1. 使用率趋势变化 2. 峰值时间点识别 3. 性能瓶颈检测 4. 系统负载评估 5. 优化建议。`
+},
+system_memory: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"}]}'`,
+  systemPrompt: `您是内存使用率分析专家。请分析内存使用情况，重点关注：1. 内存使用趋势 2. 是否接近内存上限 3. 内存泄漏风险评估 4. 内存优化建议。`
+},
+system_disk_io: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(node_disk_io_time_seconds_total[5m])"}]}'`,
+  systemPrompt: `您是磁盘IO性能分析专家。请分析磁盘IO性能，重点关注：1. IO等待时间趋势 2. 磁盘性能瓶颈 3. 读写模式分析 4. 存储优化建议。`
+}
+
+// 聚合分析会综合所有指标，提供整体系统健康状况评估
+```
+
+</details>
+
+<details>
+<summary>批量分析配置（batch_analyze）</summary>
+
+```javascript
+// 批量分析使用示例
+// 👤 您：使用batch_analyze批量分析这些应用指标：app_response_time, app_error_rate, app_request_volume
+// 🤖 AI：分别查询每个指标并提供独立的专业分析
+
+// 配置多个应用监控查询（扁平结构）
+app_response_time: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"}]}'`,
+  systemPrompt: `您是响应时间分析专家。请分析API响应时间数据，重点关注：1. P95响应时间趋势 2. 慢请求识别 3. 性能瓶颈定位 4. 用户体验影响评估 5. 性能优化建议。`
+},
+app_error_rate: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(http_requests_total{status=~\"5..\"}[5m])"}]}'`,
+  systemPrompt: `您是错误率分析专家。请分析应用错误率数据，重点关注：1. 错误率趋势变化 2. 异常模式识别 3. 服务稳定性评估 4. 错误类型分析 5. 故障排查建议。`
+},
+app_request_volume: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(http_requests_total[5m])"}]}'`,
+  systemPrompt: `您是请求量分析专家。请分析应用请求量数据，重点关注：1. 流量趋势变化 2. 峰值时间识别 3. 容量规划建议 4. 负载均衡效果 5. 扩容建议。`
+}
+
+// 批量分析会为每个指标提供独立的专业分析报告
+```
+
+</details>
+
 ## ❓ 常见问题
 
 <details>
