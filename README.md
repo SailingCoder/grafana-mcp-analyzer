@@ -20,7 +20,7 @@
 > ✨ **新功能特性**：
 > - **双重AI指引**：`systemPrompt` 配置 + 对话 `prompt` 参数，实现专业化分析
 > - **工具升级**：`execute_query` → `query_data`，功能更强大
-> - **新增工具**：`aggregate_analyze`、`batch_analyze`、`manage_sessions`、`list_data`、`server_status`
+> - **新增工具**：`aggregate_analyze`、`manage_sessions`、`list_data`、`server_status`（`batch_analyze`不推荐使用）
 > - **智能数据处理**：小数据直接分析，大数据自动存储并提供ResourceLinks访问
 > - **专业分析**：每个查询可配置专属的 `systemPrompt` 实现领域专家级分析
 
@@ -430,12 +430,16 @@ system_disk_io: {
 </details>
 
 <details>
-<summary>批量分析配置（batch_analyze）</summary>
+<summary>⚠️ 批量分析配置（batch_analyze）- 不推荐使用</summary>
 
 ```javascript
-// 批量分析使用示例
+// ❌ 批量分析存在输出格式问题，不推荐在MCP环境中使用
 // 👤 您：使用batch_analyze批量分析这些应用指标：app_response_time, app_error_rate, app_request_volume
-// 🤖 AI：分别查询每个指标并提供独立的专业分析
+// 🤖 AI：会遇到输出过长、格式混乱等问题
+
+// ✅ 推荐替代方案：使用 aggregate_analyze 进行统一分析
+// 👤 您：使用aggregate_analyze聚合分析这些应用指标：app_response_time, app_error_rate, app_request_volume
+// 🤖 AI：统一查询所有指标并提供综合关联分析
 
 // 配置多个应用监控查询（扁平结构）
 app_response_time: {
@@ -505,7 +509,7 @@ export GRAFANA_TOKEN="your-api-token"
 | `analyze_query` | 查询+AI分析 | 需要专业建议 |
 | `query_data` | 原始数据查询 | 仅需要数据 |
 | `aggregate_analyze` | 聚合分析 | 多查询统一分析 |
-| `batch_analyze` | 批量分析 | 多查询独立分析 |
+| `batch_analyze` | 批量分析 ⚠️ 不推荐 | 输出格式有问题 |
 | `list_queries` | 查询列表 | 查看配置 |
 | `check_health` | 健康检查 | 状态监控 |
 | `manage_sessions` | 会话管理 | 管理分析会话 |
@@ -521,7 +525,7 @@ export GRAFANA_TOKEN="your-api-token"
 👤 "检查服务状态" → 🤖 调用 check_health
 👤 "有哪些监控查询" → 🤖 调用 list_queries
 👤 "聚合分析系统指标" → 🤖 调用 aggregate_analyze
-👤 "批量分析多个指标" → 🤖 调用 batch_analyze
+👤 "批量分析多个指标" → 🤖 推荐调用 aggregate_analyze 替代
 ```
 </details>
 

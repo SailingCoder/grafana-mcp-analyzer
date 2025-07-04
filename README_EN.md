@@ -19,7 +19,7 @@ Complex monitoring charts analyzed by AI with one click! Say goodbye to traditio
 > ✨ **New Features**:
 > - **Dual AI Guidance**: `systemPrompt` configuration + conversation `prompt` parameters for professional analysis
 > - **Tool Upgrades**: `execute_query` → `query_data`, more powerful functionality
-> - **New Tools**: `aggregate_analyze`, `batch_analyze`, `manage_sessions`, `list_data`, `server_status`
+> - **New Tools**: `aggregate_analyze`, `manage_sessions`, `list_data`, `server_status` (`batch_analyze` not recommended)
 > - **Smart Data Processing**: Direct analysis for small data, automatic storage for large data with ResourceLinks access
 > - **Professional Analysis**: Each query can be configured with dedicated `systemPrompt` for domain expert-level analysis
 
@@ -552,7 +552,7 @@ export GRAFANA_TOKEN="your-api-token"
 | `analyze_query` | Query + AI analysis | Need professional advice |
 | `query_data` | Raw data query | Only need data |
 | `aggregate_analyze` | Aggregate analysis | Multi-query unified analysis |
-| `batch_analyze` | Batch analysis | Multi-query independent analysis |
+| `batch_analyze` | Batch analysis ⚠️ Not Recommended | Output format issues |
 | `list_queries` | Query list | View configuration |
 | `check_health` | Health check | Status monitoring |
 | `manage_sessions` | Session management | Manage analysis sessions |
@@ -568,7 +568,7 @@ Tool Usage
 👤 "Check service status" → 🤖 Calls check_health
 👤 "What monitoring queries are available" → 🤖 Calls list_queries
 👤 "Aggregate analyze system metrics" → 🤖 Calls aggregate_analyze
-👤 "Batch analyze multiple metrics" → 🤖 Calls batch_analyze
+👤 "Batch analyze multiple metrics" → 🤖 Recommend aggregate_analyze instead
 ```
 </details>
 
