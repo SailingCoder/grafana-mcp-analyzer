@@ -15,7 +15,6 @@
 
 复杂的监控图表，AI帮您一键分析！告别传统的手动监控方式，让AI成为您的专属运维助手！
 
-> 🎉 **v2.0.0 重大更新**：全新架构重构，解决大数据量分析。`systemPrompt` 配置 + 对话 `prompt` 参数，实现领域专家级分析。
 
 ### 🚀 核心特性
 
@@ -28,6 +27,8 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 *   **智能异常检测**：AI主动发现并报告性能瓶颈和异常情况，提前预警风险
 *   **全数据源支持**：完美兼容Prometheus、MySQL、Elasticsearch等所有数据源/查询命令，统一监控视图
 *   **专业DevOps建议**：不只是展示数据，更提供可执行的优化方案，提升DevOps效率
+
+> 🎉 **v2.0.0 重大更新**：全新架构升级，解决大数据量分析。`systemPrompt` + 对话 `prompt` ，实现领域专家级分析。
 
 ### 🛠️ 快速开始
 
@@ -129,13 +130,6 @@ export default {
 
 1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
 2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
-
-💡 **systemPrompt 专业分析指引**：
-
-- **作用原理**：为每个查询配置专业的AI分析指引，让AI扮演特定领域的专家角色
-- **使用方式**：配置文件中的 `systemPrompt` + 对话时的用户 `prompt` 双重指引
-- **分析效果**：CPU专家分析CPU数据、前端专家分析性能数据，专业性更强
-- **自定义建议**：根据您的业务场景，自定义适合的专家角色和分析重点
 
 ### 步骤3：开始使用
 
