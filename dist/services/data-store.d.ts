@@ -12,11 +12,17 @@ export declare function getRequestMetadata(requestId: string): Promise<any>;
 export declare function storeResponseData(requestId: string, data: any, maxChunkSize?: number): Promise<{
     type: string;
     size: number;
+    chunks: number;
+    resourceUri: string;
     totalChunks?: undefined;
+    resourceUris?: undefined;
 } | {
     type: string;
     totalChunks: number;
     size: number;
+    resourceUris: string[];
+    chunks?: undefined;
+    resourceUri?: undefined;
 }>;
 export declare function getResponseData(requestId: string, chunkId?: string): Promise<any>;
 export declare function listDataFiles(requestId: string): Promise<string[]>;
@@ -35,4 +41,20 @@ export declare function getRequestStats(requestId: string): Promise<{
     dataFiles: number;
     totalSize: number;
     hasAnalysis: boolean;
+    resourceUris: string[];
+}>;
+export declare function cleanupExpiredData(forceCleanAll?: boolean, maxAgeHours?: number): Promise<number>;
+export declare function getDataStoreStats(): Promise<{
+    totalRequests: number;
+    totalSize: number;
+    totalSizeMB: string;
+    oldestRequest: {
+        id: string;
+        timestamp: string;
+    } | null;
+    newestRequest: {
+        id: string;
+        timestamp: string;
+    } | null;
+    storageRoot: string;
 }>;

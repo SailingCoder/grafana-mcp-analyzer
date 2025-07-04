@@ -18,11 +18,18 @@ test/
 *.spec.*
 coverage/
 
-# Documentation (keep essential docs only)
+# Development documentation (keep essential docs only)
 docs/
+SECURITY_AND_RELEASE_AUDIT.md
+CODE_CLEANUP_SUMMARY.md
+CONTRIBUTING.md
+OPEN_SOURCE_CHECKLIST.md
+ISSUE_ANALYSIS.md
+SUMMARY.md
 *.md
 !README.md
-!CHANGELOG.md
+!README_EN.md
+!LICENSE
 
 # Development and publish files
 PUBLISH_CHECKLIST.md

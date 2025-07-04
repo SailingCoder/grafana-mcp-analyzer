@@ -38,7 +38,7 @@ export async function getRequestMetadata(requestId) {
     }
 }
 // 存储响应数据
-export async function storeResponseData(requestId, data, maxChunkSize = 1024 * 1024 // 1MB
+export async function storeResponseData(requestId, data, maxChunkSize = 500 * 1024 // 500KB - 降低阈值以支持更好的分块
 ) {
     const requestDir = path.join(DATA_STORE_ROOT, requestId);
     const dataDir = path.join(requestDir, 'data');
@@ -49,7 +49,12 @@ export async function storeResponseData(requestId, data, maxChunkSize = 1024 * 1
         // 数据较小，直接存储为完整文件
         const fullPath = path.join(dataDir, 'full.json');
         await fs.writeFile(fullPath, dataStr);
-        return { type: 'full', size: dataSize };
+        return {
+            type: 'full',
+            size: dataSize,
+            chunks: 1,
+            resourceUri: `monitoring-data://${requestId}/data`
+        };
     }
     else {
         // 数据较大，分块存储
@@ -62,7 +67,12 @@ export async function storeResponseData(requestId, data, maxChunkSize = 1024 * 1
             const chunkPath = path.join(dataDir, `chunk-${i}.json`);
             await fs.writeFile(chunkPath, chunk);
         }
-        return { type: 'chunked', totalChunks, size: dataSize };
+        return {
+            type: 'chunked',
+            totalChunks,
+            size: dataSize,
+            resourceUris: Array.from({ length: totalChunks }, (_, i) => `monitoring-data://${requestId}/chunk-${i}`)
+        };
     }
 }
 // 获取响应数据
@@ -200,12 +210,14 @@ export async function getRequestStats(requestId) {
         const dataFiles = await listDataFiles(requestId);
         let totalSize = 0;
         let dataType = 'none';
+        let resourceUris = [];
         if (dataFiles.length > 0) {
             const dataDir = path.join(DATA_STORE_ROOT, requestId, 'data');
             if (dataFiles.includes('full.json')) {
                 dataType = 'full';
                 const stat = await fs.stat(path.join(dataDir, 'full.json'));
                 totalSize = stat.size;
+                resourceUris = [`monitoring-data://${requestId}/data`];
             }
             else {
                 const chunkFiles = dataFiles.filter(f => f.startsWith('chunk-'));
@@ -215,6 +227,10 @@ export async function getRequestStats(requestId) {
                         const stat = await fs.stat(path.join(dataDir, file));
                         totalSize += stat.size;
                     }
+                    resourceUris = chunkFiles.map(f => {
+                        const chunkNum = f.match(/chunk-(\d+)\.json$/)?.[1];
+                        return `monitoring-data://${requestId}/chunk-${chunkNum}`;
+                    });
                 }
             }
         }
@@ -229,11 +245,138 @@ export async function getRequestStats(requestId) {
             dataType,
             dataFiles: dataFiles.length,
             totalSize,
-            hasAnalysis
+            hasAnalysis,
+            resourceUris
         };
     }
     catch (error) {
         throw new Error(`Failed to get request stats: ${requestId}`);
     }
+}
+// 清理过期数据
+export async function cleanupExpiredData(forceCleanAll = false, maxAgeHours = 24) {
+    try {
+        await ensureDir(DATA_STORE_ROOT);
+        const dirs = await fs.readdir(DATA_STORE_ROOT);
+        let deletedCount = 0;
+        const now = Date.now();
+        const maxAge = maxAgeHours * 60 * 60 * 1000; // 转换为毫秒
+        for (const dir of dirs) {
+            if (dir.startsWith('request-')) {
+                const requestDir = path.join(DATA_STORE_ROOT, dir);
+                try {
+                    if (forceCleanAll) {
+                        // 强制清理所有数据
+                        await fs.rm(requestDir, { recursive: true });
+                        deletedCount++;
+                        console.log(`🗑️ 删除请求目录: ${dir}`);
+                    }
+                    else {
+                        // 根据时间清理过期数据
+                        const metadata = await getRequestMetadata(dir);
+                        const requestTime = new Date(metadata.timestamp).getTime();
+                        if (now - requestTime > maxAge) {
+                            await fs.rm(requestDir, { recursive: true });
+                            deletedCount++;
+                            console.log(`🗑️ 删除过期请求: ${dir} (${metadata.timestamp})`);
+                        }
+                    }
+                }
+                catch (error) {
+                    console.warn(`⚠️ 清理请求 ${dir} 失败:`, error);
+                }
+            }
+        }
+        return deletedCount;
+    }
+    catch (error) {
+        console.error('❌ 数据清理失败:', error);
+        return 0;
+    }
+}
+// 获取数据存储统计信息
+export async function getDataStoreStats() {
+    try {
+        await ensureDir(DATA_STORE_ROOT);
+        const dirs = await fs.readdir(DATA_STORE_ROOT);
+        let totalRequests = 0;
+        let totalSize = 0;
+        let oldestRequest = null;
+        let newestRequest = null;
+        let oldestTime = Infinity;
+        let newestTime = 0;
+        for (const dir of dirs) {
+            if (dir.startsWith('request-')) {
+                totalRequests++;
+                try {
+                    const requestDir = path.join(DATA_STORE_ROOT, dir);
+                    const stat = await fs.stat(requestDir);
+                    // 计算目录大小
+                    const dirSize = await getDirSize(requestDir);
+                    totalSize += dirSize;
+                    // 获取请求时间
+                    const metadata = await getRequestMetadata(dir);
+                    const requestTime = new Date(metadata.timestamp).getTime();
+                    if (requestTime < oldestTime) {
+                        oldestTime = requestTime;
+                        oldestRequest = dir;
+                    }
+                    if (requestTime > newestTime) {
+                        newestTime = requestTime;
+                        newestRequest = dir;
+                    }
+                }
+                catch (error) {
+                    // 跳过无效的请求目录
+                }
+            }
+        }
+        return {
+            totalRequests,
+            totalSize,
+            totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+            oldestRequest: oldestRequest ? {
+                id: oldestRequest,
+                timestamp: new Date(oldestTime).toISOString()
+            } : null,
+            newestRequest: newestRequest ? {
+                id: newestRequest,
+                timestamp: new Date(newestTime).toISOString()
+            } : null,
+            storageRoot: DATA_STORE_ROOT
+        };
+    }
+    catch (error) {
+        console.error('❌ 获取数据存储统计失败:', error);
+        return {
+            totalRequests: 0,
+            totalSize: 0,
+            totalSizeMB: '0.00',
+            oldestRequest: null,
+            newestRequest: null,
+            storageRoot: DATA_STORE_ROOT
+        };
+    }
+}
+// 计算目录大小的辅助函数
+async function getDirSize(dirPath) {
+    let totalSize = 0;
+    try {
+        const items = await fs.readdir(dirPath);
+        for (const item of items) {
+            const itemPath = path.join(dirPath, item);
+            const stat = await fs.stat(itemPath);
+            if (stat.isDirectory()) {
+                totalSize += await getDirSize(itemPath);
+            }
+            else {
+                totalSize += stat.size;
+            }
+        }
+    }
+    catch (error) {
+        // 忽略错误，返回当前累计大小
+    }
+    return totalSize;
 }
 //# sourceMappingURL=data-store.js.map

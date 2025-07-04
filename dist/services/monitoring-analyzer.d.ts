@@ -1,12 +1,11 @@
-import type { ExtractedData, QueryConfig } from '../types/index.js';
+import type { ExtractedData } from '../types/index.js';
 /**
- * 使用AI服务分析监控数据
+ * 生成数据概览
+ * 提供数据统计信息而非完整数据内容
  */
-export declare function analyzeWithAI(prompt: string, extractedData: ExtractedData, globalConfig?: QueryConfig, queryConfig?: {
-    systemPrompt?: string;
-    aiService?: any;
-}): Promise<string | null>;
+export declare function generateDataOverview(data: ExtractedData): any;
 /**
- * 格式化数据供客户端AI使用
+ * 为AI提供分析指引，结合查询配置的systemPrompt
+ * AI将通过ResourceLinks访问完整数据
  */
-export declare function formatDataForClientAI(prompt: string, extractedData: ExtractedData): string;
+export declare function buildAnalysisGuidance(prompt: string, requestId: string, dataOverview: any, resourceLinks: string[], queryConfig?: any): string;

@@ -1,11 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import os from 'os';
 import type { SessionInfo } from '../types/index.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const BASE_STORAGE_DIR = path.resolve(__dirname, '../../.data-store');
+// 使用用户家目录，与data-store.ts保持一致
+const BASE_STORAGE_DIR = path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store');
 const SESSIONS_DIR = path.join(BASE_STORAGE_DIR, 'sessions');
 const INDEXES_DIR = path.join(BASE_STORAGE_DIR, 'indexes');
 

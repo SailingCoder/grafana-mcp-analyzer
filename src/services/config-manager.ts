@@ -1,20 +1,20 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import type { QueryConfig } from '../types/index.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DEFAULT_CONFIG_PATH = path.resolve(__dirname, '../../config/query-config.simple.js');
 
 /**
  * 加载配置
  */
 export async function loadConfig(configPath?: string): Promise<QueryConfig> {
   try {
-    const resolvedPath = configPath 
-      ? path.resolve(process.cwd(), configPath)
-      : DEFAULT_CONFIG_PATH;
+    // 优先使用传入的路径，其次使用环境变量
+    const configFilePath = configPath || process.env['CONFIG_PATH'];
+    
+    if (!configFilePath) {
+      throw new Error('请指定配置文件路径。使用参数传入或设置 CONFIG_PATH 环境变量');
+    }
+    
+    const resolvedPath = path.resolve(process.cwd(), configFilePath);
     
     if (!fs.existsSync(resolvedPath)) {
       throw new Error(`配置文件不存在: ${resolvedPath}`);
@@ -32,7 +32,14 @@ export async function loadConfig(configPath?: string): Promise<QueryConfig> {
     return loadedConfig;
     
   } catch (error: any) {
-    console.warn('⚠️ 配置文件加载失败，使用默认配置:', error.message);
+    // 如果是配置路径相关的错误，直接抛出
+    if (error.message.includes('请指定配置文件路径') || 
+        error.message.includes('配置文件不存在')) {
+      throw error;
+    }
+    
+    // 其他错误（如解析错误）使用默认配置
+    console.warn('⚠️ 配置文件解析失败，使用默认配置:', error.message);
     return {
       baseUrl: 'https://your-grafana-instance.com',
       defaultHeaders: { 'Content-Type': 'application/json' },
@@ -46,9 +53,13 @@ export async function loadConfig(configPath?: string): Promise<QueryConfig> {
  */
 export async function saveConfig(config: QueryConfig, configPath?: string): Promise<boolean> {
   try {
-    const resolvedPath = configPath 
-      ? path.resolve(process.cwd(), configPath)
-      : DEFAULT_CONFIG_PATH;
+    const configFilePath = configPath || process.env['CONFIG_PATH'];
+    
+    if (!configFilePath) {
+      throw new Error('请指定配置文件路径。使用参数传入或设置 CONFIG_PATH 环境变量');
+    }
+    
+    const resolvedPath = path.resolve(process.cwd(), configFilePath);
     
     // 创建配置文件内容
     const configContent = `export default ${JSON.stringify(config, null, 2)};`;
@@ -75,7 +86,11 @@ export async function saveConfig(config: QueryConfig, configPath?: string): Prom
  * 获取配置文件路径
  */
 export function getConfigPath(): string {
-  return process.env['CONFIG_PATH'] || DEFAULT_CONFIG_PATH;
+  const configPath = process.env['CONFIG_PATH'];
+  if (!configPath) {
+    throw new Error('请设置 CONFIG_PATH 环境变量指定配置文件路径');
+  }
+  return configPath;
 }
 
 /**

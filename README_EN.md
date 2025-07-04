@@ -14,6 +14,8 @@ Imagine these scenarios:
 
 Complex monitoring charts analyzed by AI with one click! Say goodbye to traditional manual monitoring and let AI become your dedicated DevOps assistant!
 
+> 🎉 **v2.0.0 Major Update**: Complete architecture refactor with 6 core tools, config-driven queries, intelligent data processing, and a simplified user experience! [View Migration Guide](docs/API_REFERENCE.md#版本更新)
+
 ## 🚀 Core Features
 
 Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowering AI assistants like Claude and ChatGPT with the following superpowers:
@@ -283,7 +285,7 @@ export GRAFANA_TOKEN="your-api-token"
 | Tool | Function | Use Case |
 |------|----------|----------|
 | `analyze_query` | Query + AI analysis | Need professional advice |
-| `execute_query` | Raw data query | Only need data |
+| `query_data` | Raw data query | Only need data |
 | `check_health` | Health check | Status monitoring |
 | `list_queries` | Query list | View configuration |
 
@@ -292,7 +294,7 @@ Tool Usage
 ```javascript
 // AI assistant automatically selects appropriate tools
 👤 "Analyze CPU usage" → 🤖 Calls analyze_query
-👤 "Get memory data" → 🤖 Calls execute_query  
+👤 "Get memory data" → 🤖 Calls query_data  
 👤 "Check service status" → 🤖 Calls check_health
 👤 "What monitoring queries are available" → 🤖 Calls list_queries
 ```

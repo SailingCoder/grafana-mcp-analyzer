@@ -1,9 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const BASE_STORAGE_DIR = path.resolve(__dirname, '../../.data-store');
+import os from 'os';
+// 使用用户家目录，与data-store.ts保持一致
+const BASE_STORAGE_DIR = path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store');
 const SESSIONS_DIR = path.join(BASE_STORAGE_DIR, 'sessions');
 const INDEXES_DIR = path.join(BASE_STORAGE_DIR, 'indexes');
 // 确保目录存在

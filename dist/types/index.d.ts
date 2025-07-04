@@ -10,7 +10,6 @@ export interface HttpRequest {
     params?: Record<string, string>;
     timeout?: number;
     axiosConfig?: Record<string, any>;
-    curl?: string;
 }
 export interface HttpResponse {
     success: boolean;
@@ -41,38 +40,7 @@ export interface QueryConfig {
         url: string;
         expectedStatus?: number;
     };
-    aiService?: {
-        url: string;
-        apiKey?: string;
-        model?: string;
-        headers?: Record<string, string>;
-        systemPrompt?: string;
-        temperature?: number;
-        maxTokens?: number;
-        timeout?: number;
-    };
-    queries?: Record<string, HttpRequest & {
-        systemPrompt?: string;
-        aiService?: any;
-    }>;
-}
-export interface AnalysisResult {
-    success: boolean;
-    extractedData: ExtractedData;
-    sessionId?: string;
-    requestId?: string;
-    responseId?: string;
-    analysis: {
-        source: 'external_ai' | 'client_ai';
-        content?: string;
-        context?: string;
-    };
-    metadata: {
-        timestamp: string;
-        queryType: string;
-        hasData: boolean;
-        aiServiceConfigured: boolean;
-    };
+    queries?: Record<string, HttpRequest>;
 }
 export interface SessionInfo {
     id: string;
@@ -83,26 +51,5 @@ export interface SessionInfo {
     requestCount: number;
     lastPrompt?: string;
     lastResponseId?: string;
-    dataChunks?: number;
-    lastAggregateId?: string;
-    lastAggregateTimestamp?: string;
-    lastReportId?: string;
-    lastReportTimestamp?: string;
-}
-export interface RequestInfo {
-    id: string;
-    timestamp: string;
-    prompt?: string;
-    request?: any;
-    queryName?: string;
-    curl?: string;
-}
-export interface ResponseInfo {
-    id: string;
-    timestamp: string;
-    type: string;
-    dataSize?: number;
-    dataStructure?: any;
 }
 export declare function isValidHttpMethod(method: string): boolean;
-export declare function isValidHealthStatus(status: string): boolean;

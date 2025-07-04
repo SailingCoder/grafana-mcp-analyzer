@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { parseCurlCommand } from './curl-parser.js';
 import type { HttpRequest, HttpResponse, ExtractedData, HealthStatus } from '../types/index.js';
 
 const DEFAULT_TIMEOUT = 30000; // 默认请求超时时间（30秒） - 避免长时间等待
@@ -7,18 +8,32 @@ const HEALTH_CHECK_TIMEOUT = 5000; // 健康检查超时时间（5秒） - 快�
 /**
  * 执行Grafana查询
  */
-export async function executeQuery(request: HttpRequest, baseUrl: string): Promise<HttpResponse> {
+export async function executeQuery(request: HttpRequest | { curl: string }, baseUrl: string): Promise<HttpResponse> {
   try {
-    const url = request.url.startsWith('http') ? request.url : `${baseUrl}/${request.url}`;
+    let actualRequest: HttpRequest;
+    
+    // 检查是否是curl格式的查询
+    if ('curl' in request) {
+      actualRequest = parseCurlCommand(request.curl);
+    } else {
+      actualRequest = request;
+    }
+    
+    // 确保URL存在
+    if (!actualRequest.url) {
+      throw new Error('缺少URL配置');
+    }
+    
+    const url = actualRequest.url.startsWith('http') ? actualRequest.url : `${baseUrl}/${actualRequest.url}`;
     
     const response = await axios({
       url,
-      method: request.method || 'POST',
-      headers: request.headers || { 'Content-Type': 'application/json' },
-      data: request.data,
-      params: request.params,
-      timeout: request.timeout || 30000,
-      ...request.axiosConfig
+      method: actualRequest.method || 'POST',
+      headers: actualRequest.headers || { 'Content-Type': 'application/json' },
+      data: actualRequest.data,
+      params: actualRequest.params,
+      timeout: actualRequest.timeout || DEFAULT_TIMEOUT,
+      ...actualRequest.axiosConfig
     });
     
     return {

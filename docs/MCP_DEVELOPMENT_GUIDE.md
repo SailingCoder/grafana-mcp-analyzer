@@ -25,67 +25,15 @@ AI助手可以读取的数据源（文件、数据库等）
 
 ## 🔧 本项目的MCP实现
 
-## 📊 数据存储架构
-
-### 以请求为中心的存储模式
-
-本项目采用以请求为中心的数据存储模式，每个请求都是独立的数据单元：
-
-```
-~/.grafana-mcp-analyzer/data-store/
-  ├── request-1751457026755-nsegn2dj6/
-  │   ├── metadata.json         // 请求元数据
-  │   ├── analysis.json         // 分析结果
-  │   └── data/                 // 响应数据文件夹
-  │       └── full.json         // 完整数据(小数据)
-  │
-  └── request-1751457026758-tbbaa3ema/
-      ├── metadata.json         // 请求元数据
-      └── data/                 // 响应数据文件夹
-          ├── chunk-0.json      // 数据分块1
-          ├── chunk-1.json      // 数据分块2
-          └── ...               // 更多数据分块
-```
-
-### 数据文件说明
-
-1. **metadata.json**: 包含请求的完整信息
-   ```json
-   {
-     "id": "request-1751457026755-nsegn2dj6",
-     "timestamp": "2025-07-02T11:50:26.755Z",
-     "url": "api/ds/query",
-     "method": "POST",
-     "params": {},
-     "data": { "targets": [...] },
-     "prompt": "分析CPU使用率",
-     "sessionId": "session-test"
-   }
-   ```
-
-2. **data/full.json**: 小数据的完整响应（< 1MB）
-
-3. **data/chunk-*.json**: 大数据的分块存储（≥ 1MB）
-
-4. **analysis.json**: AI分析结果
-   ```json
-   {
-     "prompt": "分析CPU使用率",
-     "timestamp": "2025-07-02T11:50:26.755Z",
-     "result": "CPU使用率正常，平均值为30%"
-   }
-   ```
-
 ### 工具清单
-| 工具名 | 功能 | 参数 |
-|--------|------|------|
-| `analyze_query` | 执行查询并AI分析 | `prompt`, `queryName`, `request`, `curl`, `sessionId` |
-| `execute_query` | 执行原始查询 | `queryName`, `request`, `curl`, `sessionId` |
+| 工具名 | 功能 | 主要参数 |
+|--------|------|----------|
+| `query_data` | 执行查询并可选AI分析 | `prompt`, `queryName`, `request`, `curl`, `analyze` |
+| `list_requests` | 列出历史请求 | `sessionId`, `limit` |
+| `get_request` | 获取请求详情 | `requestId` |
 | `check_health` | 健康检查 | `expectedStatus`, `timeout` |
-| `list_queries` | 查询列表 | `includeConfig` |
+| `list_queries` | 查询配置列表 | `includeConfig` |
 | `manage_sessions` | 会话管理 | `action`, `sessionId`, `metadata` |
-| `analyze_session` | 会话聚合分析 | `sessionId`, `requestIds`, `prompt` |
-| `generate_report` | 生成分析报告 | `sessionId`, `aggregateId`, `format` |
 
 ### 资源清单
 | 资源名 | URI模式 | 功能 |
@@ -94,58 +42,105 @@ AI助手可以读取的数据源（文件、数据库等）
 | `monitoring-data-index` | `monitoring-data-index://requests` | 查看所有请求 |
 | `monitoring-data-index` | `monitoring-data-index://session/{sessionId}` | 查看会话请求 |
 
-### 大数据处理
+## 📊 数据存储架构
 
-系统自动处理大型数据集：
+### 以请求为中心的存储模式
 
-1. **自动分块**: 数据超过1MB时自动分块存储
-2. **透明访问**: 通过ResourceLinks提供统一访问接口
-3. **按需加载**: 客户端可以选择加载完整数据或特定数据块
-
-```typescript
-// 访问完整数据
-const data = await getResponseData(requestId);
-
-// 访问特定数据块
-const chunk = await getResponseData(requestId, 'chunk-0');
-
-// 列出所有数据文件
-const files = await listDataFiles(requestId);
+```
+~/.grafana-mcp-analyzer/data-store/
+  ├── request-{timestamp}-{id}/
+  │   ├── metadata.json         // 请求元数据
+  │   ├── analysis.json         // 分析结果(可选)
+  │   └── data/                 // 响应数据文件夹
+  │       ├── full.json         // 完整数据(小数据)
+  │       └── chunk-*.json      // 数据分块(大数据)
+  └── ...
 ```
 
-### 核心代码结构
+### 数据文件说明
+
+1. **metadata.json**: 请求信息
+   ```json
+   {
+     "id": "request-1751457026755-nsegn2dj6",
+     "timestamp": "2025-07-02T11:50:26.755Z",
+     "url": "api/ds/query",
+     "method": "POST",
+     "data": { "targets": [...] },
+     "prompt": "分析CPU使用率",
+     "sessionId": "session-test"
+   }
+   ```
+
+2. **data/**: 响应数据存储
+   - `full.json`: 小数据完整存储（< 1MB）
+   - `chunk-*.json`: 大数据分块存储（≥ 1MB）
+
+3. **analysis.json**: AI分析结果（可选）
+
+### 大数据处理
+
+- **自动分块**: 超过1MB自动分块存储
+- **透明访问**: 通过ResourceLinks统一访问
+- **按需加载**: 支持完整或分块访问
+
+## 🔧 核心代码结构
+
+### MCP服务器初始化
 ```typescript
 // src/server/mcp-server.ts
 const server = new McpServer({
   name: 'grafana-mcp-analyzer',
-  version: '1.0.0'
+  version: packageJson.version
 });
 
-// 定义工具
-server.tool('analyze_query', {
-  prompt: z.string().describe('分析需求描述'),
+// 工具定义
+server.tool('query_data', {
+  prompt: z.string().describe('查询和分析需求描述'),
   queryName: z.string().optional(),
-  request: z.object({}).optional()
-}, async ({ prompt, queryName, request }) => {
-  // 执行查询逻辑
-  // AI分析逻辑
-  return result;
+  request: z.object({}).optional(),
+  curl: z.string().optional(),
+  analyze: z.boolean().optional().default(true)
+}, async ({ prompt, queryName, request, curl, analyze }) => {
+  // 执行查询和分析逻辑
+});
+```
+
+### 数据存储层
+```typescript
+// src/services/data-store.ts
+export async function storeRequestMetadata(requestId: string, metadata: any);
+export async function storeResponseData(requestId: string, data: any);
+export async function getResponseData(requestId: string, chunkId?: string);
+export async function storeAnalysis(requestId: string, analysis: any);
+```
+
+### 资源访问
+```typescript
+// 注册资源
+server.resource("monitoring-data", "monitoring-data://{requestId}/{dataType}", {
+  title: "监控数据",
+  description: "Grafana监控数据资源查看器"
+}, async (uri) => {
+  // 资源访问逻辑
 });
 ```
 
 ## 📦 扩展开发
 
 ### 添加新的数据源
-1. 在配置文件中添加新查询：
+
+1. **配置文件扩展**：
 ```javascript
-export default {
+// grafana-config.js
+const config = {
   queries: {
-    new_datasource_query: {
+    new_datasource: {
       url: 'api/ds/query',
       data: {
         queries: [{
           datasource: { uid: 'new-uid', type: 'influxdb' },
-          query: 'your-influxdb-query',
+          query: 'your-query',
           refId: 'A'
         }]
       }
@@ -154,178 +149,138 @@ export default {
 };
 ```
 
-2. 测试新查询：
+2. **测试新查询**：
 ```bash
 CONFIG_PATH=./config npm run dev
 ```
 
-### 会话与聚合分析
-
-本项目支持会话管理和聚合分析，可以将多个相关请求组织在一个会话中，并进行整体分析。
-
-#### 会话管理
-
-会话提供了一种组织和管理相关请求的方式：
+### 添加新工具
 
 ```typescript
-// 创建新会话
-const sessionId = await createSession({
-  description: '性能监控分析会话',
-  createdBy: 'user'
-});
-
-// 在会话中执行查询
-const result = await analyzeQuery({
-  sessionId,
-  prompt: '分析CPU使用率',
-  request: { ... }
-});
-
-// 获取会话中的所有请求
-const requests = await listRequestsBySession(sessionId);
-```
-
-#### 数据访问模式
-
-新的存储结构提供了更灵活的数据访问方式：
-
-```typescript
-// 按请求ID访问
-const metadata = await getRequestMetadata(requestId);
-const data = await getResponseData(requestId);
-const analysis = await getAnalysis(requestId);
-
-// 按会话访问
-const sessionRequests = await listRequestsBySession(sessionId);
-
-// 全局访问
-const allRequests = await listAllRequests();
-```
-
-#### 聚合分析
-
-聚合分析可以对会话中的多个请求进行整体分析：
-
-```typescript
-// 对会话中的所有请求进行聚合分析
-const analysisResult = await analyzeSession({
-  sessionId,
-  prompt: '综合分析所有性能指标，找出系统瓶颈'
-});
-
-// 对会话中的特定请求进行聚合分析
-const analysisResult = await analyzeSession({
-  sessionId,
-  requestIds: ['request-1', 'request-2'],
-  prompt: '比较这两次查询的性能差异'
-});
-```
-
-#### 报告生成
-
-可以基于聚合分析生成格式化报告：
-
-```typescript
-// 生成Markdown格式报告
-const report = await generateReport({
-  sessionId,
-  format: 'markdown'
-});
-
-// 生成HTML格式报告
-const report = await generateReport({
-  sessionId,
-  aggregateId: 'aggregate-123',
-  format: 'html'
-});
-```
-
-### ResourceLinks使用
-
-ResourceLinks提供了统一的数据访问接口：
-
-```typescript
-// 访问请求数据
-`monitoring-data://${requestId}/data`
-
-// 访问分析结果
-`monitoring-data://${requestId}/analysis`
-
-// 访问特定数据块
-`monitoring-data://${requestId}/chunk-0`
-
-// 查看所有请求
-`monitoring-data-index://requests`
-
-// 查看会话请求
-`monitoring-data-index://session/${sessionId}`
-```
-
-### 添加新的MCP工具
-```typescript
-// 在 src/server/mcp-server.ts 中添加
 server.tool('new_tool', {
-  param1: z.string().describe('参数描述')
-}, async ({ param1 }) => {
+  param1: z.string().describe('参数描述'),
+  param2: z.number().optional()
+}, async ({ param1, param2 }) => {
   // 工具逻辑
+  return createResponse(result);
+});
+```
+
+### 添加新资源
+
+```typescript
+server.resource("new-resource", "new-resource://{id}", {
+  title: "新资源",
+  description: "新资源描述"
+}, async (uri) => {
+  // 资源访问逻辑
   return {
-    content: [{
-      type: 'text',
-      text: '结果文本'
+    contents: [{
+      uri: uri.href,
+      text: "资源内容",
+      mimeType: "application/json"
     }]
   };
 });
 ```
 
-## 🧪 测试和调试
+## 🧪 开发测试
 
-### 本地测试
+### 本地开发
 ```bash
+# 安装依赖
+npm install
+
 # 开发模式
 npm run dev
 
-# 测试构建
-npm run build && npm test
+# 构建
+npm run build
 
-# 测试ResourceLinks功能
-npm run test:resource-links
+# 测试
+npm test
 ```
 
-### 配置测试
+### 测试工具
 ```bash
-# 测试配置加载
-node -e "import('./config/query-config.simple.js').then(c => console.log(c.default))"
+# 测试数据存储
+node tests/test-new-data-structure.js
+
+# 测试MCP服务器
+node tests/test-mcp-server.js
 ```
 
-### AI助手集成测试
-在Cursor中配置MCP服务器并测试：
-```json
-{
-  "mcpServers": {
-    "test-grafana": {
-      "command": "node",
-      "args": ["./dist/server/mcp-server.js"],
-      "env": {
-        "CONFIG_PATH": "./config/query-config.simple.js"
-      }
-    }
-  }
+## 🔄 会话管理
+
+### 会话概念
+会话提供了组织相关请求的方式，支持：
+- 创建/删除会话
+- 会话内请求管理
+- 聚合分析
+
+### 会话API
+```typescript
+// 会话管理
+await createSession(metadata);
+await getSessionInfo(sessionId);
+await listSessions();
+await deleteSession(sessionId);
+
+// 请求管理
+await listRequestsBySession(sessionId);
+await getRequestStats(requestId);
+```
+
+## 📋 最佳实践
+
+### 1. 错误处理
+```typescript
+try {
+  const result = await executeQuery(request);
+  return createResponse(result);
+} catch (error) {
+  return createErrorResponse(error);
 }
 ```
 
-## 📚 相关资源
+### 2. 数据验证
+```typescript
+// 使用Zod进行参数验证
+const schema = z.object({
+  url: z.string().url(),
+  method: z.enum(['GET', 'POST', 'PUT', 'DELETE'])
+});
+```
+
+### 3. 资源清理
+```typescript
+// 定期清理过期数据
+const expiredRequests = await listExpiredRequests();
+for (const request of expiredRequests) {
+  await deleteRequest(request.id);
+}
+```
+
+## 🚀 部署指南
+
+### 环境变量
+```bash
+CONFIG_PATH=./config/grafana-config.js
+NODE_ENV=production
+```
+
+### Docker部署
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+CMD ["npm", "start"]
+```
+
+## 📚 参考资料
 
 - [MCP官方文档](https://modelcontextprotocol.io/)
-- [MCP SDK文档](https://github.com/modelcontextprotocol/typescript-sdk)
-- [Grafana API文档](https://grafana.com/docs/grafana/latest/http_api/)
-
-## 🔍 常见问题
-
-**Q: 如何处理异步操作？**
-A: MCP工具函数本身就是async函数，可以直接使用await
-
-**Q: 如何添加新的AI服务？**
-A: 参考`docs/AI_SERVICE_CONFIG.md`文档配置新的AI服务
-
-**Q: 如何处理大型监控数据？**
-A: 使用ResourceLinks功能，数据会自动分块存储，AI可以按需加载
+- [Grafana API文档](https://grafana.com/docs/grafana/latest/developers/http_api/)
+- [项目GitHub仓库](https://github.com/SailingCoder/grafana-mcp-analyzer)

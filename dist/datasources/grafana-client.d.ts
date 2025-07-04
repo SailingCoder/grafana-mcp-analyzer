@@ -2,7 +2,9 @@ import type { HttpRequest, HttpResponse, ExtractedData, HealthStatus } from '../
 /**
  * 执行Grafana查询
  */
-export declare function executeQuery(request: HttpRequest, baseUrl: string): Promise<HttpResponse>;
+export declare function executeQuery(request: HttpRequest | {
+    curl: string;
+}, baseUrl: string): Promise<HttpResponse>;
 /**
  * 从HTTP响应中提取数据
  */
