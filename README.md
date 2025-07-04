@@ -160,6 +160,163 @@ export default {
 
 ## 更多配置示例
 
+### 🎯 业务场景配置示例
+
+<details>
+<summary>📊 电商业务分析</summary>
+
+```javascript
+// 电商转化率分析
+ecommerce_conversion: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(orders_total[5m]) / rate(page_views_total[5m]) * 100","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: '您是电商业务分析专家，专注于转化率优化和用户购买行为分析。请分析销售转化率数据，重点关注：1. 转化率趋势变化和关键拐点 2. 高峰和低谷时段识别 3. 用户购买行为模式 4. 影响转化的关键因素 5. 转化率优化建议和A/B测试方案 6. 预期收益评估。请提供具体的业务改进建议。'
+}
+```
+
+</details>
+
+<details>
+<summary>💰 金融数据分析</summary>
+
+```javascript
+// 交易量分析
+finance_transactions: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"sum(rate(transaction_amount_total[5m]))","range":{"from":"now-7d","to":"now"}}]}'`,
+  systemPrompt: '您是金融数据分析专家，专长于交易风险控制和业务增长分析。请分析交易量数据，重点关注：1. 交易量趋势和周期性模式 2. 异常交易模式识别 3. 风险信号检测 4. 业务增长机会 5. 风控策略优化建议 6. 合规性评估。请提供风险控制和业务增长的平衡建议。'
+},
+
+// 收入分析
+revenue_analysis: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"sum(increase(revenue_total[1d]))","range":{"from":"now-90d","to":"now"}}]}'`,
+  systemPrompt: '您是财务数据分析专家，专注于收入增长和盈利能力分析。请分析收入数据，重点关注：1. 收入趋势和增长模式分析 2. 收入来源结构和贡献度 3. 季节性和周期性因素影响 4. 收入预测和目标达成分析 5. 盈利能力和成本效益评估 6. 收入增长策略建议。'
+}
+```
+
+</details>
+
+<details>
+<summary>👥 用户行为分析</summary>
+
+```javascript
+// 用户活跃度分析
+user_activity: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"count(increase(user_sessions_total[1h]))","range":{"from":"now-30d","to":"now"}}]}'`,
+  systemPrompt: '您是用户行为分析专家，专注于用户留存和参与度优化。请分析用户活跃度数据，重点关注：1. 用户活跃度趋势和留存率 2. 用户行为模式和偏好 3. 用户生命周期分析 4. 流失风险用户识别 5. 用户参与度提升策略 6. 个性化推荐建议。'
+},
+
+// 内容消费分析
+content_engagement: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(content_views_total[5m])","range":{"from":"now-7d","to":"now"}}]}'`,
+  systemPrompt: '您是内容运营分析专家，专注于内容策略和用户参与度优化。请分析内容消费数据，重点关注：1. 内容消费趋势和热点识别 2. 用户内容偏好分析 3. 内容质量评估 4. 内容推荐优化 5. 创作者生态健康度 6. 内容策略建议。'
+}
+```
+
+</details>
+
+<details>
+<summary>🔍 安全分析</summary>
+
+```javascript
+// 安全日志分析
+security_logs: {
+  url: "api/ds/es/query",
+  method: "POST",
+  data: {
+    "queries": [
+      {
+        "refId": "A",
+        "query": "tags:security AND level:WARN",
+        "timeField": "@timestamp",
+        "size": 200
+      }
+    ]
+  },
+  systemPrompt: '您是网络安全分析专家，专注于安全威胁检测和风险评估。请分析安全日志数据，重点关注：1. 异常访问模式和潜在威胁识别 2. 安全事件趋势和攻击模式 3. 风险等级评估和紧急响应建议 4. 安全策略优化建议 5. 合规性检查和审计建议 6. 安全监控和告警策略。'
+}
+```
+
+</details>
+
+<details>
+<summary>🌐 IoT设备监控</summary>
+
+```javascript
+// IoT设备监控
+iot_devices: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"avg(temperature_celsius)","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: '您是IoT数据分析专家，专注于设备监控和智能运维。请分析IoT设备数据，重点关注：1. 设备健康状态和性能趋势 2. 异常设备和故障预警 3. 设备使用模式和优化机会 4. 能耗分析和节能建议 5. 设备生命周期管理 6. 预测性维护策略。'
+},
+
+// 传感器数据分析
+sensor_data: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(sensor_readings_total[10m])","range":{"from":"now-12h","to":"now"}}]}'`,
+  systemPrompt: '您是传感器数据分析专家，专注于环境监控和数据质量分析。请分析传感器数据，重点关注：1. 数据质量和传感器可靠性评估 2. 环境参数变化趋势和异常检测 3. 传感器校准和维护建议 4. 数据采集优化策略 5. 预警阈值设置建议 6. 传感器网络优化方案。'
+}
+```
+
+</details>
+
+<details>
+<summary>🔄 用户转化漏斗分析（聚合分析示例）</summary>
+
+```javascript
+// 用户转化漏斗 - 页面浏览
+user_funnel_views: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(page_views_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: '您是转化漏斗分析专家。请分析页面浏览量数据，重点关注访问流量趋势、用户获取效果、流量来源分析。'
+},
+
+// 用户转化漏斗 - 用户注册
+user_funnel_signups: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(user_signups_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: '您是用户注册分析专家。请分析用户注册数据，重点关注注册转化率、注册流程优化、用户获取成本分析。'
+},
+
+// 用户转化漏斗 - 购买转化
+user_funnel_purchases: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(purchases_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: '您是购买转化分析专家。请分析购买数据，重点关注购买转化率、客单价分析、购买行为模式。'
+}
+
+// 使用方式：
+// 👤 您：使用aggregate_analyze综合分析用户转化漏斗：user_funnel_views, user_funnel_signups, user_funnel_purchases
+// 🤖 AI：将同时分析三个环节的数据，提供完整的漏斗分析和优化建议
+```
+
+</details>
+
+### 📋 系统监控配置示例
+
 <details>
 <summary>指标监控配置</summary>
 

@@ -310,6 +310,197 @@ app_request_volume: {
 
 </details>
 
+## Business Scenario Configuration Examples
+
+Based on real business scenarios, here are comprehensive configuration references for different monitoring needs:
+
+<details>
+<summary>🖥️ Business System CPU Load Monitoring</summary>
+
+```javascript
+// CPU load monitoring configuration
+cpu_load_monitoring: {
+  curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -H 'Authorization: Bearer your-api-token' \\
+    -d '{"queries":[{
+      "refId":"A",
+      "expr":"avg(rate(cpu_usage_seconds_total{mode!=\"idle\"}[5m])) by (instance) * 100",
+      "range":{"from":"now-2h","to":"now"}
+    }]}'`,
+  systemPrompt: `You are a business system CPU load monitoring expert. Please analyze CPU load data from the following perspectives:
+  1. Current CPU usage trends and peak time identification
+  2. Performance bottleneck assessment and potential issues
+  3. Business impact analysis and SLA compliance
+  4. Capacity planning and scaling recommendations
+  5. Alert threshold optimization and automation suggestions
+  Please provide detailed analysis reports and actionable optimization strategies.`
+}
+```
+
+</details>
+
+<details>
+<summary>🔗 Microservice API Performance Monitoring</summary>
+
+```javascript
+// API performance monitoring configuration
+api_performance_monitoring: {
+  curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -H 'Authorization: Bearer your-api-token' \\
+    -d '{"queries":[{
+      "refId":"A",
+      "expr":"histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"api-gateway\"}[5m]))",
+      "range":{"from":"now-1h","to":"now"}
+    }]}'`,
+  systemPrompt: `You are a microservice API performance monitoring expert. Please analyze API performance data focusing on:
+  1. P95 response time trends and anomaly identification
+  2. API endpoint performance bottleneck analysis
+  3. Service dependency chain impact assessment
+  4. User experience degradation risk evaluation
+  5. Performance optimization and architecture improvement recommendations
+  Please provide professional analysis and specific optimization action plans.`
+}
+```
+
+</details>
+
+<details>
+<summary>🌐 Frontend Performance Monitoring</summary>
+
+```javascript
+// Frontend performance monitoring configuration
+frontend_performance_monitoring: {
+  url: "https://your-grafana-domain.com/api/ds/es/query",
+  method: "POST",
+  data: {
+    "es": {
+      "index": "frontend-metrics-*",
+      "query": {
+        "bool": {
+          "must": [
+            {"range": {"@timestamp": {"gte": "now-1h"}}},
+            {"term": {"metric_type": "FCP"}}
+          ]
+        }
+      },
+      "aggs": {
+        "avg_fcp": {"avg": {"field": "value"}},
+        "p95_fcp": {"percentiles": {"field": "value", "percents": [95]}}
+      }
+    }
+  },
+  systemPrompt: `You are a frontend performance monitoring expert. Please analyze frontend performance data from these dimensions:
+  1. First Contentful Paint (FCP) time trends and user experience impact
+  2. Page load performance bottlenecks and optimization opportunities
+  3. User journey and conversion rate correlation analysis
+  4. Mobile vs desktop performance differences
+  5. Performance optimization strategies and implementation priorities
+  Please provide detailed analysis and actionable optimization recommendations.`
+}
+```
+
+</details>
+
+<details>
+<summary>🐳 Containerized Application Monitoring</summary>
+
+```javascript
+// Container monitoring configuration
+container_monitoring: {
+  curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -H 'Authorization: Bearer your-api-token' \\
+    -d '{"queries":[{
+      "refId":"A",
+      "expr":"rate(container_cpu_usage_seconds_total{container!=\"\"}[5m]) * 100",
+      "range":{"from":"now-30m","to":"now"}
+    }]}'`,
+  systemPrompt: `You are a containerized application monitoring expert. Please analyze container performance data focusing on:
+  1. Container CPU usage patterns and resource efficiency
+  2. Container resource allocation optimization analysis
+  3. Application scaling requirements and horizontal scaling opportunities
+  4. Container orchestration performance and optimization suggestions
+  5. Resource cost optimization and capacity planning recommendations
+  Please provide comprehensive analysis and container optimization strategies.`
+}
+```
+
+</details>
+
+<details>
+<summary>🗄️ Database Performance Monitoring</summary>
+
+```javascript
+// Database performance monitoring configuration
+database_performance_monitoring: {
+  url: "https://your-grafana-domain.com/api/ds/mysql/query",
+  method: "POST",
+  data: {
+    "sql": "SELECT query_time, lock_time, rows_examined, rows_sent FROM mysql.slow_log WHERE start_time > DATE_SUB(NOW(), INTERVAL 1 HOUR) ORDER BY query_time DESC LIMIT 20"
+  },
+  systemPrompt: `You are a database performance monitoring expert. Please analyze database performance data from these aspects:
+  1. Slow query identification and optimization priority assessment
+  2. Database lock contention analysis and resolution recommendations
+  3. Query execution efficiency and index optimization suggestions
+  4. Database capacity planning and performance scaling strategies
+  5. Database maintenance and optimization best practices
+  Please provide detailed analysis and specific database optimization action plans.`
+}
+```
+
+</details>
+
+<details>
+<summary>📊 Log System Monitoring</summary>
+
+```javascript
+// Log system monitoring configuration
+log_system_monitoring: {
+  url: "https://your-grafana-domain.com/api/ds/es/query",
+  method: "POST",
+  data: {
+    "es": {
+      "index": "application-logs-*",
+      "query": {
+        "bool": {
+          "must": [
+            {"range": {"@timestamp": {"gte": "now-15m"}}},
+            {"terms": {"level": ["ERROR", "WARN"]}}
+          ]
+        }
+      },
+      "aggs": {
+        "error_distribution": {
+          "terms": {"field": "level"},
+          "aggs": {
+            "error_trend": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "interval": "1m"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  systemPrompt: `You are a log system monitoring expert. Please analyze log data from these perspectives:
+  1. Error and warning pattern identification and severity assessment
+  2. Log anomaly detection and trend analysis
+  3. Application health status and stability evaluation
+  4. Incident prediction and early warning mechanism recommendations
+  5. Log analysis automation and monitoring optimization suggestions
+  Please provide comprehensive log analysis and system health assessment.`
+}
+```
+
+</details>
+
 ## Common Issues
 
 <details>
