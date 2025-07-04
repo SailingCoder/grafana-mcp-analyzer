@@ -28,12 +28,15 @@ AI助手可以读取的数据源（文件、数据库等）
 ### 工具清单
 | 工具名 | 功能 | 主要参数 |
 |--------|------|----------|
-| `query_data` | 执行查询并可选AI分析 | `prompt`, `queryName`, `request`, `curl`, `analyze` |
-| `list_requests` | 列出历史请求 | `sessionId`, `limit` |
-| `get_request` | 获取请求详情 | `requestId` |
-| `check_health` | 健康检查 | `expectedStatus`, `timeout` |
+| `check_health` | 健康检查 | `timeout`, `expectedStatus` |
 | `list_queries` | 查询配置列表 | `includeConfig` |
+| `analyze_query` | 分析单个查询 | `queryName`, `prompt`, `sessionId` |
+| `query_data` | 仅查询数据 | `queryName`, `description`, `sessionId` |
+| `aggregate_analyze` | 聚合分析多个查询 | `queryNames`, `prompt`, `sessionId` |
+| `batch_analyze` | 批量分析多个查询 | `queryNames`, `prompt`, `sessionId` |
 | `manage_sessions` | 会话管理 | `action`, `sessionId`, `metadata` |
+| `list_data` | 列出历史数据 | `sessionId`, `limit` |
+| `server_status` | 服务器状态 | 无参数 |
 
 ### 资源清单
 | 资源名 | URI模式 | 功能 |
@@ -63,7 +66,7 @@ AI助手可以读取的数据源（文件、数据库等）
    ```json
    {
      "id": "request-1751457026755-nsegn2dj6",
-     "timestamp": "2025-07-02T11:50:26.755Z",
+     "timestamp": "2025-01-02T11:50:26.755Z",
      "url": "api/ds/query",
      "method": "POST",
      "data": { "targets": [...] },
@@ -91,17 +94,16 @@ AI助手可以读取的数据源（文件、数据库等）
 // src/server/mcp-server.ts
 const server = new McpServer({
   name: 'grafana-mcp-analyzer',
-  version: packageJson.version
+  version: packageJson.version,
+  description: 'Grafana MCP分析器 - 监控数据查询和分析工具'
 });
 
-// 工具定义
-server.tool('query_data', {
-  prompt: z.string().describe('查询和分析需求描述'),
-  queryName: z.string().optional(),
-  request: z.object({}).optional(),
-  curl: z.string().optional(),
-  analyze: z.boolean().optional().default(true)
-}, async ({ prompt, queryName, request, curl, analyze }) => {
+// 工具定义示例
+server.tool('analyze_query', {
+  queryName: z.string().describe('查询名称（从配置文件获取）'),
+  prompt: z.string().describe('分析需求描述'),
+  sessionId: z.string().optional().describe('会话ID（可选）')
+}, async ({ queryName, prompt, sessionId }) => {
   // 执行查询和分析逻辑
 });
 ```
@@ -134,17 +136,37 @@ server.resource("monitoring-data", "monitoring-data://{requestId}/{dataType}", {
 ```javascript
 // grafana-config.js
 const config = {
+  // Grafana服务器地址
+  baseUrl: 'https://your-grafana-api.com',
+  
+  // 默认请求头
+  defaultHeaders: {
+    'Authorization': 'Bearer your-grafana-api-token',
+    'Content-Type': 'application/json'
+  },
+
+  // 预定义查询
   queries: {
-    new_datasource: {
-      url: 'api/ds/query',
-      data: {
-        queries: [{
-          datasource: { uid: 'new-uid', type: 'influxdb' },
-          query: 'your-query',
-          refId: 'A'
-        }]
-      }
+    cpu_usage: {
+      curl: `curl 'https://your-grafana-api.com/api/ds/query' \\
+        -X POST \\
+        -H 'Content-Type: application/json' \\
+        -d '{"queries":[{"refId":"A","expr":"100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)","range":{"from":"now-6h","to":"now"}}]}'`,
+      systemPrompt: '您是系统性能监控专家，专注于CPU性能分析...'
+    },
+    
+    memory_usage: {
+      curl: `curl 'https://your-grafana-api.com/api/ds/query' \\
+        -X POST \\
+        -H 'Content-Type: application/json' \\
+        -d '{"queries":[{"refId":"A","expr":"(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100","range":{"from":"now-6h","to":"now"}}]}'`,
+      systemPrompt: '您是内存管理专家，专注于内存优化...'
     }
+  },
+
+  // 健康检查配置
+  healthCheck: {
+    url: 'api/health'
   }
 };
 ```
@@ -231,6 +253,32 @@ await listRequestsBySession(sessionId);
 await getRequestStats(requestId);
 ```
 
+## 📈 高级分析功能
+
+### 聚合分析
+```typescript
+// 多个查询的聚合分析
+server.tool('aggregate_analyze', {
+  queryNames: z.array(z.string()).describe('查询名称列表'),
+  prompt: z.string().describe('聚合分析需求描述'),
+  sessionId: z.string().optional().describe('会话ID（可选）')
+}, async ({ queryNames, prompt, sessionId }) => {
+  // 聚合分析逻辑
+});
+```
+
+### 批量分析
+```typescript
+// 多个查询的批量分析
+server.tool('batch_analyze', {
+  queryNames: z.array(z.string()).describe('查询名称列表'),
+  prompt: z.string().describe('批量分析需求描述'),
+  sessionId: z.string().optional().describe('会话ID（可选）')
+}, async ({ queryNames, prompt, sessionId }) => {
+  // 批量分析逻辑
+});
+```
+
 ## 📋 最佳实践
 
 ### 1. 错误处理
@@ -247,8 +295,8 @@ try {
 ```typescript
 // 使用Zod进行参数验证
 const schema = z.object({
-  url: z.string().url(),
-  method: z.enum(['GET', 'POST', 'PUT', 'DELETE'])
+  queryName: z.string().describe('查询名称'),
+  prompt: z.string().describe('分析需求描述')
 });
 ```
 
@@ -267,6 +315,7 @@ for (const request of expiredRequests) {
 ```bash
 CONFIG_PATH=./config/grafana-config.js
 NODE_ENV=production
+MCP_DATA_EXPIRY_HOURS=24
 ```
 
 ### Docker部署
