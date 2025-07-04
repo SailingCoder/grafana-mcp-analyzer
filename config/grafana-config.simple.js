@@ -51,7 +51,7 @@ const config = {
     
     // CPU使用率监控（curl命令方式）
     cpu_usage: {
-      curl: `curl 'https://your-grafana-api.comapi/ds/query' \\
+      curl: `curl 'https://your-grafana-api.com/api/ds/query' \\
         -X POST \\
         -H 'Content-Type: application/json' \\
         -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,

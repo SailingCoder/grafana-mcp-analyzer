@@ -156,7 +156,7 @@ export default {
 
 **配置完成！**
 
-![在这里插入图片描述](https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/52198b23d89d499593d3eef3b6483391~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAgU2FpbGluZw==:q75.awebp?policy=eyJ2bSI6MywidWlkIjoiMzA3NTE4OTg4MTAwMjM3In0%3D\&rk3s=e9ecf3d6\&x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018\&x-orig-expires=1751704101\&x-orig-sign=x8ktB4SMoQ%2B97UMhmLXogegxjx8%3D)
+![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
 
 ## 更多配置示例
 

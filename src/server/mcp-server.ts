@@ -46,7 +46,7 @@ const SERVER_INFO = {
   description: `Grafana MCP分析器 - 监控数据查询和分析工具
 
 🎯 核心功能：预定义查询、数据存储、AI分析指引、会话管理
-📊 数据处理：支持任意大小数据，通过ResourceLinks提供完整访问  
+📊 数据处理：支持任意大小数据，提供完整数据分析 
 🔧 使用方式：list_queries查看可用查询，analyze_query进行分析`
 } as const;
 
