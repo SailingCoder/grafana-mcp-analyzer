@@ -20,15 +20,14 @@
 
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
-*   **自然对话查询**："帮我看看内存使用情况" → AI立即分析并提供专业建议，降低技术门槛
-*   **智能数据格式化**：智能数据格式化，支持大数据量分析，做到全量数据分析。
-*   **curl命令支持**：支持直接使用curl命令配置查询，从浏览器复制粘贴即可，简化配置流程
-*   **聚合数据处理**：支持单个图表精准分析，也支持整个Dashboard聚合分析，灵活的分析粒度
-*   **智能异常检测**：AI主动发现并报告性能瓶颈和异常情况，提前预警风险
-*   **全数据源支持**：完美兼容Prometheus、MySQL、Elasticsearch等所有数据源/查询命令，统一监控视图
-*   **专业DevOps建议**：不只是展示数据，更提供可执行的优化方案，提升DevOps效率
+-   【自然语言查询】轻松访问监控数据，AI 一键输出专业分析
+-   【智能格式化】支持**大数据量**分析，高效解析各类数据
+-   【curl支持】直接使用浏览器 copy 的 curl 合成查询
+-   【聚合分析】单个查询或 Dashboard 级别综合分析
+-   【异常检测】AI 主动报告性能问题，提前警报
+-   【全数据源支持】Prometheus、MySQL、ES 等通通支持
+-   【专业 DevOps 建议】不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 
-> 🎉 **v2.0.0 重大更新**：全新架构升级，解决大数据量分析。`systemPrompt` + 对话 `prompt` ，实现领域专家级分析。
 
 ### 🛠️ 快速开始
 
@@ -40,12 +39,9 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 npm install -g grafana-mcp-analyzer
 ```
 
-> MCP 依赖 `Node.js 18+` 环境，推荐安装方式详见：[Node.js 快速安装最全指南](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
+MCP 依赖 `Node.js 18+` 环境，[Node.js 快速安装最全指南](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
 #### 配置AI助手（以Cursor为例）
-
-1.  打开 **Cursor设置** → 搜索 **"MCP"**
-2.  添加以下服务器配置：
 
 ```json
 {
@@ -60,13 +56,9 @@ npm install -g grafana-mcp-analyzer
 }
 ```
 
-> 💡 **提示**：任何支持MCP协议的AI助手都可以使用类似配置。需要Node.js 18+环境支持。
+配置支持相对路径、绝对路径、远程地址，详见 [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md)
 
-> 💡 **配置路径说明**：`CONFIG_PATH` 支持相对路径、绝对路径及远程地址。详见 [CONFIG\_PATH\_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md)
-
-#### 步骤2：创建配置文件
-
-在项目根目录创建 `grafana-config.js` 配置文件：
+#### 步骤2：编写配置文件 `grafana-config.js`
 
 ```javascript
 export default {
@@ -86,45 +78,27 @@ export default {
   queries: {
     // 方式1：curl命令（推荐，浏览器直接复制）
     cpu_usage: {
-      curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
-        -X POST \\
-        -H 'Content-Type: application/json' \\
-        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
-      systemPrompt: `您是CPU性能分析专家。请从以下维度分析CPU使用率：
-      1. 趋势变化与异常点识别；
-      2. 性能瓶颈及根因分析；
-      3. 优化建议与预警阈值；
-      4. 对业务系统的潜在影响评估。`
+      curl: `curl ...`,
+      systemPrompt: `您是CPU分析专家，请从趋势、瓶颈、建议三个维度解读该数据...`
     },
     // 方式2：HTTP API配置（适合复杂查询）
     frontend_performance: {
       url: "api/ds/es/query",
       method: "POST",
-      data: {
-        es: {
-          index: 'frontend_metrics',
-          query: 'your_elasticsearch_query'
-        }
-      },
-      systemPrompt: `您是前端性能分析专家，请分析FCP指标并给出建议，包括：
-      1. 页面加载趋势；
-      2. P75表现；
-      3. 性能预警；
-      4. 用户体验评估；
-      5. 针对性优化方案。`
+      data: { ... },
+      systemPrompt: `您是前端性能专家...`
     }
   }
 };
 ```
 
-📌 **配置获取技巧**：
+**配置获取技巧**：
 
 **浏览器复制curl命令**（推荐）：
 
 1.  在Grafana中执行查询
 2.  按F12打开开发者工具 → Network标签页
 3.  找到查询请求 → 右键 → Copy as cURL
-4.  使用curl解析工具转换为配置格式
 
 **HTTP API配置：**
 
@@ -144,6 +118,24 @@ export default {
 **配置完成！**
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
+
+### 🌟 常用工具一览
+
+| 工具                  | 功能      | 说明       |
+| ------------------- | ------- | -------- |
+| `analyze_query`     | 查询+AI分析 | 获取专业建议   |
+| `query_data`        | 原始数据    | 仅查看数据    |
+| `aggregate_analyze` | 聚合分析    | 同时分析多个指标 |
+| `list_queries`      | 查询列表    | 查看可用配置   |
+| `check_health`      | 健康检查    | 验证服务可用性  |
+
+使用示例：
+
+```
+👤 “分析 CPU 使用情况” → 🤖 调用 analyze_query
+👤 “聚合分析前端 + CPU” → 🤖 调用 aggregate_analyze
+```
+
 
 ### 业务场景配置示例
 
@@ -391,7 +383,7 @@ mysql_performance: {
 ### 常见问题
 
 <details>
-<summary>❌ 无法连接到Grafana服务</summary>
+<summary>无法连接到Grafana服务</summary>
 
 *   检查Grafana地址格式：必须包含`https://`或`http://`
 *   验证API密钥有效性：确保未过期且有足够权限
@@ -400,7 +392,7 @@ mysql_performance: {
 </details>
 
 <details>
-<summary>❌ AI提示找不到MCP工具</summary>
+<summary>AI提示找不到MCP工具</summary>
 
 *   完全退出Cursor并重新启动
 *   检查配置文件路径是否正确
@@ -409,7 +401,7 @@ mysql_performance: {
 </details>
 
 <details>
-<summary>❌ 查询执行失败或超时</summary>
+<summary>查询执行失败或超时</summary>
 
 *   增加timeout设置
 *   检查数据源连接状态
