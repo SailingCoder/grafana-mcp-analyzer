@@ -14,19 +14,26 @@ Imagine these scenarios:
 
 Complex monitoring charts analyzed by AI with one click! Say goodbye to traditional manual monitoring and let AI become your dedicated DevOps assistant!
 
-> 🎉 **v2.0.0 Major Update**: Complete architecture refactor with 6 core tools, config-driven queries, intelligent data processing, and a simplified user experience! [View Migration Guide](docs/API_REFERENCE.md#版本更新)
+> 🎉 **v2.0.0 Major Update**: Complete architecture refactor, resolving large data volume analysis, providing 9 core tools.
+> 
+> ✨ **New Features**:
+> - **Dual AI Guidance**: `systemPrompt` configuration + conversation `prompt` parameters for professional analysis
+> - **Tool Upgrades**: `execute_query` → `query_data`, more powerful functionality
+> - **New Tools**: `aggregate_analyze`, `batch_analyze`, `manage_sessions`, `list_data`, `server_status`
+> - **Smart Data Processing**: Direct analysis for small data, automatic storage for large data with ResourceLinks access
+> - **Professional Analysis**: Each query can be configured with dedicated `systemPrompt` for domain expert-level analysis
 
 ## 🚀 Core Features
 
 Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowering AI assistants like Claude and ChatGPT with the following superpowers:
 
 - **Natural Conversation Queries**: "Help me check memory usage" → AI immediately analyzes and provides professional advice, lowering technical barriers
+- **Smart Data Formatting**: Intelligent data formatting with support for large data volume analysis, achieving comprehensive data analysis
 - **cURL Command Support**: Support direct cURL command configuration, copy from browser and paste, simplifying configuration process
-- **Multi-Level Analysis**: Support precise analysis of individual charts and aggregated analysis of entire dashboards, flexible analysis granularity
+- **Aggregated Data Processing**: Support precise analysis of individual charts and aggregated analysis of entire dashboards, flexible analysis granularity
 - **Intelligent Anomaly Detection**: AI proactively discovers and reports performance bottlenecks and anomalies, early risk warning
 - **Full Data Source Support**: Perfect compatibility with Prometheus, MySQL, Elasticsearch and all data sources/query commands, unified monitoring view
 - **Professional DevOps Recommendations**: Not just displaying data, but providing actionable optimization solutions, improving DevOps efficiency
-- **Lightweight Deployment**: Ultra-small KB footprint for quick integration and deployment, zero-burden usage
 
 ## 🛠️ Quick Start
 
@@ -65,13 +72,20 @@ npm install -g grafana-mcp-analyzer
 Create a `grafana-config.js` configuration file in your project root directory:
 
 ```javascript
-const config = {
-  // Connect to your Grafana
+export default {
+  // Grafana basic configuration
   baseUrl: 'https://your-grafana-domain.com',
   defaultHeaders: {
-    'Authorization': 'Bearer your-api-token',
-    'Content-Type': 'application/json'
+    'Authorization': 'Bearer your-api-token',  // API token authentication
+    'Content-Type': 'application/json'         // JSON format request
   },
+  
+  // Health check configuration
+  healthCheck: { 
+    url: 'api/health'
+  },
+  
+  // Query definitions
   queries: {
     // Method 1: cURL command (Recommended, copy directly from browser)
     cpu_usage: {
@@ -85,31 +99,40 @@ const config = {
       3. Optimization recommendations and alert thresholds;
       4. Potential impact assessment on business systems.`
     },
+    
     // Method 2: HTTP API configuration (suitable for complex queries)
     frontend_performance: {
-      url: "api/ds/es/query",
+      url: "https://your-grafana-domain.com/api/ds/es/query",
+      method: "POST",
+      data: {},
+      systemPrompt: `You are a frontend performance analysis expert. Please analyze FCP (First Contentful Paint) performance data, focusing on:
+      1. First contentful paint time trends;
+      2. 75th percentile performance;
+      3. Performance degradation detection;
+      4. User experience impact assessment;
+      5. Performance optimization recommendations. Please provide detailed analysis and practical optimization suggestions.`
+    },
+    
+    // General data analysis query - for analyzing various monitoring data
+    data_analysis: {
+      url: "api/ds/query",
       method: "POST",
       data: {
-        es: {
-          index: 'frontend_metrics',
-          query: 'your_elasticsearch_query'
-        }
+        "queries": [
+          {
+            "refId": "A",
+            "expr": "up",
+            "range": {
+              "from": "now-1h",
+              "to": "now"
+            }
+          }
+        ]
       },
-      systemPrompt: `You are a frontend performance analysis expert. Please analyze FCP metrics and provide recommendations, including:
-      1. Page loading trends;
-      2. P75 performance;
-      3. Performance alerts;
-      4. User experience assessment;
-      5. Targeted optimization solutions.`
-    },
-  },
-  healthCheck: { 
-    url: 'api/health',
-    timeout: 5000
+      systemPrompt: 'You are a professional data analysis expert. Please conduct in-depth analysis of the provided monitoring data, including: 1. Data overview and basic statistics 2. Trend analysis and pattern recognition 3. Anomaly detection 4. Key metric interpretation 5. Business impact assessment 6. Specific optimization recommendations and action items. Please provide detailed and practical analysis reports.'
+    }
   }
 };
-
-module.exports = config;
 ```
 
 📌 Configuration Retrieval Tips:
@@ -121,6 +144,13 @@ module.exports = config;
 **HTTP API Configuration:**
 1. Get Data parameters: Go to chart → "Query Inspector" → "JSON" parse → Copy request body
 2. Get URL and Headers Token: View request parameters through Network panel, manually construct HTTP configuration.
+
+💡 **systemPrompt Professional Analysis Guidance**:
+
+- **Working Principle**: Configure professional AI analysis guidance for each query, making AI act as domain-specific expert roles
+- **Usage**: `systemPrompt` in configuration file + user `prompt` in conversation for dual guidance
+- **Analysis Effect**: CPU experts analyze CPU data, frontend experts analyze performance data, providing stronger professionalism
+- **Customization Recommendations**: Customize appropriate expert roles and analysis focuses based on your business scenarios
 
 ### Step 3: Test Run
 
@@ -226,6 +256,60 @@ mysql_performance: {
 
 </details>
 
+<details>
+<summary>Aggregate Analysis Configuration (aggregate_analyze)</summary>
+
+```javascript
+// Aggregate analysis usage example
+// 👤 You: Use aggregate_analyze to analyze these system metrics: system_cpu, system_memory, system_disk_io
+// 🤖 AI: Simultaneously query multiple metrics and perform comprehensive correlation analysis
+
+// Configure multiple related queries (flat structure)
+system_cpu: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])"}]}'`,
+  systemPrompt: `You are a CPU usage analysis expert. Please analyze CPU usage data, focusing on: 1. Usage trend changes 2. Peak time identification 3. Performance bottleneck detection 4. System load assessment 5. Optimization recommendations.`
+},
+system_memory: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"}]}'`,
+  systemPrompt: `You are a memory usage analysis expert. Please analyze memory usage, focusing on: 1. Memory usage trends 2. Whether approaching memory limits 3. Memory leak risk assessment 4. Memory optimization recommendations.`
+},
+system_disk_io: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(node_disk_io_time_seconds_total[5m])"}]}'`,
+  systemPrompt: `You are a disk IO performance analysis expert. Please analyze disk IO performance, focusing on: 1. IO wait time trends 2. Disk performance bottlenecks 3. Read/write pattern analysis 4. Storage optimization recommendations.`
+}
+
+// Aggregate analysis will comprehensively analyze all metrics, providing overall system health assessment
+```
+
+</details>
+
+<details>
+<summary>Batch Analysis Configuration (batch_analyze)</summary>
+
+```javascript
+// Batch analysis usage example
+// 👤 You: Use batch_analyze to analyze these application metrics: app_response_time, app_error_rate, app_request_volume
+// 🤖 AI: Separately query each metric and provide independent professional analysis
+
+// Configure multiple application monitoring queries (flat structure)
+app_response_time: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"}]}'`,
+  systemPrompt: `You are a response time analysis expert. Please analyze API response time data, focusing on: 1. P95 response time trends 2. Slow request identification 3. Performance bottleneck location 4. User experience impact assessment 5. Performance optimization recommendations.`
+},
+app_error_rate: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(http_requests_total{status=~\"5..\"}[5m])"}]}'`,
+  systemPrompt: `You are an error rate analysis expert. Please analyze application error rate data, focusing on: 1. Error rate trend changes 2. Anomaly pattern identification 3. Service stability assessment 4. Error type analysis 5. Troubleshooting recommendations.`
+},
+app_request_volume: {
+  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(http_requests_total[5m])"}]}'`,
+  systemPrompt: `You are a request volume analysis expert. Please analyze application request volume data, focusing on: 1. Traffic trend changes 2. Peak time identification 3. Capacity planning recommendations 4. Load balancing effects 5. Scaling recommendations.`
+}
+
+// Batch analysis will provide independent professional analysis reports for each metric
+```
+
+</details>
+
 ## Common Issues
 
 <details>
@@ -255,17 +339,7 @@ mysql_performance: {
 
 </details>
 
-<details>
-<summary>⚠️ Current Limitations</summary>
 
-(Limited by AI model context processing capabilities)
-
-- **More suitable for small to medium-scale data analysis**: Current analysis capabilities mainly focus on small to medium volume monitoring data, suitable for daily inspections, local anomaly location and other scenarios, covering basic routine operations needs
-- **Challenges remain for large data volume scenarios**: When processing large-scale monitoring data, limited by the current AI models' context processing capabilities, repeated custom Tool calls may occur. It is recommended to **reduce query scope** as a temporary solution at this stage
-
-With the continuous advancement of AI models in context capabilities, better support for large data volume processing is expected in the future. Meanwhile, this library will also iterate to provide more robust capability optimization solutions for big data scenarios in subsequent releases.
-
-</details>
 
 ## Advanced Configuration
 
@@ -286,8 +360,13 @@ export GRAFANA_TOKEN="your-api-token"
 |------|----------|----------|
 | `analyze_query` | Query + AI analysis | Need professional advice |
 | `query_data` | Raw data query | Only need data |
-| `check_health` | Health check | Status monitoring |
+| `aggregate_analyze` | Aggregate analysis | Multi-query unified analysis |
+| `batch_analyze` | Batch analysis | Multi-query independent analysis |
 | `list_queries` | Query list | View configuration |
+| `check_health` | Health check | Status monitoring |
+| `manage_sessions` | Session management | Manage analysis sessions |
+| `list_data` | Data list | View stored data |
+| `server_status` | Server status | Server information |
 
 Tool Usage
 
@@ -297,6 +376,8 @@ Tool Usage
 👤 "Get memory data" → 🤖 Calls query_data  
 👤 "Check service status" → 🤖 Calls check_health
 👤 "What monitoring queries are available" → 🤖 Calls list_queries
+👤 "Aggregate analyze system metrics" → 🤖 Calls aggregate_analyze
+👤 "Batch analyze multiple metrics" → 🤖 Calls batch_analyze
 ```
 </details>
 
