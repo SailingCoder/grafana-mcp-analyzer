@@ -6,7 +6,7 @@
 
 [English](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README_EN.md) | [中文文档](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README.md)
 
-### ✨ 项目简介
+## ✨ 项目简介
 
 想象一下这样的场景：
 
@@ -16,7 +16,7 @@
 复杂的监控图表，AI帮您一键分析！告别传统的手动监控方式，让AI成为您的专属运维助手！
 
 
-### 🚀 核心特性
+## 🚀 核心特性
 
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
@@ -29,11 +29,11 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 -   【专业 DevOps 建议】不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 
 
-### 🛠️ 快速开始
+## 🛠️ 快速开始
 
-#### 步骤1：安装和配置
+### 步骤1：安装和配置
 
-#### 全局安装
+### 全局安装
 
 ```bash
 npm install -g grafana-mcp-analyzer
@@ -58,7 +58,7 @@ MCP 依赖 `Node.js 18+` 环境，[Node.js 快速安装最全指南](https://blo
 
 配置支持相对路径、绝对路径、远程地址，详见 [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md)
 
-#### 步骤2：编写配置文件 `grafana-config.js`
+### 步骤2：编写配置文件 `grafana-config.js`
 
 ```javascript
 export default {
@@ -120,7 +120,7 @@ export default {
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
 
 
-### 业务场景配置示例
+## 业务场景配置示例
 
 <details>
 <summary>电商业务分析</summary>
@@ -275,7 +275,7 @@ user_funnel_purchases: {
 
 </details>
 
-### 系统监控配置示例
+## 系统监控配置示例
 
 <details>
 <summary>指标监控配置</summary>
@@ -363,7 +363,7 @@ mysql_performance: {
 </details>
 
 
-### 常见问题
+## 常见问题
 
 <details>
 <summary>无法连接到Grafana服务</summary>
@@ -392,7 +392,7 @@ mysql_performance: {
 
 </details>
 
-### 高级配置
+## 高级配置
 
 <details>
 <summary>环境变量配置</summary>
@@ -434,10 +434,10 @@ export GRAFANA_TOKEN="your-api-token"
 
 ---
 
-### 文章推荐
+## 文章推荐
 
 - [grafana-mcp-analyzer：基于 MCP 的轻量 AI 分析监控图表的运维神器！](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - CSDN技术博客深度解析
 
-### 许可证
+## 许可证
 
 MIT 开源协议。详见 [LICENSE](LICENSE) 文件。
