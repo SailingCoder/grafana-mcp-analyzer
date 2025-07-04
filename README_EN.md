@@ -6,42 +6,42 @@
 
 [English](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README_EN.md) | [中文文档](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README.md)
 
-### ✨ Project Overview
+## ✨ Project Overview
 
 Imagine these scenarios:
-- You ask AI: "How is my server doing now?" 
-- AI directly checks your Grafana monitoring and responds: "CPU usage is high, recommend checking these processes..."
+
+*   You ask AI: "How is my server doing now?"
+*   AI directly checks your Grafana monitoring and responds: "CPU usage is high, recommend checking these processes..."
 
 Complex monitoring charts analyzed by AI with one click! Say goodbye to traditional manual monitoring and let AI become your dedicated DevOps assistant!
 
-### 🚀 Core Features
+
+## 🚀 Core Features
 
 Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowering AI assistants like Claude and ChatGPT with the following superpowers:
 
-- **Natural Conversation Queries**: "Help me check memory usage" → AI immediately analyzes and provides professional advice, lowering technical barriers
-- **Smart Data Formatting**: Intelligent data formatting with support for large data volume analysis, achieving comprehensive data analysis
-- **cURL Command Support**: Support direct cURL command configuration, copy from browser and paste, simplifying configuration process
-- **Aggregated Data Processing**: Support precise analysis of individual charts and aggregated analysis of entire dashboards, flexible analysis granularity
-- **Intelligent Anomaly Detection**: AI proactively discovers and reports performance bottlenecks and anomalies, early risk warning
-- **Full Data Source Support**: Perfect compatibility with Prometheus, MySQL, Elasticsearch and all data sources/query commands, unified monitoring view
-- **Professional DevOps Recommendations**: Not just displaying data, but providing actionable optimization solutions, improving DevOps efficiency
+-   【Natural Language Queries】Easy access to monitoring data with AI providing professional analysis in one click
+-   【Smart Formatting】Support for **large data volume** analysis with efficient parsing of various data types
+-   【cURL Support】Direct use of browser-copied cURL commands for query composition
+-   【Aggregate Analysis】Single query or dashboard-level comprehensive analysis
+-   【Anomaly Detection】AI proactively reports performance issues with early warnings
+-   【Full Data Source Support】Prometheus, MySQL, ES, and all other data sources fully supported
+-   【Professional DevOps Recommendations】Not just displaying data, but providing actionable optimization solutions to improve DevOps efficiency
 
-> 🎉 **v2.0.0 Major Update**: Complete architecture upgrade, resolving large data volume analysis. `systemPrompt` + conversation `prompt`, achieving domain expert-level analysis.
 
-### 🛠️ Quick Start
+## 🛠️ Quick Start
 
-#### Step 1: Installation and Configuration
+### Step 1: Installation and Configuration
 
-#### Installation Options
+### Global Installation
+
 ```bash
 npm install -g grafana-mcp-analyzer
 ```
-> MCP relies on the ` Node.js 18+` environment. For recommended installation methods, please refer to the [Complete Guide to Quick Installation of Node.js](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
+
+MCP requires `Node.js 18+` environment, [Complete Guide to Quick Node.js Installation](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
 #### Configure AI Assistant (Using Cursor as example)
-
-1. Open **Cursor Settings** → Search **"MCP"**
-2. Add the following server configuration:
 
 ```json
 {
@@ -56,21 +56,18 @@ npm install -g grafana-mcp-analyzer
 }
 ```
 
-> 💡 **Tip**: Any AI assistant supporting MCP protocol can use similar configuration. Requires Node.js 18+ environment support.
+Configuration supports relative paths, absolute paths, and remote URLs. See [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md) for details
 
-> 💡 **CONFIG_PATH Description**: `CONFIG_PATH` supports relative paths, absolute paths, and remote URLs. See [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md) for details
-
-#### Step 2: Create Configuration File
-
-Create a `grafana-config.js` configuration file in your project root directory:
+### Step 2: Create Configuration File `grafana-config.js`
 
 ```javascript
+// module.exports {
 export default {
   // Grafana basic configuration
   baseUrl: 'https://your-grafana-domain.com',
   defaultHeaders: {
-    'Authorization': 'Bearer your-api-token',  // API token authentication
-    'Content-Type': 'application/json'         // JSON format request
+    'Authorization': 'Bearer your-api-token',
+    'Content-Type': 'application/json'
   },
   
   // Health check configuration
@@ -82,77 +79,41 @@ export default {
   queries: {
     // Method 1: cURL command (Recommended, copy directly from browser)
     cpu_usage: {
-      curl: `curl 'https://your-grafana-domain.com/api/ds/query' \\
-        -X POST \\
-        -H 'Content-Type: application/json' \\
-        -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
-      systemPrompt: `You are a CPU performance analysis expert. Please analyze CPU usage from the following dimensions:
-      1. Trend changes and anomaly point identification;
-      2. Performance bottleneck and root cause analysis;
-      3. Optimization recommendations and alert thresholds;
-      4. Potential impact assessment on business systems.`
+      curl: `curl ...`,
+      systemPrompt: `You are a CPU analysis expert. Please analyze this data from three dimensions: trends, bottlenecks, and recommendations...`
     },
-    
     // Method 2: HTTP API configuration (suitable for complex queries)
     frontend_performance: {
-      url: "https://your-grafana-domain.com/api/ds/es/query",
+      url: "api/ds/es/query",
       method: "POST",
-      data: {},
-      systemPrompt: `You are a frontend performance analysis expert. Please analyze FCP (First Contentful Paint) performance data, focusing on:
-      1. First contentful paint time trends;
-      2. 75th percentile performance;
-      3. Performance degradation detection;
-      4. User experience impact assessment;
-      5. Performance optimization recommendations. Please provide detailed analysis and practical optimization suggestions.`
-    },
-    
-    // General data analysis query - for analyzing various monitoring data
-    data_analysis: {
-      url: "api/ds/query",
-      method: "POST",
-      data: {
-        "queries": [
-          {
-            "refId": "A",
-            "expr": "up",
-            "range": {
-              "from": "now-1h",
-              "to": "now"
-            }
-          }
-        ]
-      },
-      systemPrompt: 'You are a professional data analysis expert. Please conduct in-depth analysis of the provided monitoring data, including: 1. Data overview and basic statistics 2. Trend analysis and pattern recognition 3. Anomaly detection 4. Key metric interpretation 5. Business impact assessment 6. Specific optimization recommendations and action items. Please provide detailed and practical analysis reports.'
+      data: { ... },
+      systemPrompt: `You are a frontend performance expert...`
     }
   }
 };
 ```
 
-📌 Configuration Retrieval Tips:
+**Configuration Retrieval Tips:**
 
-**Copy cURL command from browser:** (Recommended)
-1. Execute query in Grafana → Press F12 to open developer tools → Network tab
-2. Find query request → Right-click → Copy as cURL → Paste to config file curl field
+**Copy cURL command from browser** (Recommended):
 
-**HTTP API Configuration:**
-1. Get Data parameters: Go to chart → "Query Inspector" → "JSON" parse → Copy request body
-2. Get URL and Headers Token: View request parameters through Network panel, manually construct HTTP configuration.
+1.  Execute query in Grafana
+2.  Press F12 to open developer tools → Network tab
+3.  Find query request → Right-click → Copy as cURL
 
-💡 **systemPrompt Professional Analysis Guidance**:
+**HTTP API configuration:**
 
-- **Working Principle**: Configure professional AI analysis guidance for each query, making AI act as domain-specific expert roles
-- **Usage**: `systemPrompt` in configuration file + user `prompt` in conversation for dual guidance
-- **Analysis Effect**: CPU experts analyze CPU data, frontend experts analyze performance data, providing stronger professionalism
-- **Customization Recommendations**: Customize appropriate expert roles and analysis focuses based on your business scenarios
+1.  Get Data parameters: Go to chart → "Query Inspector" → "JSON" parse → Copy request body
+2.  Get URL and Headers Token: View request parameters through Network panel, manually construct HTTP configuration.
 
 ### Step 3: Start Using
 
 **Completely restart Cursor**, then experience intelligent analysis:
 
-> 👤 You: Analyze frontend performance monitoring data frontend_performance  
+> 👤 You: Analyze frontend performance monitoring data frontend\_performance\
 > 🤖 AI: Connecting to Grafana and analyzing frontend performance metrics...
 
-> 👤 You: Aggregate analyze cpu_usage, frontend_performance  
+> 👤 You: Aggregate analyze cpu_usage, frontend_performance\
 > 🤖 AI: Simultaneously querying multiple metrics and performing comprehensive correlation analysis...
 
 **Configuration Complete!**
@@ -160,9 +121,162 @@ export default {
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
 
 
----
+## Business Scenario Configuration Examples
 
-### Business Scenario Configuration Examples
+<details>
+<summary>E-commerce Business Analysis</summary>
+
+```javascript
+// E-commerce conversion rate analysis
+ecommerce_conversion: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(orders_total[5m]) / rate(page_views_total[5m]) * 100","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: 'You are an e-commerce business analysis expert, focusing on conversion rate optimization and user purchase behavior analysis. Please analyze sales conversion rate data, focusing on: 1. Conversion rate trend changes and key inflection points 2. Peak and valley period identification 3. User purchase behavior patterns 4. Key factors affecting conversion 5. Conversion rate optimization recommendations and A/B testing plans 6. Expected revenue assessment. Please provide specific business improvement recommendations.'
+}
+```
+
+</details>
+
+<details>
+<summary>Financial Data Analysis</summary>
+
+```javascript
+// Transaction volume analysis
+finance_transactions: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"sum(rate(transaction_amount_total[5m]))","range":{"from":"now-7d","to":"now"}}]}'`,
+  systemPrompt: 'You are a financial data analysis expert, specializing in transaction risk control and business growth analysis. Please analyze transaction volume data, focusing on: 1. Transaction volume trends and cyclical patterns 2. Abnormal transaction pattern identification 3. Risk signal detection 4. Business growth opportunities 5. Risk control strategy optimization recommendations 6. Compliance assessment. Please provide balanced recommendations for risk control and business growth.'
+},
+
+// Revenue analysis
+revenue_analysis: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"sum(increase(revenue_total[1d]))","range":{"from":"now-90d","to":"now"}}]}'`,
+  systemPrompt: 'You are a financial data analysis expert, focusing on revenue growth and profitability analysis. Please analyze revenue data, focusing on: 1. Revenue trends and growth pattern analysis 2. Revenue source structure and contribution analysis 3. Seasonal and cyclical factor impacts 4. Revenue forecasting and target achievement analysis 5. Profitability and cost-effectiveness assessment 6. Revenue growth strategy recommendations.'
+}
+```
+
+</details>
+
+<details>
+<summary>User Behavior Analysis</summary>
+
+```javascript
+// User activity analysis
+user_activity: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"count(increase(user_sessions_total[1h]))","range":{"from":"now-30d","to":"now"}}]}'`,
+  systemPrompt: 'You are a user behavior analysis expert, focusing on user retention and engagement optimization. Please analyze user activity data, focusing on: 1. User activity trends and retention rates 2. User behavior patterns and preferences 3. User lifecycle analysis 4. Churn risk user identification 5. User engagement improvement strategies 6. Personalized recommendation suggestions.'
+},
+
+// Content consumption analysis
+content_engagement: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(content_views_total[5m])","range":{"from":"now-7d","to":"now"}}]}'`,
+  systemPrompt: 'You are a content operations analysis expert, focusing on content strategy and user engagement optimization. Please analyze content consumption data, focusing on: 1. Content consumption trends and hotspot identification 2. User content preference analysis 3. Content quality assessment 4. Content recommendation optimization 5. Creator ecosystem health 6. Content strategy recommendations.'
+}
+```
+
+</details>
+
+<details>
+<summary>Security Analysis</summary>
+
+```javascript
+// Security log analysis
+security_logs: {
+  url: "api/ds/es/query",
+  method: "POST",
+  data: {
+    "queries": [
+      {
+        "refId": "A",
+        "query": "tags:security AND level:WARN",
+        "timeField": "@timestamp",
+        "size": 200
+      }
+    ]
+  },
+  systemPrompt: 'You are a network security analysis expert, focusing on security threat detection and risk assessment. Please analyze security log data, focusing on: 1. Abnormal access patterns and potential threat identification 2. Security event trends and attack patterns 3. Risk level assessment and emergency response recommendations 4. Security policy optimization recommendations 5. Compliance checks and audit recommendations 6. Security monitoring and alerting strategies.'
+}
+```
+
+</details>
+
+<details>
+<summary>IoT Device Monitoring</summary>
+
+```javascript
+// IoT device monitoring
+iot_devices: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"avg(temperature_celsius)","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: 'You are an IoT data analysis expert, focusing on device monitoring and intelligent operations. Please analyze IoT device data, focusing on: 1. Device health status and performance trends 2. Abnormal devices and fault warnings 3. Device usage patterns and optimization opportunities 4. Energy consumption analysis and energy-saving recommendations 5. Device lifecycle management 6. Predictive maintenance strategies.'
+},
+
+// Sensor data analysis
+sensor_data: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(sensor_readings_total[10m])","range":{"from":"now-12h","to":"now"}}]}'`,
+  systemPrompt: 'You are a sensor data analysis expert, focusing on environmental monitoring and data quality analysis. Please analyze sensor data, focusing on: 1. Data quality and sensor reliability assessment 2. Environmental parameter change trends and anomaly detection 3. Sensor calibration and maintenance recommendations 4. Data collection optimization strategies 5. Warning threshold setting recommendations 6. Sensor network optimization solutions.'
+}
+```
+
+</details>
+
+<details>
+<summary>User Conversion Funnel Analysis (Aggregate Analysis Example)</summary>
+
+```javascript
+// User conversion funnel - page views
+user_funnel_views: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(page_views_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: 'You are a conversion funnel analysis expert. Please analyze page view data, focusing on traffic trends, user acquisition effectiveness, and traffic source analysis.'
+},
+
+// User conversion funnel - user registration
+user_funnel_signups: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(user_signups_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: 'You are a user registration analysis expert. Please analyze user registration data, focusing on registration conversion rates, registration process optimization, and user acquisition cost analysis.'
+},
+
+// User conversion funnel - purchase conversion
+user_funnel_purchases: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{"refId":"A","expr":"rate(purchases_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
+  systemPrompt: 'You are a purchase conversion analysis expert. Please analyze purchase data, focusing on purchase conversion rates, average order value analysis, and purchase behavior patterns.'
+}
+
+// Usage:
+// 👤 You: Use aggregate_analyze to comprehensively analyze user conversion funnel: user_funnel_views, user_funnel_signups, user_funnel_purchases
+// 🤖 AI: Will simultaneously analyze data from all three stages, providing complete funnel analysis and optimization recommendations
+```
+
+</details>
+
+## System Monitoring Configuration Examples
 
 <details>
 <summary>Metrics Monitoring Configuration</summary>
@@ -249,112 +363,35 @@ mysql_performance: {
 
 </details>
 
+
+## Common Issues
+
 <details>
-<summary>Aggregate Analysis Configuration (aggregate_analyze)</summary>
+<summary>Unable to connect to Grafana service</summary>
 
-```javascript
-// Aggregate analysis usage example
-// 👤 You: Use aggregate_analyze to analyze these system metrics: system_cpu, system_memory, system_disk_io
-// 🤖 AI: Simultaneously query multiple metrics and perform comprehensive correlation analysis
-
-// Configure multiple related queries (flat structure)
-system_cpu: {
-  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(cpu_usage[5m])"}]}'`,
-  systemPrompt: `You are a CPU usage analysis expert. Please analyze CPU usage data, focusing on: 1. Usage trend changes 2. Peak time identification 3. Performance bottleneck detection 4. System load assessment 5. Optimization recommendations.`
-},
-system_memory: {
-  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"}]}'`,
-  systemPrompt: `You are a memory usage analysis expert. Please analyze memory usage, focusing on: 1. Memory usage trends 2. Whether approaching memory limits 3. Memory leak risk assessment 4. Memory optimization recommendations.`
-},
-system_disk_io: {
-  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(node_disk_io_time_seconds_total[5m])"}]}'`,
-  systemPrompt: `You are a disk IO performance analysis expert. Please analyze disk IO performance, focusing on: 1. IO wait time trends 2. Disk performance bottlenecks 3. Read/write pattern analysis 4. Storage optimization recommendations.`
-}
-
-// Aggregate analysis will comprehensively analyze all metrics, providing overall system health assessment
-```
+*   Check Grafana address format: Must include `https://` or `http://`
+*   Verify API key validity: Ensure not expired and has sufficient permissions
+*   Test network connectivity and firewall settings
 
 </details>
 
 <details>
-<summary>Batch Analysis Configuration (batch_analyze)</summary>
+<summary>AI reports MCP tools not found</summary>
 
-```javascript
-// Batch analysis usage example
-// 👤 You: Use batch_analyze to analyze these application metrics: app_response_time, app_error_rate, app_request_volume
-// 🤖 AI: Separately query each metric and provide independent professional analysis
-
-// Configure multiple application monitoring queries (flat structure)
-app_response_time: {
-  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"}]}'`,
-  systemPrompt: `You are a response time analysis expert. Please analyze API response time data, focusing on: 1. P95 response time trends 2. Slow request identification 3. Performance bottleneck location 4. User experience impact assessment 5. Performance optimization recommendations.`
-},
-app_error_rate: {
-  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(http_requests_total{status=~\"5..\"}[5m])"}]}'`,
-  systemPrompt: `You are an error rate analysis expert. Please analyze application error rate data, focusing on: 1. Error rate trend changes 2. Anomaly pattern identification 3. Service stability assessment 4. Error type analysis 5. Troubleshooting recommendations.`
-},
-app_request_volume: {
-  curl: `curl 'api/ds/query' -X POST -d '{"queries":[{"refId":"A","expr":"rate(http_requests_total[5m])"}]}'`,
-  systemPrompt: `You are a request volume analysis expert. Please analyze application request volume data, focusing on: 1. Traffic trend changes 2. Peak time identification 3. Capacity planning recommendations 4. Load balancing effects 5. Scaling recommendations.`
-}
-
-// Batch analysis will provide independent professional analysis reports for each metric
-```
-
-</details>
-
-### System Monitoring Configuration Examples
-
-<details>
-<summary>Metrics Monitoring Configuration</summary>
-
-```javascript
-// Metrics query
-prometheus_metrics: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{
-      "refId":"A",
-      "expr":"node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100",
-      "range":{"from":"now-2h","to":"now"}
-    }]}'`,
-  systemPrompt: `Memory usage expert analysis: Focus on memory leak risks, usage trends, abnormal fluctuations, and optimization recommendations.`
-}
-```
-
-</details>
-
-### Common Issues
-
-<details>
-<summary>❌ Unable to connect to Grafana service</summary>
-
-- Check Grafana address format: Must include `https://` or `http://`
-- Verify API key validity: Ensure not expired and has sufficient permissions
-- Test network connectivity and firewall settings
+*   Completely exit Cursor and restart
+*   Check if configuration file path is correct
+*   Ensure Node.js version ≥ 18
 
 </details>
 
 <details>
-<summary>❌ AI reports MCP tools not found</summary>
+<summary>Query execution failure or timeout</summary>
 
-- Completely exit Cursor and restart
-- Check if configuration file path is correct
-- Ensure Node.js version ≥ 18 (node -v)
-
-</details>
-
-<details>
-<summary>❌ Query execution failure or timeout</summary>
-
-- Increase timeout settings
-- Check data source connection status
-- Data volume too large, reduce time range
+*   Increase timeout settings
+*   Check data source connection status
+*   For large data volumes, reduce time range
 
 </details>
-
-
 
 ## Advanced Configuration
 
@@ -398,7 +435,7 @@ Tool Usage
 
 ---
 
-## 📖 Recommended Articles
+## Recommended Articles
 
 - [grafana-mcp-analyzer：基于 MCP 的轻量 AI 分析监控图表的运维神器！](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - In-depth Analysis on CSDN Tech Blog
 
