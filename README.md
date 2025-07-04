@@ -138,8 +138,8 @@ export default {
 > 👤 您：分析前端性能监控数据 frontend\_performance\
 > 🤖 AI：正在连接Grafana并分析前端性能指标...
 
-> 👤 您：使用aggregate_analyze聚合分析这些系统指标：cpu_usage, frontend_performance\
-> 🤖 AI：同时查询多个指标并进行综合关联分析
+> 👤 您：聚合分析cpu_usage, frontend_performance\
+> 🤖 AI：同时查询多个指标并进行综合关联分析...
 
 **配置完成！**
 
