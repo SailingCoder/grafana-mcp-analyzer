@@ -262,7 +262,7 @@ module.exports = config;
 //       "grafana": {
 //         "command": "npx grafana-mcp-analyzer",
 //         "env": {
-//           "CONFIG_PATH": "./grafana-config.simple.js"
+//           "CONFIG_PATH": "/Users/your-username/project/grafana-config.simple.js"
 //         }
 //       }
 //     }

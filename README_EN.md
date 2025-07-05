@@ -49,14 +49,14 @@ MCP requires `Node.js 18+` environment, [Complete Guide to Quick Node.js Install
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "./grafana-config.js"
+        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js"
       }
     }
   }
 }
 ```
 
-Configuration supports relative paths, absolute paths, and remote URLs. See [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md) for details
+> ⚠️ **Note**: We strongly recommend using absolute paths. 
 
 ### Step 2: Create Configuration File `grafana-config.js`
 

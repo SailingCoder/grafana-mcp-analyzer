@@ -49,14 +49,14 @@ MCP 依赖 `Node.js 18+` 环境，[Node.js 快速安装最全指南](https://blo
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "./grafana-config.js"
+        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js"
       }
     }
   }
 }
 ```
 
-配置支持相对路径、绝对路径、远程地址，详见 [CONFIG_PATH_GUIDE](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/CONFIG_PATH_GUIDE.md)
+> ⚠️ **注意**：推荐使用绝对路径，后续开放相对路径、远程路径。
 
 ### 步骤2：编写配置文件 `grafana-config.js`
 
