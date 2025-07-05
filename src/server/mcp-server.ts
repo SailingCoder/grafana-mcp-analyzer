@@ -17,7 +17,8 @@ import {
   getAnalysis,
   listAllRequests,
   listRequestsBySession,
-  getRequestStats
+  getRequestStats,
+  cleanupExpiredData
 } from '../services/data-store.js';
 import {
   createSession,
@@ -674,7 +675,29 @@ async function main(): Promise<void> {
     config = await loadConfig(process.env.CONFIG_PATH);
     
     // 记录数据过期时间配置
-    const dataExpiryHours = parseInt(process.env.MCP_DATA_EXPIRY_HOURS || '24', 10);
+    const dataExpiryHours = parseInt(process.env.DATA_EXPIRY_HOURS || '24', 10);
+    
+    // 启动时立即执行一次清理
+    try {
+      const initialCleanup = await cleanupExpiredData(false, dataExpiryHours);
+      if (initialCleanup > 0) {
+        console.error(`🗑️ 服务启动清理完成，删除了 ${initialCleanup} 个过期请求`);
+      }
+    } catch (error) {
+      console.error('❌ 启动时数据清理失败:', error);
+    }
+    
+    // 设置定时清理任务，每小时执行一次
+    setInterval(async () => {
+      try {
+        const deletedCount = await cleanupExpiredData(false, dataExpiryHours);
+        if (deletedCount > 0) {
+          console.error(`🗑️ 定时清理完成，删除了 ${deletedCount} 个过期请求`);
+        }
+      } catch (error) {
+        console.error('❌ 定时数据清理失败:', error);
+      }
+    }, 60 * 60 * 1000); // 1小时 = 60 * 60 * 1000毫秒
     
     const transport = new StdioServerTransport();
     await server.connect(transport);
@@ -682,7 +705,7 @@ async function main(): Promise<void> {
     console.error('✅ Grafana查询分析MCP服务器已启动');
     console.error(`📊 服务器信息: ${SERVER_INFO.name} v${SERVER_INFO.version}`);
     console.error(`🔧 配置状态: ${Object.keys(config.queries || {}).length} 个查询`);
-    console.error(`🗑️ 数据清理: ${dataExpiryHours}小时后自动清理`);
+    console.error(`🗑️ 数据清理: ${dataExpiryHours}小时后自动清理，每小时检查一次`);
     
   } catch (error) {
     console.error('❌ 服务器启动失败:', error);

@@ -326,7 +326,7 @@ for (const request of expiredRequests) {
 ```bash
 CONFIG_PATH=./config/grafana-config.js
 NODE_ENV=production
-MCP_DATA_EXPIRY_HOURS=24
+DATA_EXPIRY_HOURS=24
 ```
 
 ### Docker部署

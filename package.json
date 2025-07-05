@@ -47,6 +47,7 @@
     "start": "node dist/server/mcp-server.js",
     "build": "tsc",
     "test": "node tests/test-minimal-version.js",
+    "test:cleanup": "node tests/test-data-cleanup.js",
     "test:resource-links": "node --experimental-modules tests/test-resource-links.js",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit --skipLibCheck",

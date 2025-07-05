@@ -2,7 +2,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 // 数据存储根目录
-const DATA_STORE_ROOT = path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store');
+const DATA_STORE_ROOT = process.env.DATA_STORE_ROOT ||
+    path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store');
 // 确保目录存在
 async function ensureDir(dirPath) {
     try {
