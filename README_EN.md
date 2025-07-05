@@ -72,7 +72,7 @@ npm install -g grafana-mcp-analyzer
 Create a `grafana-config.js` configuration file in your project root directory:
 
 ```javascript
-export default {
+const config = {
   // Grafana basic configuration
   baseUrl: 'https://your-grafana-domain.com',
   defaultHeaders: {
@@ -133,6 +133,8 @@ export default {
     }
   }
 };
+
+module.exports = config;
 ```
 
 📌 Configuration Retrieval Tips:

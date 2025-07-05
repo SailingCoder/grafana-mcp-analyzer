@@ -75,7 +75,7 @@ npm install -g grafana-mcp-analyzer
 在项目根目录创建 `grafana-config.js` 配置文件：
 
 ```javascript
-export default {
+const config = {
   // Grafana基础配置
   baseUrl: 'https://your-grafana-domain.com',
   defaultHeaders: {
@@ -121,6 +121,8 @@ export default {
     }
   }
 };
+
+module.exports = config;
 ```
 
 📌 **配置获取技巧**：

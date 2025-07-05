@@ -233,7 +233,7 @@ const config = {
   }
 };
 
-export default config; 
+module.exports = config; 
 
 // 快速使用指南
 // 

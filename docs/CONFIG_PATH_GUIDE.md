@@ -100,11 +100,13 @@ CONFIG_PATH="http://public-server.com/config.js"
 
 ```javascript
 // 推荐的配置文件结构
-export default {
+const config = {
   baseUrl: process.env.GRAFANA_URL,
   token: process.env.GRAFANA_TOKEN,
   queries: {
     // 查询配置
   }
 };
+
+module.exports = config;
 ```
