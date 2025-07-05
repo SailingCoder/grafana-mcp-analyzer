@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/sailingcoder-grafana-mcp-analyzer-badge.png)](https://mseep.ai/app/sailingcoder-grafana-mcp-analyzer)
+
 # Grafana MCP Analyzer 🤖
 
 ![Version](https://img.shields.io/npm/v/grafana-mcp-analyzer) ![License](https://img.shields.io/npm/l/grafana-mcp-analyzer) 
