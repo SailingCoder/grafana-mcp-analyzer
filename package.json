@@ -1,6 +1,6 @@
 {
   "name": "grafana-mcp-analyzer",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "让AI助手直接分析你的Grafana监控数据 - A Model Context Protocol server for Grafana data analysis",
   "main": "dist/server/mcp-server.js",
   "types": "dist/types/index.d.ts",
