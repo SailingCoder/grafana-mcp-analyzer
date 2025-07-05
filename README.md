@@ -61,8 +61,7 @@ MCP 依赖 `Node.js 18+` 环境，[Node.js 快速安装最全指南](https://blo
 ### 步骤2：编写配置文件 `grafana-config.js`
 
 ```javascript
-// module.exports {
-export default {
+const config = {
   // Grafana基础配置
   baseUrl: 'https://your-grafana-domain.com',
   defaultHeaders: {
@@ -91,6 +90,8 @@ export default {
     }
   }
 };
+
+module.exports = config;
 ```
 
 **配置获取技巧**：

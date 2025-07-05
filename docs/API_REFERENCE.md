@@ -50,7 +50,7 @@ const result = await mcp.callTool('analyze_query', {
 **配置示例**：
 ```javascript
 // 配置文件中的查询定义
-export default {
+const config = {
   queries: {
     cpu_usage: {
     url: 'https://prometheus.example.com/api/v1/query',
@@ -62,6 +62,8 @@ export default {
     }
   }
 };
+
+module.exports = config;
 ```
 
 ### 2. query_data
@@ -392,7 +394,7 @@ monitoring-data://{requestId}/analysis    # 分析结果
 
 ### 基本结构
 ```javascript
-export default {
+const config = {
   baseUrl: 'https://your-grafana.com',
   
   // 健康检查配置（可选）
@@ -428,6 +430,8 @@ export default {
     }
   }
 };
+
+module.exports = config;
 ```
 
 ### 查询配置选项

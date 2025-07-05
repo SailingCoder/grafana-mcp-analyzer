@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { createRequire } from 'module';
 import type { QueryConfig } from '../types/index.js';
 
 /**
@@ -20,9 +21,18 @@ export async function loadConfig(configPath?: string): Promise<QueryConfig> {
       throw new Error(`配置文件不存在: ${resolvedPath}`);
     }
     
-    const fileUrl = `file://${resolvedPath}`;
-    const configModule = await import(fileUrl);
-    const loadedConfig = configModule.default || configModule;
+    // 使用require加载配置文件（支持用户的CommonJS格式配置）
+    // 在ES模块中创建require函数
+    const require = createRequire(import.meta.url);
+    // 清除require缓存，确保获取最新配置
+    delete require.cache[resolvedPath];
+    
+    let loadedConfig;
+    try {
+      loadedConfig = require(resolvedPath);
+    } catch (error: any) {
+      throw new Error(`配置文件格式错误: ${error.message}。请确保配置文件使用 CommonJS 格式 (module.exports = config)`);
+    }
     
     if (!loadedConfig || typeof loadedConfig !== 'object') {
       throw new Error('配置文件格式无效');
@@ -62,7 +72,7 @@ export async function saveConfig(config: QueryConfig, configPath?: string): Prom
     const resolvedPath = path.resolve(process.cwd(), configFilePath);
     
     // 创建配置文件内容
-    const configContent = `export default ${JSON.stringify(config, null, 2)};`;
+    const configContent = `const config = ${JSON.stringify(config, null, 2)};\n\nmodule.exports = config;`;
     
     // 确保目录存在
     const configDir = path.dirname(resolvedPath);

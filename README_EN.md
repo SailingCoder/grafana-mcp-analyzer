@@ -61,8 +61,7 @@ Configuration supports relative paths, absolute paths, and remote URLs. See [CON
 ### Step 2: Create Configuration File `grafana-config.js`
 
 ```javascript
-// module.exports {
-export default {
+const config = {
   // Grafana basic configuration
   baseUrl: 'https://your-grafana-domain.com',
   defaultHeaders: {
@@ -91,6 +90,8 @@ export default {
     }
   }
 };
+
+module.exports = config;
 ```
 
 **Configuration Retrieval Tips:**
