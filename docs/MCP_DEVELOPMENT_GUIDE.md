@@ -76,16 +76,45 @@ AI助手可以读取的数据源（文件、数据库等）
    ```
 
 2. **data/**: 响应数据存储
-   - `full.json`: 小数据完整存储（< 1MB）
-   - `chunk-*.json`: 大数据分块存储（≥ 1MB）
+   - `full.json`: 小数据完整存储（< 100KB）
+   - `chunk-*.json`: 大数据分块存储（≥ 100KB）
 
 3. **analysis.json**: AI分析结果（可选）
 
 ### 大数据处理
 
-- **自动分块**: 超过1MB自动分块存储
+- **自动分块**: 超过100KB自动分块存储
 - **透明访问**: 通过ResourceLinks统一访问
 - **按需加载**: 支持完整或分块访问
+- **性能**: 避免内存溢出，支持大数据处理
+
+## ResourceLinks
+
+### 格式
+```
+monitoring-data://{requestId}/data        # 完整数据
+monitoring-data://{requestId}/chunk-{n}   # 数据分块
+monitoring-data://{requestId}/analysis    # 分析结果
+```
+
+### 使用场景
+- 大数据查询结果
+- 聚合分析的原始数据
+- 批量分析的详细结果
+- 历史数据访问
+
+## 性能指标
+
+### 数据处理能力
+- **小数据**: <100KB，内存处理，响应<100ms
+- **中等数据**: 100KB-1MB，单文件存储，响应<500ms  
+- **大数据**: >1MB，自动分块，存储<2s
+- **超大数据**: >10MB，建议分页查询
+
+### 并发支持
+- **单会话**: 支持并发查询
+- **多会话**: 完全独立，无干扰
+- **资源限制**: 基于系统内存和磁盘
 
 ## 🔧 核心代码结构
 
@@ -126,6 +155,61 @@ server.resource("monitoring-data", "monitoring-data://{requestId}/{dataType}", {
 }, async (uri) => {
   // 资源访问逻辑
 });
+```
+
+### 工作流程实现
+
+#### analyze_query 工作流程
+1. 从配置文件获取查询配置
+2. 执行查询并存储数据
+3. 小数据（≤100KB）：格式化数据供IDE AI分析
+4. 大数据（>100KB）：存储数据，通过ResourceLinks访问
+
+```typescript
+// src/services/monitoring-analyzer.ts
+export async function analyzeQuery(queryName: string, prompt: string, sessionId?: string) {
+  // 1. 获取查询配置
+  const queryConfig = configManager.getQueryConfig(queryName);
+  if (!queryConfig) throw new Error(`查询配置不存在: ${queryName}`);
+  
+  // 2. 执行查询
+  const { requestId, data } = await executeGrafanaQuery(queryConfig);
+  
+  // 3. 存储请求元数据
+  await dataStore.storeRequestMetadata(requestId, {
+    queryName,
+    prompt,
+    sessionId,
+    timestamp: new Date().toISOString()
+  });
+  
+  // 4. 存储响应数据
+  const storageResult = await dataStore.storeResponseData(requestId, data);
+  
+  // 5. 根据数据大小决定处理方式
+  if (storageResult.storageType === 'full') {
+    // 小数据：直接格式化
+    return {
+      success: true,
+      requestId,
+      queryName,
+      formattedData: JSON.stringify(data, null, 2),
+      dataSize: storageResult.dataSize,
+      storageType: 'full',
+      message: `查询成功，数据大小: ${formatBytes(storageResult.dataSize)}`
+    };
+  } else {
+    // 大数据：返回资源链接
+    return {
+      success: true,
+      requestId,
+      queryName,
+      dataSize: storageResult.dataSize,
+      storageType: 'chunked',
+      message: `查询成功，数据已分块存储，大小: ${formatBytes(storageResult.dataSize)}`
+    };
+  }
+}
 ```
 
 ## 📦 扩展开发
@@ -344,3 +428,63 @@ CMD ["npm", "start"]
 - [MCP官方文档](https://modelcontextprotocol.io/)
 - [Grafana API文档](https://grafana.com/docs/grafana/latest/developers/http_api/)
 - [项目GitHub仓库](https://github.com/SailingCoder/grafana-mcp-analyzer)
+
+## 📦 打包和发版流程
+
+### 打包步骤
+
+1. **清理旧构建文件**
+```bash
+npm run clean
+```
+
+2. **构建优化版本**
+```bash
+npm run build:slim
+```
+
+3. **运行测试**
+```bash
+npm test
+npm run test:cleanup
+```
+
+4. **检查打包内容**
+```bash
+npm pack --dry-run
+```
+
+### 发版步骤
+
+1. **更新版本号**
+```bash
+# 手动修改 package.json 中的版本号
+# 或使用 npm 命令自动更新
+npm version patch  # 小版本更新 (x.x.X)
+npm version minor  # 次版本更新 (x.X.x)
+npm version major  # 主版本更新 (X.x.x)
+```
+
+2. **发布到 NPM**
+```bash
+# 测试发布过程但不实际发布
+npm publish --dry-run
+
+# 正式发布
+npm publish
+```
+
+3. **创建 Git 标签**
+```bash
+git tag v$(node -p "require('./package.json').version")
+git push origin --tags
+```
+
+### 发布检查清单
+
+- [ ] 所有测试通过
+- [ ] 版本号已更新
+- [ ] CHANGELOG 已更新 (如有)
+- [ ] README 文档已更新
+- [ ] 代码中无调试输出
+- [ ] 无敏感信息泄露

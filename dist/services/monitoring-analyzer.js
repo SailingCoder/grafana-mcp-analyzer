@@ -1,226 +1,155 @@
-const DEFAULT_SYSTEM_PROMPT = `您是一位资深的Grafana数据分析专家，具备丰富的数据可视化和洞察挖掘经验。您擅长从各类数据源中发现有价值的信息，并提供可执行的业务建议。请对数据进行专业分析，重点关注：
+const c=`\u60A8\u662F\u4E00\u4F4D\u8D44\u6DF1\u7684Grafana\u6570\u636E\u5206\u6790\u4E13\u5BB6\uFF0C\u5177\u5907\u4E30\u5BCC\u7684\u6570\u636E\u53EF\u89C6\u5316\u548C\u6D1E\u5BDF\u6316\u6398\u7ECF\u9A8C\u3002\u60A8\u64C5\u957F\u4ECE\u5404\u7C7B\u6570\u636E\u6E90\u4E2D\u53D1\u73B0\u6709\u4EF7\u503C\u7684\u4FE1\u606F\uFF0C\u5E76\u63D0\u4F9B\u53EF\u6267\u884C\u7684\u4E1A\u52A1\u5EFA\u8BAE\u3002\u8BF7\u5BF9\u6570\u636E\u8FDB\u884C\u4E13\u4E1A\u5206\u6790\uFF0C\u91CD\u70B9\u5173\u6CE8\uFF1A
 
-## 🎯 核心分析目标
-- **数据洞察挖掘**：从数据中发现有价值的业务洞察和趋势
-- **异常模式识别**：识别数据中的异常模式和潜在问题
-- **业务影响评估**：分析数据变化对业务目标的影响
-- **决策支持建议**：提供基于数据的决策建议和行动方案
+## \u{1F3AF} \u6838\u5FC3\u5206\u6790\u76EE\u6807
+- **\u6570\u636E\u6D1E\u5BDF\u6316\u6398**\uFF1A\u4ECE\u6570\u636E\u4E2D\u53D1\u73B0\u6709\u4EF7\u503C\u7684\u4E1A\u52A1\u6D1E\u5BDF\u548C\u8D8B\u52BF
+- **\u5F02\u5E38\u6A21\u5F0F\u8BC6\u522B**\uFF1A\u8BC6\u522B\u6570\u636E\u4E2D\u7684\u5F02\u5E38\u6A21\u5F0F\u548C\u6F5C\u5728\u95EE\u9898
+- **\u4E1A\u52A1\u5F71\u54CD\u8BC4\u4F30**\uFF1A\u5206\u6790\u6570\u636E\u53D8\u5316\u5BF9\u4E1A\u52A1\u76EE\u6807\u7684\u5F71\u54CD
+- **\u51B3\u7B56\u652F\u6301\u5EFA\u8BAE**\uFF1A\u63D0\u4F9B\u57FA\u4E8E\u6570\u636E\u7684\u51B3\u7B56\u5EFA\u8BAE\u548C\u884C\u52A8\u65B9\u6848
 
-## 📊 数据分析维度
-1. **趋势分析**：识别长期趋势、季节性模式、周期性变化
-2. **异常检测**：发现异常值、异常模式、偏离正常范围的数据点
-3. **对比分析**：与历史数据、目标值、基准线进行对比
-4. **关联分析**：分析不同指标间的关联性和影响关系
-5. **预测分析**：基于历史数据预测未来趋势和可能的变化
+## \u{1F4CA} \u6570\u636E\u5206\u6790\u7EF4\u5EA6
+1. **\u8D8B\u52BF\u5206\u6790**\uFF1A\u8BC6\u522B\u957F\u671F\u8D8B\u52BF\u3001\u5B63\u8282\u6027\u6A21\u5F0F\u3001\u5468\u671F\u6027\u53D8\u5316
+2. **\u5F02\u5E38\u68C0\u6D4B**\uFF1A\u53D1\u73B0\u5F02\u5E38\u503C\u3001\u5F02\u5E38\u6A21\u5F0F\u3001\u504F\u79BB\u6B63\u5E38\u8303\u56F4\u7684\u6570\u636E\u70B9
+3. **\u5BF9\u6BD4\u5206\u6790**\uFF1A\u4E0E\u5386\u53F2\u6570\u636E\u3001\u76EE\u6807\u503C\u3001\u57FA\u51C6\u7EBF\u8FDB\u884C\u5BF9\u6BD4
+4. **\u5173\u8054\u5206\u6790**\uFF1A\u5206\u6790\u4E0D\u540C\u6307\u6807\u95F4\u7684\u5173\u8054\u6027\u548C\u5F71\u54CD\u5173\u7CFB
+5. **\u9884\u6D4B\u5206\u6790**\uFF1A\u57FA\u4E8E\u5386\u53F2\u6570\u636E\u9884\u6D4B\u672A\u6765\u8D8B\u52BF\u548C\u53EF\u80FD\u7684\u53D8\u5316
 
-## 🚨 关键关注点
-- **业务指标**：关注对业务目标有直接影响的关键指标
-- **用户体验**：分析影响用户体验的相关数据
-- **效率优化**：识别可以提升效率的优化机会
-- **风险预警**：提前识别可能影响业务的风险信号
+## \u{1F6A8} \u5173\u952E\u5173\u6CE8\u70B9
+- **\u4E1A\u52A1\u6307\u6807**\uFF1A\u5173\u6CE8\u5BF9\u4E1A\u52A1\u76EE\u6807\u6709\u76F4\u63A5\u5F71\u54CD\u7684\u5173\u952E\u6307\u6807
+- **\u7528\u6237\u4F53\u9A8C**\uFF1A\u5206\u6790\u5F71\u54CD\u7528\u6237\u4F53\u9A8C\u7684\u76F8\u5173\u6570\u636E
+- **\u6548\u7387\u4F18\u5316**\uFF1A\u8BC6\u522B\u53EF\u4EE5\u63D0\u5347\u6548\u7387\u7684\u4F18\u5316\u673A\u4F1A
+- **\u98CE\u9669\u9884\u8B66**\uFF1A\u63D0\u524D\u8BC6\u522B\u53EF\u80FD\u5F71\u54CD\u4E1A\u52A1\u7684\u98CE\u9669\u4FE1\u53F7
 
-## 💡 建议输出标准
-- **可执行性**：提供具体的行动建议和实施方案
-- **优先级排序**：按照业务影响和紧急程度排序
-- **量化分析**：提供具体的数值分析和量化指标
-- **可视化建议**：建议创建的图表和仪表盘配置`;
-/**
- * 根据数据类型获取专门的分析指导
- */
-function getDataTypeSpecificGuidance(dataType) {
-    const guidanceMap = {
-        'timeseries': `
-## 📈 时序数据专项分析指导
-- **趋势识别**：分析数据的上升、下降、平稳趋势，识别关键拐点
-- **周期性模式**：识别日周期、周周期、月周期等业务和用户行为模式
-- **异常事件**：检测突发峰值、异常下降等重要事件
-- **基线建立**：建立正常水位基线，计算P50/P90/P95/P99百分位数
-- **预测分析**：基于历史趋势预测未来走向和可能的变化
-- **目标对比**：与业务目标、KPI指标、SLA要求进行对比分析`,
-        'tables': `
-## 📋 表格数据专项分析指导
-- **数据质量**：检查数据完整性、准确性、一致性
-- **分布特征**：分析数据分布，识别异常分布和离群值
-- **排序分析**：按关键指标排序，识别Top N表现者和问题项
-- **统计分析**：计算平均值、中位数、标准差等描述性统计
-- **分组对比**：按不同维度分组，识别差异化表现
-- **趋势对比**：与历史数据、目标值、行业基准对比`,
-        'elasticsearch': `
-## 🔍 日志数据专项分析指导
-- **事件模式**：分析事件的时间分布和频率模式
-- **用户行为**：分析用户访问模式、使用习惯和行为变化
-- **业务流程**：跟踪业务流程的执行情况和效率
-- **异常检测**：识别异常访问、错误模式、安全威胁
-- **性能分析**：分析响应时间、处理效率等性能指标
-- **业务洞察**：从日志中挖掘业务相关的洞察和机会`,
-        'default': `
-## 📊 通用数据分析指导
-- **数据探索**：全面了解数据的结构、范围和特征
-- **质量评估**：评估数据的完整性、准确性、时效性
-- **异常识别**：使用统计方法识别异常值和异常模式
-- **关联发现**：分析不同指标间的关联关系和影响因素
-- **价值挖掘**：从数据中发现业务价值和改进机会`
-    };
-    return guidanceMap[dataType] || guidanceMap['default'];
-}
-/**
- * 生成结构化的分析报告模板
- */
-function generateAnalysisTemplate(prompt, hasAggregateData = false) {
-    const baseTemplate = `
-## 📋 分析报告结构要求
+## \u{1F4A1} \u5EFA\u8BAE\u8F93\u51FA\u6807\u51C6
+- **\u53EF\u6267\u884C\u6027**\uFF1A\u63D0\u4F9B\u5177\u4F53\u7684\u884C\u52A8\u5EFA\u8BAE\u548C\u5B9E\u65BD\u65B9\u6848
+- **\u4F18\u5148\u7EA7\u6392\u5E8F**\uFF1A\u6309\u7167\u4E1A\u52A1\u5F71\u54CD\u548C\u7D27\u6025\u7A0B\u5EA6\u6392\u5E8F
+- **\u91CF\u5316\u5206\u6790**\uFF1A\u63D0\u4F9B\u5177\u4F53\u7684\u6570\u503C\u5206\u6790\u548C\u91CF\u5316\u6307\u6807
+- **\u53EF\u89C6\u5316\u5EFA\u8BAE**\uFF1A\u5EFA\u8BAE\u521B\u5EFA\u7684\u56FE\u8868\u548C\u4EEA\u8868\u76D8\u914D\u7F6E`;function m(e){const n={timeseries:`
+## \u{1F4C8} \u65F6\u5E8F\u6570\u636E\u4E13\u9879\u5206\u6790\u6307\u5BFC
+- **\u8D8B\u52BF\u8BC6\u522B**\uFF1A\u5206\u6790\u6570\u636E\u7684\u4E0A\u5347\u3001\u4E0B\u964D\u3001\u5E73\u7A33\u8D8B\u52BF\uFF0C\u8BC6\u522B\u5173\u952E\u62D0\u70B9
+- **\u5468\u671F\u6027\u6A21\u5F0F**\uFF1A\u8BC6\u522B\u65E5\u5468\u671F\u3001\u5468\u5468\u671F\u3001\u6708\u5468\u671F\u7B49\u4E1A\u52A1\u548C\u7528\u6237\u884C\u4E3A\u6A21\u5F0F
+- **\u5F02\u5E38\u4E8B\u4EF6**\uFF1A\u68C0\u6D4B\u7A81\u53D1\u5CF0\u503C\u3001\u5F02\u5E38\u4E0B\u964D\u7B49\u91CD\u8981\u4E8B\u4EF6
+- **\u57FA\u7EBF\u5EFA\u7ACB**\uFF1A\u5EFA\u7ACB\u6B63\u5E38\u6C34\u4F4D\u57FA\u7EBF\uFF0C\u8BA1\u7B97P50/P90/P95/P99\u767E\u5206\u4F4D\u6570
+- **\u9884\u6D4B\u5206\u6790**\uFF1A\u57FA\u4E8E\u5386\u53F2\u8D8B\u52BF\u9884\u6D4B\u672A\u6765\u8D70\u5411\u548C\u53EF\u80FD\u7684\u53D8\u5316
+- **\u76EE\u6807\u5BF9\u6BD4**\uFF1A\u4E0E\u4E1A\u52A1\u76EE\u6807\u3001KPI\u6307\u6807\u3001SLA\u8981\u6C42\u8FDB\u884C\u5BF9\u6BD4\u5206\u6790`,tables:`
+## \u{1F4CB} \u8868\u683C\u6570\u636E\u4E13\u9879\u5206\u6790\u6307\u5BFC
+- **\u6570\u636E\u8D28\u91CF**\uFF1A\u68C0\u67E5\u6570\u636E\u5B8C\u6574\u6027\u3001\u51C6\u786E\u6027\u3001\u4E00\u81F4\u6027
+- **\u5206\u5E03\u7279\u5F81**\uFF1A\u5206\u6790\u6570\u636E\u5206\u5E03\uFF0C\u8BC6\u522B\u5F02\u5E38\u5206\u5E03\u548C\u79BB\u7FA4\u503C
+- **\u6392\u5E8F\u5206\u6790**\uFF1A\u6309\u5173\u952E\u6307\u6807\u6392\u5E8F\uFF0C\u8BC6\u522BTop N\u8868\u73B0\u8005\u548C\u95EE\u9898\u9879
+- **\u7EDF\u8BA1\u5206\u6790**\uFF1A\u8BA1\u7B97\u5E73\u5747\u503C\u3001\u4E2D\u4F4D\u6570\u3001\u6807\u51C6\u5DEE\u7B49\u63CF\u8FF0\u6027\u7EDF\u8BA1
+- **\u5206\u7EC4\u5BF9\u6BD4**\uFF1A\u6309\u4E0D\u540C\u7EF4\u5EA6\u5206\u7EC4\uFF0C\u8BC6\u522B\u5DEE\u5F02\u5316\u8868\u73B0
+- **\u8D8B\u52BF\u5BF9\u6BD4**\uFF1A\u4E0E\u5386\u53F2\u6570\u636E\u3001\u76EE\u6807\u503C\u3001\u884C\u4E1A\u57FA\u51C6\u5BF9\u6BD4`,elasticsearch:`
+## \u{1F50D} \u65E5\u5FD7\u6570\u636E\u4E13\u9879\u5206\u6790\u6307\u5BFC
+- **\u4E8B\u4EF6\u6A21\u5F0F**\uFF1A\u5206\u6790\u4E8B\u4EF6\u7684\u65F6\u95F4\u5206\u5E03\u548C\u9891\u7387\u6A21\u5F0F
+- **\u7528\u6237\u884C\u4E3A**\uFF1A\u5206\u6790\u7528\u6237\u8BBF\u95EE\u6A21\u5F0F\u3001\u4F7F\u7528\u4E60\u60EF\u548C\u884C\u4E3A\u53D8\u5316
+- **\u4E1A\u52A1\u6D41\u7A0B**\uFF1A\u8DDF\u8E2A\u4E1A\u52A1\u6D41\u7A0B\u7684\u6267\u884C\u60C5\u51B5\u548C\u6548\u7387
+- **\u5F02\u5E38\u68C0\u6D4B**\uFF1A\u8BC6\u522B\u5F02\u5E38\u8BBF\u95EE\u3001\u9519\u8BEF\u6A21\u5F0F\u3001\u5B89\u5168\u5A01\u80C1
+- **\u6027\u80FD\u5206\u6790**\uFF1A\u5206\u6790\u54CD\u5E94\u65F6\u95F4\u3001\u5904\u7406\u6548\u7387\u7B49\u6027\u80FD\u6307\u6807
+- **\u4E1A\u52A1\u6D1E\u5BDF**\uFF1A\u4ECE\u65E5\u5FD7\u4E2D\u6316\u6398\u4E1A\u52A1\u76F8\u5173\u7684\u6D1E\u5BDF\u548C\u673A\u4F1A`,default:`
+## \u{1F4CA} \u901A\u7528\u6570\u636E\u5206\u6790\u6307\u5BFC
+- **\u6570\u636E\u63A2\u7D22**\uFF1A\u5168\u9762\u4E86\u89E3\u6570\u636E\u7684\u7ED3\u6784\u3001\u8303\u56F4\u548C\u7279\u5F81
+- **\u8D28\u91CF\u8BC4\u4F30**\uFF1A\u8BC4\u4F30\u6570\u636E\u7684\u5B8C\u6574\u6027\u3001\u51C6\u786E\u6027\u3001\u65F6\u6548\u6027
+- **\u5F02\u5E38\u8BC6\u522B**\uFF1A\u4F7F\u7528\u7EDF\u8BA1\u65B9\u6CD5\u8BC6\u522B\u5F02\u5E38\u503C\u548C\u5F02\u5E38\u6A21\u5F0F
+- **\u5173\u8054\u53D1\u73B0**\uFF1A\u5206\u6790\u4E0D\u540C\u6307\u6807\u95F4\u7684\u5173\u8054\u5173\u7CFB\u548C\u5F71\u54CD\u56E0\u7D20
+- **\u4EF7\u503C\u6316\u6398**\uFF1A\u4ECE\u6570\u636E\u4E2D\u53D1\u73B0\u4E1A\u52A1\u4EF7\u503C\u548C\u6539\u8FDB\u673A\u4F1A`};return n[e]||n.default}function p(e,n=!1){const s=e?.length||0;console.log(`\u751F\u6210\u5206\u6790\u6A21\u677F\uFF0C\u63D0\u793A\u957F\u5EA6: ${s}\u5B57\u7B26\uFF0C\u805A\u5408\u6570\u636E: ${n}`);const t=`
+## \u{1F4CB} \u5206\u6790\u62A5\u544A\u7ED3\u6784\u8981\u6C42
 
-### 1. 🎯 执行摘要 (Executive Summary)
-- **关键洞察**：最重要的3-5个数据洞察
-- **影响评估**：对业务目标和用户体验的影响分析
-- **优先级建议**：按重要性和紧急程度排序的行动建议
-- **量化结果**：关键指标的量化分析结果
+### 1. \u{1F3AF} \u6267\u884C\u6458\u8981 (Executive Summary)
+- **\u5173\u952E\u6D1E\u5BDF**\uFF1A\u6700\u91CD\u8981\u76843-5\u4E2A\u6570\u636E\u6D1E\u5BDF
+- **\u5F71\u54CD\u8BC4\u4F30**\uFF1A\u5BF9\u4E1A\u52A1\u76EE\u6807\u548C\u7528\u6237\u4F53\u9A8C\u7684\u5F71\u54CD\u5206\u6790
+- **\u4F18\u5148\u7EA7\u5EFA\u8BAE**\uFF1A\u6309\u91CD\u8981\u6027\u548C\u7D27\u6025\u7A0B\u5EA6\u6392\u5E8F\u7684\u884C\u52A8\u5EFA\u8BAE
+- **\u91CF\u5316\u7ED3\u679C**\uFF1A\u5173\u952E\u6307\u6807\u7684\u91CF\u5316\u5206\u6790\u7ED3\u679C
 
-### 2. 📊 数据概览与模式 (Data Overview & Patterns)
-- **数据质量**：数据完整性、准确性、时效性评估
-- **总体趋势**：整体数据趋势和发展方向
-- **模式识别**：周期性模式、季节性变化、异常模式
-- **关键指标**：最重要的业务指标表现
+### 2. \u{1F4CA} \u6570\u636E\u6982\u89C8\u4E0E\u6A21\u5F0F (Data Overview & Patterns)
+- **\u6570\u636E\u8D28\u91CF**\uFF1A\u6570\u636E\u5B8C\u6574\u6027\u3001\u51C6\u786E\u6027\u3001\u65F6\u6548\u6027\u8BC4\u4F30
+- **\u603B\u4F53\u8D8B\u52BF**\uFF1A\u6574\u4F53\u6570\u636E\u8D8B\u52BF\u548C\u53D1\u5C55\u65B9\u5411
+- **\u6A21\u5F0F\u8BC6\u522B**\uFF1A\u5468\u671F\u6027\u6A21\u5F0F\u3001\u5B63\u8282\u6027\u53D8\u5316\u3001\u5F02\u5E38\u6A21\u5F0F
+- **\u5173\u952E\u6307\u6807**\uFF1A\u6700\u91CD\u8981\u7684\u4E1A\u52A1\u6307\u6807\u8868\u73B0
 
-### 3. 🔍 深度分析 (Deep Analysis)
-- **异常检测**：异常值、异常模式、异常时间段的识别
-- **对比分析**：与历史数据、目标值、基准线的对比
-- **关联分析**：不同指标间的关联关系和影响因素
-- **细分分析**：按不同维度的细分表现
+### 3. \u{1F50D} \u6DF1\u5EA6\u5206\u6790 (Deep Analysis)
+- **\u5F02\u5E38\u68C0\u6D4B**\uFF1A\u5F02\u5E38\u503C\u3001\u5F02\u5E38\u6A21\u5F0F\u3001\u5F02\u5E38\u65F6\u95F4\u6BB5\u7684\u8BC6\u522B
+- **\u5BF9\u6BD4\u5206\u6790**\uFF1A\u4E0E\u5386\u53F2\u6570\u636E\u3001\u76EE\u6807\u503C\u3001\u57FA\u51C6\u7EBF\u7684\u5BF9\u6BD4
+- **\u5173\u8054\u5206\u6790**\uFF1A\u4E0D\u540C\u6307\u6807\u95F4\u7684\u5173\u8054\u5173\u7CFB\u548C\u5F71\u54CD\u56E0\u7D20
+- **\u7EC6\u5206\u5206\u6790**\uFF1A\u6309\u4E0D\u540C\u7EF4\u5EA6\u7684\u7EC6\u5206\u8868\u73B0
 
-### 4. 💡 业务洞察 (Business Insights)
-- **价值发现**：从数据中发现的业务价值和机会
-- **用户行为**：用户行为模式和偏好分析
-- **效率评估**：流程效率和性能表现评估
-- **竞争优势**：可以转化为竞争优势的数据洞察
+### 4. \u{1F4A1} \u4E1A\u52A1\u6D1E\u5BDF (Business Insights)
+- **\u4EF7\u503C\u53D1\u73B0**\uFF1A\u4ECE\u6570\u636E\u4E2D\u53D1\u73B0\u7684\u4E1A\u52A1\u4EF7\u503C\u548C\u673A\u4F1A
+- **\u7528\u6237\u884C\u4E3A**\uFF1A\u7528\u6237\u884C\u4E3A\u6A21\u5F0F\u548C\u504F\u597D\u5206\u6790
+- **\u6548\u7387\u8BC4\u4F30**\uFF1A\u6D41\u7A0B\u6548\u7387\u548C\u6027\u80FD\u8868\u73B0\u8BC4\u4F30
+- **\u7ADE\u4E89\u4F18\u52BF**\uFF1A\u53EF\u4EE5\u8F6C\u5316\u4E3A\u7ADE\u4E89\u4F18\u52BF\u7684\u6570\u636E\u6D1E\u5BDF
 
-### 5. 📈 预测与趋势 (Forecast & Trends)
-- **趋势预测**：基于历史数据的未来趋势预测
-- **场景分析**：不同情况下的可能结果分析
-- **风险识别**：潜在的业务风险和机会点
-- **目标达成**：达成业务目标的可能性评估
+### 5. \u{1F4C8} \u9884\u6D4B\u4E0E\u8D8B\u52BF (Forecast & Trends)
+- **\u8D8B\u52BF\u9884\u6D4B**\uFF1A\u57FA\u4E8E\u5386\u53F2\u6570\u636E\u7684\u672A\u6765\u8D8B\u52BF\u9884\u6D4B
+- **\u573A\u666F\u5206\u6790**\uFF1A\u4E0D\u540C\u60C5\u51B5\u4E0B\u7684\u53EF\u80FD\u7ED3\u679C\u5206\u6790
+- **\u98CE\u9669\u8BC6\u522B**\uFF1A\u6F5C\u5728\u7684\u4E1A\u52A1\u98CE\u9669\u548C\u673A\u4F1A\u70B9
+- **\u76EE\u6807\u8FBE\u6210**\uFF1A\u8FBE\u6210\u4E1A\u52A1\u76EE\u6807\u7684\u53EF\u80FD\u6027\u8BC4\u4F30
 
-### 6. 🛠️ 行动建议 (Action Recommendations)
-- **立即行动**：需要立即采取的关键行动
-- **短期改进**：1-4周内可实施的改进措施
-- **中期规划**：1-3个月的战略规划建议
-- **长期策略**：长期发展策略和投资建议
+### 6. \u{1F6E0}\uFE0F \u884C\u52A8\u5EFA\u8BAE (Action Recommendations)
+- **\u7ACB\u5373\u884C\u52A8**\uFF1A\u9700\u8981\u7ACB\u5373\u91C7\u53D6\u7684\u5173\u952E\u884C\u52A8
+- **\u77ED\u671F\u6539\u8FDB**\uFF1A1-4\u5468\u5185\u53EF\u5B9E\u65BD\u7684\u6539\u8FDB\u63AA\u65BD
+- **\u4E2D\u671F\u89C4\u5212**\uFF1A1-3\u4E2A\u6708\u7684\u6218\u7565\u89C4\u5212\u5EFA\u8BAE
+- **\u957F\u671F\u7B56\u7565**\uFF1A\u957F\u671F\u53D1\u5C55\u7B56\u7565\u548C\u6295\u8D44\u5EFA\u8BAE
 
-### 7. 📊 可视化建议 (Visualization Recommendations)
-- **仪表盘设计**：建议的Grafana仪表盘配置
-- **关键图表**：重要的图表类型和配置建议
-- **告警设置**：建议的告警阈值和规则
-- **定期报告**：建议的定期分析和报告机制`;
-    if (hasAggregateData) {
-        return baseTemplate + `
+### 7. \u{1F4CA} \u53EF\u89C6\u5316\u5EFA\u8BAE (Visualization Recommendations)
+- **\u4EEA\u8868\u76D8\u8BBE\u8BA1**\uFF1A\u5EFA\u8BAE\u7684Grafana\u4EEA\u8868\u76D8\u914D\u7F6E
+- **\u5173\u952E\u56FE\u8868**\uFF1A\u91CD\u8981\u7684\u56FE\u8868\u7C7B\u578B\u548C\u914D\u7F6E\u5EFA\u8BAE
+- **\u544A\u8B66\u8BBE\u7F6E**\uFF1A\u5EFA\u8BAE\u7684\u544A\u8B66\u9608\u503C\u548C\u89C4\u5219
+- **\u5B9A\u671F\u62A5\u544A**\uFF1A\u5EFA\u8BAE\u7684\u5B9A\u671F\u5206\u6790\u548C\u62A5\u544A\u673A\u5236`;return n?t+`
 
-### 8. 🔄 综合关联分析 (Comprehensive Correlation)
-- **数据源关联**：分析不同数据源间的关联关系
-- **影响传播**：识别指标变化的影响传播路径
-- **整体表现**：整体业务表现和健康度评估
-- **协同优化**：多维度协同优化的建议`;
-    }
-    return baseTemplate;
-}
-/**
- * 生成数据概览
- * 提供数据统计信息而非完整数据内容
- */
-export function generateDataOverview(data) {
-    const overview = {
-        type: data.type,
-        hasData: data.hasData,
-        timestamp: data.timestamp,
-        status: data.status
-    };
-    // 根据数据类型生成统计信息
-    if (data.type === 'timeseries' && data.data?.series) {
-        overview.stats = {
-            seriesCount: data.data.series.length,
-            totalDataPoints: data.data.series.reduce((sum, series) => sum + (series.fields?.[0]?.values?.length || 0), 0),
-            fieldCount: data.data.series.reduce((sum, series) => sum + (series.fields?.length || 0), 0)
-        };
-    }
-    else if (data.type === 'tables' && data.data?.tables) {
-        overview.stats = {
-            tableCount: data.data.tables.length,
-            totalRows: data.data.tables.reduce((sum, table) => sum + (table.rows?.length || 0), 0),
-            columnCount: data.data.tables.reduce((sum, table) => sum + (table.columns?.length || 0), 0)
-        };
-    }
-    else if (data.type === 'elasticsearch' && data.data?.responses) {
-        overview.stats = {
-            responseCount: data.data.responses.length,
-            totalHits: data.data.responses.reduce((sum, response) => sum + (typeof response.hits?.total === 'object' ? response.hits.total.value : response.hits?.total || 0), 0),
-            hasAggregations: data.data.responses.some((r) => r.aggregations)
-        };
-    }
-    return overview;
-}
-/**
- * 为AI提供专业的DevOps分析指引，结合查询配置的systemPrompt
- * 针对不同数据类型和分析场景提供专门的分析方法论
- */
-export function buildAnalysisGuidance(prompt, requestId, dataOverview, resourceLinks, queryConfig) {
-    // 获取专业的系统提示
-    const customSystemPrompt = queryConfig?.systemPrompt;
-    const isAggregateAnalysis = Array.isArray(dataOverview?.queryNames) || dataOverview?.type === 'aggregate-analysis';
-    // 获取数据类型专项指导
-    const dataTypeGuidance = getDataTypeSpecificGuidance(dataOverview?.type || 'default');
-    // 生成分析报告模板
-    const analysisTemplate = generateAnalysisTemplate(prompt, isAggregateAnalysis);
-    return `# 🔬 Grafana数据专业分析任务
+### 8. \u{1F504} \u7EFC\u5408\u5173\u8054\u5206\u6790 (Comprehensive Correlation)
+- **\u6570\u636E\u6E90\u5173\u8054**\uFF1A\u5206\u6790\u4E0D\u540C\u6570\u636E\u6E90\u95F4\u7684\u5173\u8054\u5173\u7CFB
+- **\u5F71\u54CD\u4F20\u64AD**\uFF1A\u8BC6\u522B\u6307\u6807\u53D8\u5316\u7684\u5F71\u54CD\u4F20\u64AD\u8DEF\u5F84
+- **\u6574\u4F53\u8868\u73B0**\uFF1A\u6574\u4F53\u4E1A\u52A1\u8868\u73B0\u548C\u5065\u5EB7\u5EA6\u8BC4\u4F30
+- **\u534F\u540C\u4F18\u5316**\uFF1A\u591A\u7EF4\u5EA6\u534F\u540C\u4F18\u5316\u7684\u5EFA\u8BAE`:t}function g(e){const n={type:e.type,hasData:e.hasData,timestamp:e.timestamp,status:e.status};return e.type==="timeseries"&&e.data?.series?n.stats={seriesCount:e.data.series.length,totalDataPoints:e.data.series.reduce((s,t)=>s+(t.fields?.[0]?.values?.length||0),0),fieldCount:e.data.series.reduce((s,t)=>s+(t.fields?.length||0),0)}:e.type==="tables"&&e.data?.tables?n.stats={tableCount:e.data.tables.length,totalRows:e.data.tables.reduce((s,t)=>s+(t.rows?.length||0),0),columnCount:e.data.tables.reduce((s,t)=>s+(t.columns?.length||0),0)}:e.type==="elasticsearch"&&e.data?.responses&&(n.stats={responseCount:e.data.responses.length,totalHits:e.data.responses.reduce((s,t)=>s+(typeof t.hits?.total=="object"?t.hits.total.value:t.hits?.total||0),0),hasAggregations:e.data.responses.some(s=>s.aggregations)}),n}function y(e,n,s,t,o){const i=o?.systemPrompt,a=Array.isArray(s?.queryNames)||s?.type==="aggregate-analysis",l=m(s?.type||"default"),r=p(e,a);return`# \u{1F52C} Grafana\u6570\u636E\u4E13\u4E1A\u5206\u6790\u4EFB\u52A1
 
-## 🎯 分析目标
-${prompt}
+## \u{1F3AF} \u5206\u6790\u76EE\u6807
+${e}
 
-## 👨‍💻 专家角色定位
-${customSystemPrompt || DEFAULT_SYSTEM_PROMPT}
+## \u{1F468}\u200D\u{1F4BB} \u4E13\u5BB6\u89D2\u8272\u5B9A\u4F4D
+${i||c}
 
-${dataTypeGuidance}
+${l}
 
-## 📋 数据资源信息
-- **请求ID**: ${requestId}
-- **数据类型**: ${dataOverview.type || '未知'}
-- **有效数据**: ${dataOverview.hasData ? '是' : '否'}
-- **HTTP状态**: ${dataOverview.status || '未知'}
-- **采集时间**: ${dataOverview.timestamp || '未知'}
-- **数据规模**: ${dataOverview.stats ? JSON.stringify(dataOverview.stats, null, 2) : '统计信息不可用'}
-${isAggregateAnalysis ? `- **分析类型**: 🔄 综合分析 (${dataOverview.queryNames?.join(', ') || '多数据源'})` : '- **分析类型**: 📊 单项分析'}
+## \u{1F4CB} \u6570\u636E\u8D44\u6E90\u4FE1\u606F
+- **\u8BF7\u6C42ID**: ${n}
+- **\u6570\u636E\u7C7B\u578B**: ${s.type||"\u672A\u77E5"}
+- **\u6709\u6548\u6570\u636E**: ${s.hasData?"\u662F":"\u5426"}
+- **HTTP\u72B6\u6001**: ${s.status||"\u672A\u77E5"}
+- **\u91C7\u96C6\u65F6\u95F4**: ${s.timestamp||"\u672A\u77E5"}
+- **\u6570\u636E\u89C4\u6A21**: ${s.stats?JSON.stringify(s.stats,null,2):"\u7EDF\u8BA1\u4FE1\u606F\u4E0D\u53EF\u7528"}
+${a?`- **\u5206\u6790\u7C7B\u578B**: \u{1F504} \u7EFC\u5408\u5206\u6790 (${s.queryNames?.join(", ")||"\u591A\u6570\u636E\u6E90"})`:"- **\u5206\u6790\u7C7B\u578B**: \u{1F4CA} \u5355\u9879\u5206\u6790"}
 
-## 🔗 数据访问资源
-**重要：必须通过以下ResourceLinks获取完整的原始数据进行分析**
-${resourceLinks.map(link => `- 📊 ${link}`).join('\n')}
+## \u{1F517} \u6570\u636E\u8BBF\u95EE\u8D44\u6E90
+**\u91CD\u8981\uFF1A\u5FC5\u987B\u901A\u8FC7\u4EE5\u4E0BResourceLinks\u83B7\u53D6\u5B8C\u6574\u7684\u539F\u59CB\u6570\u636E\u8FDB\u884C\u5206\u6790**
+${t.map(u=>`- \u{1F4CA} ${u}`).join(`
+`)}
 
-${analysisTemplate}
+${r}
 
-## ⚡ 关键分析要求
+## \u26A1 \u5173\u952E\u5206\u6790\u8981\u6C42
 
-### 🎯 专业性要求
-1. **数据驱动**：所有结论必须基于实际数据支撑，避免主观推测
-2. **量化分析**：提供具体的数值、百分比、变化幅度等量化指标
-3. **对比基准**：与历史数据、目标值、行业基准、最佳实践对比
-4. **业务视角**：从业务角度解释数据含义和影响
+### \u{1F3AF} \u4E13\u4E1A\u6027\u8981\u6C42
+1. **\u6570\u636E\u9A71\u52A8**\uFF1A\u6240\u6709\u7ED3\u8BBA\u5FC5\u987B\u57FA\u4E8E\u5B9E\u9645\u6570\u636E\u652F\u6491\uFF0C\u907F\u514D\u4E3B\u89C2\u63A8\u6D4B
+2. **\u91CF\u5316\u5206\u6790**\uFF1A\u63D0\u4F9B\u5177\u4F53\u7684\u6570\u503C\u3001\u767E\u5206\u6BD4\u3001\u53D8\u5316\u5E45\u5EA6\u7B49\u91CF\u5316\u6307\u6807
+3. **\u5BF9\u6BD4\u57FA\u51C6**\uFF1A\u4E0E\u5386\u53F2\u6570\u636E\u3001\u76EE\u6807\u503C\u3001\u884C\u4E1A\u57FA\u51C6\u3001\u6700\u4F73\u5B9E\u8DF5\u5BF9\u6BD4
+4. **\u4E1A\u52A1\u89C6\u89D2**\uFF1A\u4ECE\u4E1A\u52A1\u89D2\u5EA6\u89E3\u91CA\u6570\u636E\u542B\u4E49\u548C\u5F71\u54CD
 
-### 🚨 重点关注领域
-1. **趋势变化**：识别重要的趋势变化和拐点
-2. **异常模式**：发现异常数据模式和潜在问题
-3. **机会识别**：发现业务改进和优化机会
-4. **影响评估**：评估对业务目标和用户体验的影响
+### \u{1F6A8} \u91CD\u70B9\u5173\u6CE8\u9886\u57DF
+1. **\u8D8B\u52BF\u53D8\u5316**\uFF1A\u8BC6\u522B\u91CD\u8981\u7684\u8D8B\u52BF\u53D8\u5316\u548C\u62D0\u70B9
+2. **\u5F02\u5E38\u6A21\u5F0F**\uFF1A\u53D1\u73B0\u5F02\u5E38\u6570\u636E\u6A21\u5F0F\u548C\u6F5C\u5728\u95EE\u9898
+3. **\u673A\u4F1A\u8BC6\u522B**\uFF1A\u53D1\u73B0\u4E1A\u52A1\u6539\u8FDB\u548C\u4F18\u5316\u673A\u4F1A
+4. **\u5F71\u54CD\u8BC4\u4F30**\uFF1A\u8BC4\u4F30\u5BF9\u4E1A\u52A1\u76EE\u6807\u548C\u7528\u6237\u4F53\u9A8C\u7684\u5F71\u54CD
 
-### 💡 建议输出标准
-1. **可执行性**：提供具体的行动建议和实施步骤
-2. **优先级明确**：按业务影响和紧急程度排序
-3. **成本效益**：分析实施成本和预期收益
-4. **时间规划**：提供清晰的实施时间线
+### \u{1F4A1} \u5EFA\u8BAE\u8F93\u51FA\u6807\u51C6
+1. **\u53EF\u6267\u884C\u6027**\uFF1A\u63D0\u4F9B\u5177\u4F53\u7684\u884C\u52A8\u5EFA\u8BAE\u548C\u5B9E\u65BD\u6B65\u9AA4
+2. **\u4F18\u5148\u7EA7\u660E\u786E**\uFF1A\u6309\u4E1A\u52A1\u5F71\u54CD\u548C\u7D27\u6025\u7A0B\u5EA6\u6392\u5E8F
+3. **\u6210\u672C\u6548\u76CA**\uFF1A\u5206\u6790\u5B9E\u65BD\u6210\u672C\u548C\u9884\u671F\u6536\u76CA
+4. **\u65F6\u95F4\u89C4\u5212**\uFF1A\u63D0\u4F9B\u6E05\u6670\u7684\u5B9E\u65BD\u65F6\u95F4\u7EBF
 
-### 📊 报告质量要求
-- **结构清晰**：使用标题、列表、表格等结构化格式
-- **重点突出**：使用emoji、加粗等方式突出重要信息
-- **可视化建议**：建议创建的Grafana图表和仪表盘配置
-- **持续改进**：提供持续监控和改进的建议
+### \u{1F4CA} \u62A5\u544A\u8D28\u91CF\u8981\u6C42
+- **\u7ED3\u6784\u6E05\u6670**\uFF1A\u4F7F\u7528\u6807\u9898\u3001\u5217\u8868\u3001\u8868\u683C\u7B49\u7ED3\u6784\u5316\u683C\u5F0F
+- **\u91CD\u70B9\u7A81\u51FA**\uFF1A\u4F7F\u7528emoji\u3001\u52A0\u7C97\u7B49\u65B9\u5F0F\u7A81\u51FA\u91CD\u8981\u4FE1\u606F
+- **\u53EF\u89C6\u5316\u5EFA\u8BAE**\uFF1A\u5EFA\u8BAE\u521B\u5EFA\u7684Grafana\u56FE\u8868\u548C\u4EEA\u8868\u76D8\u914D\u7F6E
+- **\u6301\u7EED\u6539\u8FDB**\uFF1A\u63D0\u4F9B\u6301\u7EED\u76D1\u63A7\u548C\u6539\u8FDB\u7684\u5EFA\u8BAE
 
 ---
-**🔥 开始分析：请按照以上要求，通过ResourceLinks获取完整数据，进行深度专业分析，输出结构化的数据分析报告。**`;
-}
-//# sourceMappingURL=monitoring-analyzer.js.map
+**\u{1F525} \u5F00\u59CB\u5206\u6790\uFF1A\u8BF7\u6309\u7167\u4EE5\u4E0A\u8981\u6C42\uFF0C\u901A\u8FC7ResourceLinks\u83B7\u53D6\u5B8C\u6574\u6570\u636E\uFF0C\u8FDB\u884C\u6DF1\u5EA6\u4E13\u4E1A\u5206\u6790\uFF0C\u8F93\u51FA\u7ED3\u6784\u5316\u7684\u6570\u636E\u5206\u6790\u62A5\u544A\u3002**`}export{y as buildAnalysisGuidance,g as generateDataOverview};

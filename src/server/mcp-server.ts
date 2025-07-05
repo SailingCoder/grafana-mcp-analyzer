@@ -30,7 +30,6 @@ import { loadConfig } from '../services/config-manager.js';
 import type { 
   QueryConfig, 
   HttpRequest, 
-  HttpMethod, 
   ExtractedData,
   HealthStatus 
 } from '../types/index.js';

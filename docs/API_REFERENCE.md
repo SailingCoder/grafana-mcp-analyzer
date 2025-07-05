@@ -12,7 +12,7 @@ Grafana MCP Analyzer 提供了 9 个核心工具，专注于配置驱动的数�
 
 **参数**：
 ```typescript
-interface AnalyzeQueryParams {
+{
   queryName: string;       // 查询名称（从配置文件获取）
   prompt: string;          // 分析需求描述
   sessionId?: string;      // 会话ID（可选）
@@ -21,22 +21,16 @@ interface AnalyzeQueryParams {
 
 **返回值**：
 ```typescript
-interface AnalyzeQueryResult {
+{
   success: boolean;
   requestId: string;
   queryName: string;
   formattedData?: string;  // 格式化数据（小数据时）
-    dataSize: number;
+  dataSize: number;
   storageType: 'full' | 'chunked';
   message: string;
 }
 ```
-
-**工作流程**：
-1. 从配置文件获取查询配置
-2. 执行查询并存储数据
-3. 小数据（≤100KB）：格式化数据供IDE AI分析
-4. 大数据（>100KB）：存储数据，通过ResourceLinks访问
 
 **使用示例**：
 ```javascript
@@ -47,32 +41,13 @@ const result = await mcp.callTool('analyze_query', {
 });
 ```
 
-**配置示例**：
-```javascript
-// 配置文件中的查询定义
-const config = {
-  queries: {
-    cpu_usage: {
-    url: 'https://prometheus.example.com/api/v1/query',
-    method: 'GET',
-      params: {
-        query: 'cpu_usage_percent',
-        time: '2024-01-01T12:00:00Z'
-      }
-    }
-  }
-};
-
-module.exports = config;
-```
-
 ### 2. query_data
 
 仅执行查询并存储数据，不进行分析。
 
 **参数**：
 ```typescript
-interface QueryDataParams {
+{
   queryName: string;       // 查询名称（从配置文件获取）
   description?: string;    // 查询描述
   sessionId?: string;      // 会话ID（可选）
@@ -81,7 +56,7 @@ interface QueryDataParams {
 
 **返回值**：
 ```typescript
-interface QueryDataResult {
+{
   requestId: string;
   queryName: string;
   dataSize: number;
@@ -106,7 +81,7 @@ const result = await mcp.callTool('query_data', {
 
 **参数**：
 ```typescript
-interface AggregateAnalyzeParams {
+{
   queryNames: string[];    // 查询名称列表（从配置文件获取）
   prompt: string;          // 聚合分析需求描述
   sessionId?: string;      // 会话ID（可选）
@@ -115,7 +90,7 @@ interface AggregateAnalyzeParams {
 
 **返回值**：
 ```typescript
-interface AggregateAnalyzeResult {
+{
   success: boolean;
   requestIds: string[];
   queryNames: string[];
@@ -140,7 +115,7 @@ const result = await mcp.callTool('aggregate_analyze', {
 
 **参数**：
 ```typescript
-interface BatchAnalyzeParams {
+{
   queryNames: string[];    // 查询名称列表（从配置文件获取）
   prompt: string;          // 批量分析需求描述
   sessionId?: string;      // 会话ID（可选）
@@ -149,12 +124,12 @@ interface BatchAnalyzeParams {
 
 **返回值**：
 ```typescript
-interface BatchAnalyzeResult {
+{
   success: boolean;
   results: Array<{
     queryName: string;
     requestId: string;
-  dataSize: number;
+    dataSize: number;
     storageType: 'full' | 'chunked';
     formattedData?: string;
   }>;
@@ -177,14 +152,14 @@ const result = await mcp.callTool('batch_analyze', {
 
 **参数**：
 ```typescript
-interface ListQueriesParams {
+{
   includeConfig?: boolean; // 是否包含完整配置信息，默认false
 }
 ```
 
 **返回值**：
 ```typescript
-interface ListQueriesResult {
+{
   queries: string[];       // 查询名称列表
   count: number;          // 查询数量
   config?: Record<string, any>; // 完整配置（当includeConfig=true时）
@@ -208,7 +183,7 @@ const queriesWithConfig = await mcp.callTool('list_queries', {
 
 **参数**：
 ```typescript
-interface ManageSessionsParams {
+{
   action: 'list' | 'create' | 'get' | 'delete'; // 操作类型
   sessionId?: string;      // 会话ID（get、delete时必需）
   metadata?: Record<string, any>; // 会话元数据（create时可选）
@@ -217,7 +192,7 @@ interface ManageSessionsParams {
 
 **返回值**：
 ```typescript
-interface ManageSessionsResult {
+{
   success: boolean;
   sessionId?: string;      // 新创建的会话ID
   sessions?: SessionInfo[]; // 会话列表（list时）
@@ -257,7 +232,7 @@ const deleteResult = await mcp.callTool('manage_sessions', {
 
 **参数**：
 ```typescript
-interface ListDataParams {
+{
   sessionId?: string;      // 会话ID筛选（可选）
   limit?: number;          // 返回数量限制，默认10
 }
@@ -265,7 +240,7 @@ interface ListDataParams {
 
 **返回值**：
 ```typescript
-interface ListDataResult {
+{
   data: Array<{
     requestId: string;
     timestamp: string;
@@ -300,14 +275,12 @@ const sessionData = await mcp.callTool('list_data', {
 
 **参数**：
 ```typescript
-interface ServerStatusParams {
-  // 无参数
-}
+// 无参数
 ```
 
 **返回值**：
 ```typescript
-interface ServerStatusResult {
+{
   server: {
     name: string;
     version: string;
@@ -333,7 +306,7 @@ const status = await mcp.callTool('server_status', {});
 
 **参数**：
 ```typescript
-interface CheckHealthParams {
+{
   timeout?: number;        // 超时时间（毫秒）
   expectedStatus?: number; // 期望的HTTP状态码
 }
@@ -341,7 +314,7 @@ interface CheckHealthParams {
 
 **返回值**：
 ```typescript
-interface HealthStatus {
+{
   status: 'healthy' | 'unhealthy';
   timestamp: string;
   // 其他健康检查详情
@@ -355,40 +328,6 @@ const health = await mcp.callTool('check_health', {
   expectedStatus: 200
 });
 ```
-
-## 数据存储架构
-
-### 存储结构
-```
-~/.grafana-mcp-analyzer/data-store/
-├── request-{timestamp}-{id}/
-│   ├── metadata.json        # 请求元数据
-│   ├── analysis.json        # 分析结果（如有）
-│   └── data/               # 数据目录
-│       ├── full.json       # 小数据(<100KB)
-│       └── chunk-*.json    # 大数据分块(≥100KB)
-```
-
-### 自动分块机制
-- **阈值**: 100KB
-- **分块大小**: 100KB
-- **访问方式**: 通过ResourceLinks透明访问
-- **性能**: 避免内存溢出，支持大数据处理
-
-## ResourceLinks
-
-### 格式
-```
-monitoring-data://{requestId}/data        # 完整数据
-monitoring-data://{requestId}/chunk-{n}   # 数据分块
-monitoring-data://{requestId}/analysis    # 分析结果
-```
-
-### 使用场景
-- 大数据查询结果
-- 聚合分析的原始数据
-- 批量分析的详细结果
-- 历史数据访问
 
 ## 配置文件结构
 
@@ -436,7 +375,7 @@ module.exports = config;
 
 ### 查询配置选项
 ```typescript
-interface QueryConfig {
+{
   url: string;                    // 查询URL
   method?: string;                // HTTP方法，默认POST
   headers?: Record<string, string>; // 请求头
@@ -470,12 +409,6 @@ cpu_monitoring: {
 4. 业务影响评估和优化方案`
 }
 ```
-
-**最佳实践**：
-- 明确专家角色定位
-- 列出具体分析维度
-- 结合业务场景需求
-- 提供可执行的建议方向
 
 ## 使用最佳实践
 
@@ -512,23 +445,10 @@ cpu_monitoring: {
 3. **存储问题**: 检查数据存储目录权限和磁盘空间
 4. **分析问题**: 确认AI服务配置和API密钥
 
-## 性能指标
-
-### 数据处理能力
-- **小数据**: <100KB，内存处理，响应<100ms
-- **中等数据**: 100KB-1MB，单文件存储，响应<500ms  
-- **大数据**: >1MB，自动分块，存储<2s
-- **超大数据**: >10MB，建议分页查询
-
-### 并发支持
-- **单会话**: 支持并发查询
-- **多会话**: 完全独立，无干扰
-- **资源限制**: 基于系统内存和磁盘
-
 ## 版本更新
 
 ### v2.0.0 (当前版本)
-- ✅ 重构为6个核心工具
+- ✅ 重构为9个核心工具
 - ✅ 配置驱动的查询管理
 - ✅ 智能数据分析（小数据直接分析，大数据存储）
 - ✅ 聚合分析和批量分析

@@ -9,7 +9,8 @@
     "grafana-mcp-analyzer": "dist/server/mcp-server.js"
   },
   "files": [
-    "dist/**/*",
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
     "config/",
     "README.md",
     "LICENSE"
@@ -46,12 +47,14 @@
     "dev": "tsx watch src/server/mcp-server.ts",
     "start": "node dist/server/mcp-server.js",
     "build": "tsc",
+    "build:prod": "npm run build && node build/optimize.js",
+    "build:slim": "tsc --sourceMap false && node build/optimize.js",
     "test": "node tests/test-minimal-version.js",
     "test:cleanup": "node tests/test-data-cleanup.js",
     "test:resource-links": "node --experimental-modules tests/test-resource-links.js",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit --skipLibCheck",
-    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "prepublishOnly": "npm run clean && npm run build:slim && npm test",
     "clean-data": "node --experimental-modules -e \"import('./dist/services/data-store.js').then(module => module.cleanupExpiredData(true).then(count => console.log('清理完成，共删除', count, '个文件')));\""
   },
   "dependencies": {
@@ -61,6 +64,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
+    "esbuild": "^0.21.0",
     "rimraf": "^5.0.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"

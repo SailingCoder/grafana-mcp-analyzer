@@ -3,7 +3,6 @@ import { parseCurlCommand } from './curl-parser.js';
 import type { HttpRequest, HttpResponse, ExtractedData, HealthStatus } from '../types/index.js';
 
 const DEFAULT_TIMEOUT = 30000; // 默认请求超时时间（30秒） - 避免长时间等待
-const HEALTH_CHECK_TIMEOUT = 5000; // 健康检查超时时间（5秒） - 快速检测服务状态
 
 /**
  * 执行Grafana查询

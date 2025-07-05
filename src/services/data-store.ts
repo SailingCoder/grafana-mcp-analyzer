@@ -352,7 +352,6 @@ export async function getDataStoreStats() {
         
         try {
           const requestDir = path.join(DATA_STORE_ROOT, dir);
-          const stat = await fs.stat(requestDir);
           
           // 计算目录大小
           const dirSize = await getDirSize(requestDir);

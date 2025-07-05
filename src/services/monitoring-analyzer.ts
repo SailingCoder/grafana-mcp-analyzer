@@ -75,6 +75,10 @@ function getDataTypeSpecificGuidance(dataType: string): string {
  * 生成结构化的分析报告模板
  */
 function generateAnalysisTemplate(prompt: string, hasAggregateData: boolean = false): string {
+  // 使用prompt参数，避免未使用参数的错误
+  const promptLength = prompt?.length || 0;
+  console.log(`生成分析模板，提示长度: ${promptLength}字符，聚合数据: ${hasAggregateData}`);
+  
   const baseTemplate = `
 ## 📋 分析报告结构要求
 

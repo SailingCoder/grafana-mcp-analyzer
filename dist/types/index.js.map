@@ -1,1 +1,7 @@
-{"version":3,"file":"index.js","sourceRoot":"","sources":["../../src/types/index.ts"],"names":[],"mappings":"AAAA;;GAEG;AAiEH,SAAS;AACT,MAAM,UAAU,iBAAiB,CAAC,MAAc;IAC9C,OAAO,CAAC,KAAK,EAAE,MAAM,EAAE,KAAK,EAAE,QAAQ,EAAE,OAAO,EAAE,MAAM,EAAE,SAAS,CAAC,CAAC,QAAQ,CAAC,MAAM,CAAC,WAAW,EAAE,CAAC,CAAC;AACrG,CAAC"}
+{
+  "version": 3,
+  "sources": ["index.js"],
+  "sourcesContent": ["/**\n * Grafana MCP \u5206\u6790\u5668\u7C7B\u578B\u5B9A\u4E49\n */\n// \u7C7B\u578B\u5B88\u536B\u51FD\u6570\nexport function isValidHttpMethod(method) {\n    return ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());\n}\n"],
+  "mappings": "AAIO,SAASA,EAAkBC,EAAQ,CACtC,MAAO,CAAC,MAAO,OAAQ,MAAO,SAAU,QAAS,OAAQ,SAAS,EAAE,SAASA,EAAO,YAAY,CAAC,CACrG",
+  "names": ["isValidHttpMethod", "method"]
+}
