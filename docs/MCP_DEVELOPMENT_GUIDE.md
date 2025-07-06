@@ -116,6 +116,18 @@ monitoring-data://{requestId}/analysis    # 分析结果
 - **多会话**: 完全独立，无干扰
 - **资源限制**: 基于系统内存和磁盘
 
+## 🔧 命令行参数
+
+```bash
+# 显示版本信息
+grafana-mcp-analyzer -v
+grafana-mcp-analyzer --version
+
+# 显示帮助信息
+grafana-mcp-analyzer -h
+grafana-mcp-analyzer --help
+```
+
 ## 🔧 核心代码结构
 
 ### MCP服务器初始化

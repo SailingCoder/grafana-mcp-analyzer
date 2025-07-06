@@ -41,6 +41,18 @@ npm install -g grafana-mcp-analyzer
 
 MCP requires `Node.js 18+` environment, [Complete Guide to Quick Node.js Installation](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
+### Command Line Options
+
+```bash
+# Show version information
+grafana-mcp-analyzer -v
+grafana-mcp-analyzer --version
+
+# Show help information
+grafana-mcp-analyzer -h
+grafana-mcp-analyzer --help
+```
+
 #### Configure AI Assistant (Using Cursor as example)
 
 ```json

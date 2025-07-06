@@ -41,6 +41,18 @@ npm install -g grafana-mcp-analyzer
 
 MCP 依赖 `Node.js 18+` 环境，[Node.js 快速安装最全指南](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
+### 命令行选项
+
+```bash
+# 显示版本信息
+grafana-mcp-analyzer -v
+grafana-mcp-analyzer --version
+
+# 显示帮助信息
+grafana-mcp-analyzer -h
+grafana-mcp-analyzer --help
+```
+
 #### 配置AI助手（以Cursor为例）
 
 ```json
