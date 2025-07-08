@@ -289,6 +289,37 @@ export async function getRequestStats(requestId: string) {
   }
 }
 
+/**
+ * 初始化数据清理
+ */
+export async function initializeDataCleanup(): Promise<void> {
+  try {
+    const dataExpiryHours = parseInt(process.env.DATA_EXPIRY_HOURS || '24', 10);
+    console.error(`⏰ 数据清理配置: ${dataExpiryHours}小时后自动清理`);
+    
+    // 启动时立即执行一次清理
+    const initialCleanup = await cleanupExpiredData(false, dataExpiryHours);
+    if (initialCleanup > 0) {
+      console.error(`🗑️ 服务启动清理完成，删除了 ${initialCleanup} 个过期请求`);
+    }
+    
+    // 设置定时清理任务，每小时执行一次
+    setInterval(async () => {
+      try {
+        const deletedCount = await cleanupExpiredData(false, dataExpiryHours);
+        if (deletedCount > 0) {
+          console.error(`🗑️ 定时清理完成，删除了 ${deletedCount} 个过期请求`);
+        }
+      } catch (error) {
+        console.error('❌ 定时数据清理失败:', error);
+      }
+    }, 60 * 60 * 1000); // 1小时 = 60 * 60 * 1000毫秒
+    
+  } catch (error) {
+    console.error('❌ 数据清理初始化失败:', error);
+  }
+}
+
 // 清理过期数据
 export async function cleanupExpiredData(forceCleanAll = false, maxAgeHours = 24) {
   try {

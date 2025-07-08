@@ -1,12 +1,12 @@
 {
   "name": "grafana-mcp-analyzer",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "让AI助手直接分析你的Grafana监控数据 - A Model Context Protocol server for Grafana data analysis",
-  "main": "dist/server/mcp-server.js",
+  "main": "dist/main.js",
   "types": "dist/types/index.d.ts",
   "type": "module",
   "bin": {
-    "grafana-mcp-analyzer": "dist/server/mcp-server.js"
+    "grafana-mcp-analyzer": "dist/main.js"
   },
   "files": [
     "dist/**/*.js",
@@ -44,8 +44,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "dev": "tsx watch src/server/mcp-server.ts",
-    "start": "node dist/server/mcp-server.js",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
     "build": "tsc",
     "build:prod": "npm run build && node build/optimize.js",
     "build:slim": "tsc --sourceMap false && node build/optimize.js",
