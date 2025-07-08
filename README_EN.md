@@ -61,14 +61,58 @@ grafana-mcp-analyzer --help
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js"
+        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js",
+        "CONFIG_MAX_AGE": "300",
+        "DATA_EXPIRY_HOURS": "24"
       }
     }
   }
 }
 ```
 
-> ⚠️ **Note**: We strongly recommend using absolute paths. 
+#### 🌐 Remote Configuration Support (⭐ New Feature)
+
+Now supports accessing remote configuration files via HTTPS URLs, perfect for team collaboration and multi-environment deployments:
+
+```json
+{
+  "mcpServers": {
+    "grafana-dev": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "./config/grafana-config.js"
+      }
+    },
+    "grafana-prod": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/configs/production-config.js",
+        "CONFIG_MAX_AGE": "600"
+      }
+    }
+  }
+}
+```
+
+**Supported Remote Storage**:
+- Alibaba Cloud OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
+- Tencent Cloud COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
+- AWS S3: `https://bucket.s3.amazonaws.com/config.js`
+- GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
+
+#### 📋 Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONFIG_PATH` | Required | Configuration file path (local path or HTTPS URL) |
+| `CONFIG_MAX_AGE` | `300` | Remote config cache time (seconds), set to 0 to disable cache |
+| `DATA_EXPIRY_HOURS` | `24` | Query data expiration time (hours) |
+
+**Cache Features**:
+- 🚀 **Smart Caching**: Default 5-minute cache for improved access speed
+- 🔄 **Fault Tolerance**: Automatically uses expired cache when network fails
+- 🗑️ **Auto Cleanup**: Automatically cleans expired cache files on startup
+- ⚡ **Real-time Updates**: Set `CONFIG_MAX_AGE=0` to disable cache and fetch latest config every time 
 
 ### Step 2: Create Configuration File `grafana-config.js`
 

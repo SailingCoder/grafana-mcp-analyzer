@@ -26,7 +26,7 @@ import {
   listSessions,
   deleteSession
 } from '../services/session-manager.js';
-import { loadConfig } from '../services/config-manager.js';
+import { loadConfig, initializeCacheCleanup } from '../services/config-manager.js';
 import type { 
   QueryConfig, 
   HttpRequest, 
@@ -739,6 +739,9 @@ async function main(): Promise<void> {
   }
   
   try {
+    // 初始化缓存清理
+    initializeCacheCleanup();
+    
     config = await loadConfig(process.env.CONFIG_PATH);
     
     // 记录数据过期时间配置

@@ -1,7 +1,246 @@
 import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
+import axios from 'axios';
+import os from 'os';
 import type { QueryConfig } from '../types/index.js';
+
+// 配置缓存存储目录
+const CACHE_DIR = path.join(os.homedir(), '.grafana-mcp-analyzer', 'config-cache');
+
+// 确保缓存目录存在
+function ensureCacheDir() {
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
+}
+
+/**
+ * 获取缓存最大年龄（毫秒）
+ */
+function getCacheMaxAge(): number {
+  const cacheMaxAge = parseInt(process.env.CONFIG_MAX_AGE || '300', 10); // 默认5分钟
+  return cacheMaxAge * 1000; // 转换为毫秒
+}
+
+/**
+ * 检查是否禁用缓存
+ */
+function isCacheDisabled(): boolean {
+  return getCacheMaxAge() === 0;
+}
+
+/**
+ * 清理过期的缓存文件
+ */
+function cleanupExpiredCache(): void {
+  if (!fs.existsSync(CACHE_DIR)) {
+    return;
+  }
+  
+  const maxAge = getCacheMaxAge();
+  if (maxAge === 0) {
+    // 如果禁用缓存，清空所有缓存文件
+    const files = fs.readdirSync(CACHE_DIR);
+    files.forEach(file => {
+      const filePath = path.join(CACHE_DIR, file);
+      if (fs.statSync(filePath).isFile()) {
+        fs.unlinkSync(filePath);
+      }
+    });
+    console.error('🗑️ 缓存已禁用，清空所有缓存文件');
+    return;
+  }
+  
+  // 清理过期的缓存文件
+  const files = fs.readdirSync(CACHE_DIR);
+  let cleanedCount = 0;
+  
+  files.forEach(file => {
+    const filePath = path.join(CACHE_DIR, file);
+    if (fs.statSync(filePath).isFile()) {
+      const stats = fs.statSync(filePath);
+      const cacheAge = Date.now() - stats.mtime.getTime();
+      
+      if (cacheAge > maxAge) {
+        fs.unlinkSync(filePath);
+        cleanedCount++;
+      }
+    }
+  });
+  
+  if (cleanedCount > 0) {
+    console.error(`🗑️ 清理了 ${cleanedCount} 个过期缓存文件`);
+  }
+}
+
+/**
+ * 启动时清理缓存
+ */
+export function initializeCacheCleanup(): void {
+  try {
+    const cacheMaxAge = parseInt(process.env.CONFIG_MAX_AGE || '300', 10);
+    
+    if (cacheMaxAge === 0) {
+      console.error('⚠️ 远程配置缓存已禁用 (CONFIG_MAX_AGE=0)');
+    } else {
+      console.error(`⏰ 远程配置缓存时间: ${cacheMaxAge}秒`);
+    }
+    
+    cleanupExpiredCache();
+  } catch (error) {
+    console.error('❌ 缓存清理失败:', error);
+  }
+}
+
+/**
+ * 检查是否为远程URL
+ */
+function isRemoteUrl(configPath: string): boolean {
+  return configPath.startsWith('http://') || configPath.startsWith('https://');
+}
+
+/**
+ * 验证远程URL的安全性
+ */
+function validateRemoteUrl(url: string): void {
+  // 安全检查：只允许HTTPS
+  if (!url.startsWith('https://')) {
+    throw new Error('远程配置只支持HTTPS URL，请使用https://协议');
+  }
+  
+  // 检查URL格式
+  try {
+    new URL(url);
+  } catch (error) {
+    throw new Error(`无效的URL格式: ${url}`);
+  }
+}
+
+/**
+ * 获取缓存文件路径
+ */
+function getCacheFilePath(url: string): string {
+  // 使用URL的hash作为缓存文件名
+  const crypto = require('crypto');
+  const hash = crypto.createHash('md5').update(url).digest('hex');
+  return path.join(CACHE_DIR, `config-${hash}.js`);
+}
+
+/**
+ * 检查缓存是否有效
+ */
+function isCacheValid(cacheFilePath: string): boolean {
+  // 如果缓存被禁用，返回false
+  if (isCacheDisabled()) {
+    return false;
+  }
+  
+  if (!fs.existsSync(cacheFilePath)) {
+    return false;
+  }
+  
+  const stats = fs.statSync(cacheFilePath);
+  const cacheAge = Date.now() - stats.mtime.getTime();
+  const maxAge = getCacheMaxAge();
+  
+  return cacheAge < maxAge;
+}
+
+/**
+ * 从远程URL获取配置
+ */
+async function fetchRemoteConfig(url: string): Promise<QueryConfig> {
+  validateRemoteUrl(url);
+  
+  const cacheFilePath = getCacheFilePath(url);
+  
+  // 检查缓存
+  if (isCacheValid(cacheFilePath)) {
+    console.error('📦 使用缓存的远程配置');
+    return loadLocalConfig(cacheFilePath);
+  }
+  
+  try {
+    console.error('🌐 正在从远程URL获取配置...');
+    
+    const response = await axios.get(url, {
+      timeout: 30000, // 30秒超时
+      headers: {
+        'User-Agent': 'grafana-mcp-analyzer',
+        'Accept': 'application/javascript, text/javascript, */*'
+      },
+      // 限制响应大小（10MB）
+      maxContentLength: 10 * 1024 * 1024,
+      maxBodyLength: 10 * 1024 * 1024
+    });
+    
+    if (response.status !== 200) {
+      throw new Error(`HTTP请求失败: ${response.status} ${response.statusText}`);
+    }
+    
+    const configContent = response.data;
+    if (typeof configContent !== 'string') {
+      throw new Error('远程配置必须是JavaScript文本格式');
+    }
+    
+    // 验证配置内容是否看起来像JavaScript
+    if (!configContent.includes('module.exports') && !configContent.includes('export')) {
+      throw new Error('远程配置文件格式无效，必须是有效的JavaScript文件');
+    }
+    
+    // 如果缓存未禁用，保存到缓存
+    if (!isCacheDisabled()) {
+      ensureCacheDir();
+      fs.writeFileSync(cacheFilePath, configContent, 'utf-8');
+      console.error('✅ 远程配置获取成功，已缓存');
+    } else {
+      console.error('✅ 远程配置获取成功（缓存已禁用）');
+    }
+    
+    // 加载配置
+    return loadLocalConfig(cacheFilePath);
+    
+  } catch (error: any) {
+    // 如果获取失败，尝试使用缓存（即使过期）
+    if (fs.existsSync(cacheFilePath)) {
+      console.warn('⚠️ 远程配置获取失败，使用过期缓存:', error.message);
+      return loadLocalConfig(cacheFilePath);
+    }
+    
+    throw new Error(`远程配置获取失败: ${error.message}`);
+  }
+}
+
+/**
+ * 加载本地配置文件
+ */
+async function loadLocalConfig(configPath: string): Promise<QueryConfig> {
+  const resolvedPath = path.resolve(process.cwd(), configPath);
+  
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`配置文件不存在: ${resolvedPath}`);
+  }
+  
+  // 使用require加载配置文件（支持用户的CommonJS格式配置）
+  // 在ES模块中创建require函数
+  const require = createRequire(import.meta.url);
+  // 清除require缓存，确保获取最新配置
+  delete require.cache[resolvedPath];
+  
+  let loadedConfig;
+  try {
+    loadedConfig = require(resolvedPath);
+  } catch (error: any) {
+    throw new Error(`配置文件格式错误: ${error.message}。请确保配置文件使用 CommonJS 格式 (module.exports = config)`);
+  }
+  
+  if (!loadedConfig || typeof loadedConfig !== 'object') {
+    throw new Error('配置文件格式无效');
+  }
+  
+  return loadedConfig;
+}
 
 /**
  * 加载配置
@@ -15,27 +254,13 @@ export async function loadConfig(configPath?: string): Promise<QueryConfig> {
       throw new Error('请指定配置文件路径。使用参数传入或设置 CONFIG_PATH 环境变量');
     }
     
-    const resolvedPath = path.resolve(process.cwd(), configFilePath);
+    let loadedConfig: QueryConfig;
     
-    if (!fs.existsSync(resolvedPath)) {
-      throw new Error(`配置文件不存在: ${resolvedPath}`);
-    }
-    
-    // 使用require加载配置文件（支持用户的CommonJS格式配置）
-    // 在ES模块中创建require函数
-    const require = createRequire(import.meta.url);
-    // 清除require缓存，确保获取最新配置
-    delete require.cache[resolvedPath];
-    
-    let loadedConfig;
-    try {
-      loadedConfig = require(resolvedPath);
-    } catch (error: any) {
-      throw new Error(`配置文件格式错误: ${error.message}。请确保配置文件使用 CommonJS 格式 (module.exports = config)`);
-    }
-    
-    if (!loadedConfig || typeof loadedConfig !== 'object') {
-      throw new Error('配置文件格式无效');
+    // 检查是否为远程URL
+    if (isRemoteUrl(configFilePath)) {
+      loadedConfig = await fetchRemoteConfig(configFilePath);
+    } else {
+      loadedConfig = await loadLocalConfig(configFilePath);
     }
     
     console.error('✅ 配置加载成功，包含查询:', Object.keys(loadedConfig.queries || {}).length, '个');
@@ -44,7 +269,9 @@ export async function loadConfig(configPath?: string): Promise<QueryConfig> {
   } catch (error: any) {
     // 如果是配置路径相关的错误，直接抛出
     if (error.message.includes('请指定配置文件路径') || 
-        error.message.includes('配置文件不存在')) {
+        error.message.includes('配置文件不存在') ||
+        error.message.includes('远程配置获取失败') ||
+        error.message.includes('远程配置只支持HTTPS')) {
       throw error;
     }
     

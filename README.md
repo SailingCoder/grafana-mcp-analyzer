@@ -61,14 +61,58 @@ grafana-mcp-analyzer --help
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js"
+        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js",
+        "CONFIG_MAX_AGE": "300",
+        "DATA_EXPIRY_HOURS": "24"
       }
     }
   }
 }
 ```
 
-> ⚠️ **注意**：推荐使用绝对路径，后续开放相对路径、远程路径。
+#### 🌐 远程配置支持（⭐ 新功能）
+
+现在支持通过HTTPS URL访问远程配置文件，适用于团队协作和多环境部署：
+
+```json
+{
+  "mcpServers": {
+    "grafana-dev": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "./config/grafana-config.js"
+      }
+    },
+    "grafana-prod": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/configs/production-config.js",
+        "CONFIG_MAX_AGE": "600"
+      }
+    }
+  }
+}
+```
+
+**支持的远程存储**：
+- 阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
+- 腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
+- AWS S3: `https://bucket.s3.amazonaws.com/config.js`
+- GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
+
+#### 📋 环境变量说明
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `CONFIG_PATH` | 必填 | 配置文件路径（本地路径或HTTPS URL） |
+| `CONFIG_MAX_AGE` | `300` | 远程配置缓存时间（秒），设为0禁用缓存 |
+| `DATA_EXPIRY_HOURS` | `24` | 查询数据过期时间（小时） |
+
+**缓存特性**：
+- 🚀 **智能缓存**：默认缓存5分钟，提升访问速度
+- 🔄 **容错机制**：网络失败时自动使用过期缓存
+- 🗑️ **自动清理**：启动时自动清理过期缓存文件
+- ⚡ **实时更新**：设置`CONFIG_MAX_AGE=0`禁用缓存，每次获取最新配置
 
 ### 步骤2：编写配置文件 `grafana-config.js`
 
