@@ -3,6 +3,7 @@ import path from 'path';
 import { createRequire } from 'module';
 import axios from 'axios';
 import os from 'os';
+import crypto from 'crypto';
 import type { QueryConfig } from '../types/index.js';
 
 // 配置缓存存储目录
@@ -82,9 +83,9 @@ export function initializeCacheCleanup(): void {
     const cacheMaxAge = parseInt(process.env.CONFIG_MAX_AGE || '300', 10);
     
     if (cacheMaxAge === 0) {
-      console.error('⚠️ 远程配置缓存已禁用 (CONFIG_MAX_AGE=0)');
+      console.error('⚠️ 配置缓存已禁用 (CONFIG_MAX_AGE=0)');
     } else {
-      console.error(`⏰ 远程配置缓存时间: ${cacheMaxAge}秒`);
+      console.error(`⏰ 配置缓存时间: ${cacheMaxAge}秒`);
     }
     
     cleanupExpiredCache();
@@ -120,10 +121,18 @@ function validateRemoteUrl(url: string): void {
 /**
  * 获取缓存文件路径
  */
-function getCacheFilePath(url: string): string {
-  // 使用URL的hash作为缓存文件名
-  const crypto = require('crypto');
-  const hash = crypto.createHash('md5').update(url).digest('hex');
+function getCacheFilePath(configPath: string): string {
+  let hash: string;
+  
+  if (isRemoteUrl(configPath)) {
+    // 远程URL使用URL作为hash源
+    hash = crypto.createHash('md5').update(configPath).digest('hex');
+  } else {
+    // 本地路径使用绝对路径作为hash源
+    const absolutePath = path.resolve(configPath);
+    hash = crypto.createHash('md5').update(absolutePath).digest('hex');
+  }
+  
   return path.join(CACHE_DIR, `config-${hash}.js`);
 }
 
@@ -148,6 +157,20 @@ function isCacheValid(cacheFilePath: string): boolean {
 }
 
 /**
+ * 检查源文件是否比缓存新
+ */
+function isSourceNewer(sourcePath: string, cacheFilePath: string): boolean {
+  if (!fs.existsSync(sourcePath) || !fs.existsSync(cacheFilePath)) {
+    return true;
+  }
+  
+  const sourceStats = fs.statSync(sourcePath);
+  const cacheStats = fs.statSync(cacheFilePath);
+  
+  return sourceStats.mtime.getTime() > cacheStats.mtime.getTime();
+}
+
+/**
  * 从远程URL获取配置
  */
 async function fetchRemoteConfig(url: string): Promise<QueryConfig> {
@@ -158,7 +181,7 @@ async function fetchRemoteConfig(url: string): Promise<QueryConfig> {
   // 检查缓存
   if (isCacheValid(cacheFilePath)) {
     console.error('📦 使用缓存的远程配置');
-    return loadLocalConfig(cacheFilePath);
+    return loadConfigFromCache(cacheFilePath);
   }
   
   try {
@@ -199,13 +222,13 @@ async function fetchRemoteConfig(url: string): Promise<QueryConfig> {
     }
     
     // 加载配置
-    return loadLocalConfig(cacheFilePath);
+    return loadConfigFromCache(cacheFilePath);
     
   } catch (error: any) {
     // 如果获取失败，尝试使用缓存（即使过期）
     if (fs.existsSync(cacheFilePath)) {
       console.warn('⚠️ 远程配置获取失败，使用过期缓存:', error.message);
-      return loadLocalConfig(cacheFilePath);
+      return loadConfigFromCache(cacheFilePath);
     }
     
     throw new Error(`远程配置获取失败: ${error.message}`);
@@ -213,24 +236,83 @@ async function fetchRemoteConfig(url: string): Promise<QueryConfig> {
 }
 
 /**
- * 加载本地配置文件
+ * 从本地路径获取配置（使用缓存）
  */
-async function loadLocalConfig(configPath: string): Promise<QueryConfig> {
+async function fetchLocalConfig(configPath: string): Promise<QueryConfig> {
   const resolvedPath = path.resolve(process.cwd(), configPath);
   
   if (!fs.existsSync(resolvedPath)) {
     throw new Error(`配置文件不存在: ${resolvedPath}`);
   }
   
+  const cacheFilePath = getCacheFilePath(configPath);
+  
+  // 检查缓存是否有效且源文件未更新
+  if (isCacheValid(cacheFilePath) && !isSourceNewer(resolvedPath, cacheFilePath)) {
+    console.error('📦 使用缓存的本地配置');
+    return loadConfigFromCache(cacheFilePath);
+  }
+  
+  try {
+    console.error('📁 正在从本地路径加载配置...');
+    
+    // 读取源文件内容
+    const configContent = fs.readFileSync(resolvedPath, 'utf-8');
+    
+    // 如果缓存未禁用，保存到缓存并从缓存加载
+    if (!isCacheDisabled()) {
+      ensureCacheDir();
+      fs.writeFileSync(cacheFilePath, configContent, 'utf-8');
+      console.error('✅ 本地配置加载成功，已缓存');
+      return loadConfigFromCache(cacheFilePath);
+    } else {
+      // 如果缓存被禁用，直接从源文件加载
+      console.error('✅ 本地配置加载成功（缓存已禁用）');
+      return loadConfigFromSource(resolvedPath);
+    }
+    
+  } catch (error: any) {
+    throw new Error(`本地配置加载失败: ${error.message}`);
+  }
+}
+
+/**
+ * 从源文件直接加载配置
+ */
+async function loadConfigFromSource(sourcePath: string): Promise<QueryConfig> {
   // 使用require加载配置文件（支持用户的CommonJS格式配置）
   // 在ES模块中创建require函数
   const require = createRequire(import.meta.url);
   // 清除require缓存，确保获取最新配置
-  delete require.cache[resolvedPath];
+  delete require.cache[sourcePath];
   
   let loadedConfig;
   try {
-    loadedConfig = require(resolvedPath);
+    loadedConfig = require(sourcePath);
+  } catch (error: any) {
+    throw new Error(`配置文件格式错误: ${error.message}。请确保配置文件使用 CommonJS 格式 (module.exports = config)`);
+  }
+  
+  if (!loadedConfig || typeof loadedConfig !== 'object') {
+    throw new Error('配置文件格式无效');
+  }
+  
+  return loadedConfig;
+}
+
+/**
+ * 从缓存文件加载配置
+ */
+async function loadConfigFromCache(cacheFilePath: string): Promise<QueryConfig> {
+  // 使用require加载配置文件（支持用户的CommonJS格式配置）
+  // 在ES模块中创建require函数
+  const require = createRequire(import.meta.url);
+  // 清除require缓存，确保获取最新配置
+  delete require.cache[cacheFilePath];
+  
+  let loadedConfig;
+  try {
+    loadedConfig = require(cacheFilePath);
   } catch (error: any) {
     throw new Error(`配置文件格式错误: ${error.message}。请确保配置文件使用 CommonJS 格式 (module.exports = config)`);
   }
@@ -260,7 +342,8 @@ export async function loadConfig(configPath?: string): Promise<QueryConfig> {
     if (isRemoteUrl(configFilePath)) {
       loadedConfig = await fetchRemoteConfig(configFilePath);
     } else {
-      loadedConfig = await loadLocalConfig(configFilePath);
+      // 本地路径也使用缓存机制
+      loadedConfig = await fetchLocalConfig(configFilePath);
     }
     
     console.error('✅ 配置加载成功，包含查询:', Object.keys(loadedConfig.queries || {}).length, '个');
@@ -271,6 +354,7 @@ export async function loadConfig(configPath?: string): Promise<QueryConfig> {
     if (error.message.includes('请指定配置文件路径') || 
         error.message.includes('配置文件不存在') ||
         error.message.includes('远程配置获取失败') ||
+        error.message.includes('本地配置加载失败') ||
         error.message.includes('远程配置只支持HTTPS')) {
       throw error;
     }
@@ -309,6 +393,12 @@ export async function saveConfig(config: QueryConfig, configPath?: string): Prom
     
     // 写入配置文件
     await fs.promises.writeFile(resolvedPath, configContent, 'utf-8');
+    
+    // 清理对应的缓存文件，强制重新加载
+    const cacheFilePath = getCacheFilePath(configFilePath);
+    if (fs.existsSync(cacheFilePath)) {
+      fs.unlinkSync(cacheFilePath);
+    }
     
     console.error(`✅ 配置已保存至: ${resolvedPath}`);
     return true;
