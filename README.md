@@ -45,7 +45,7 @@ npm install -g grafana-mcp-analyzer
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js"
+        "CONFIG_PATH": "https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js"
       }
     }
   }
@@ -147,7 +147,7 @@ module.exports = config;
 1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
 2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
 
-> 配置文件示例，可见：[基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main-remote/config/grafana-config.simple.js)和[远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main-remote/config/grafana-config-play.js)
+> 配置文件示例，可见：[基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)和[远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
 
 ### 步骤4：开始使用
 
@@ -206,7 +206,7 @@ module.exports = config;
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js",
+        "CONFIG_PATH": "https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js",
         "CONFIG_MAX_AGE": "600"
       }
     }

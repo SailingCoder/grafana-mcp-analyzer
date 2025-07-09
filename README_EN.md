@@ -156,7 +156,7 @@ Supports accessing remote configuration files via HTTPS URLs, suitable for team 
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js",
+        "CONFIG_PATH": "https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js",
         "CONFIG_MAX_AGE": "600"
       }
     }
