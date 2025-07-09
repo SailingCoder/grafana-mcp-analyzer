@@ -193,10 +193,8 @@ module.exports = config;
 
 <details>
 <summary>配置支持：绝对路径、远程路径</summary>
-
-**绝对路径、远程路径**：
     
-1. 远程路径
+**1. 远程路径**
     
 支持通过HTTPS URL访问远程配置文件，适用于团队协作和多环境部署：
 
@@ -214,7 +212,14 @@ module.exports = config;
 }
 ```
 
-2. 绝对路径
+支持的远程存储：
+
+*   阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
+*   腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
+*   AWS S3: `https://bucket.s3.amazonaws.com/config.js`
+*   GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
+
+**2. 绝对路径**
     
 也支持配置配置本地绝对路径，快速配置分析：
     
@@ -231,21 +236,14 @@ module.exports = config;
 }
 ```
 
-**支持的远程存储**：
-
-*   阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
-*   腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
-*   AWS S3: `https://bucket.s3.amazonaws.com/config.js`
-*   GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
-
-#### 环境变量说明
+**环境变量说明**
 
 | 变量名              | 默认值   | 说明                     |
 | ---------------- | ----- | ---------------------- |
 | `CONFIG_PATH`    | 必填    | 配置文件路径（本地路径或HTTPS URL） |
 | `CONFIG_MAX_AGE` | `300` | 远程配置缓存时间（秒），设为0禁用缓存    |
 
-**缓存特性：**
+缓存特性：
 
 *   智能缓存：默认缓存5分钟，提升访问速度
 *   容错机制：网络失败时自动使用过期缓存
