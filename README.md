@@ -59,7 +59,7 @@ npm install -g grafana-mcp-analyzer
 ```javascript
 /**
  * 基于Grafana Play演示实例的配置文件
- * 数据源：https://play.grafana.org (狗狗币OHLC数据)
+ * 数据源：https://play.grafana.org/d/candlesticksss/candlestick2?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc (狗狗币OHLC数据)
  */
 const config = {
   // Grafana服务器地址
