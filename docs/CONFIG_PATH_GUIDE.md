@@ -47,7 +47,10 @@ CONFIG_PATH="https://your-bucket-1234567890.cos.ap-shanghai.myqcloud.com/config/
 # AWS S3
 CONFIG_PATH="https://your-bucket.s3.amazonaws.com/configs/grafana-config.js"
 
-# GitHub Raw文件
+# GitHub Raw文件（推荐 - 真实可用）
+CONFIG_PATH="https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js"
+
+# 其他GitHub示例
 CONFIG_PATH="https://raw.githubusercontent.com/user/repo/main/config/grafana-config.js"
 
 # 公司配置服务器
@@ -138,7 +141,49 @@ aws s3api put-object-acl --bucket your-bucket --key configs/grafana-config.js --
 export CONFIG_PATH="https://your-bucket.s3.amazonaws.com/configs/grafana-config.js"
 ```
 
+### GitHub配置（免费推荐）
+
+GitHub是最简单免费的远程配置托管方案：
+
+1. **创建配置文件**：
+   ```bash
+   # 在你的GitHub仓库中创建配置文件
+   mkdir config
+   cp grafana-config.js config/grafana-config-play.js
+   git add config/grafana-config-play.js
+   git commit -m "Add Grafana MCP configuration"
+   git push
+   ```
+
+2. **获取Raw文件URL**：
+   - GitHub页面：`https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main-remote/config/grafana-config-play.js`
+   - Raw文件URL：`https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js`
+
+3. **真实可用示例**：
+   ```bash
+   # 使用已经可用的狗狗币数据分析配置
+   export CONFIG_PATH="https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js"
+   
+   # 启动分析器
+   grafana-mcp-analyzer
+   ```
+
+4. **配置文件特点**：
+   - ✅ 完全免费
+   - ✅ 全球CDN加速
+   - ✅ 版本控制
+   - ✅ 无需认证
+   - ✅ 真实可用的狗狗币OHLC数据
+   - ✅ 连接Grafana Play演示实例
+
 ## 🔧 实际使用示例
+
+### 快速体验（推荐）
+```bash
+# 使用真实可用的GitHub远程配置（狗狗币OHLC数据分析）
+export CONFIG_PATH="https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js"
+grafana-mcp-analyzer
+```
 
 ### 开发环境
 ```bash
@@ -165,6 +210,12 @@ grafana-mcp-analyzer
 ```json
 {
   "mcpServers": {
+    "grafana-play": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js"
+      }
+    },
     "grafana-dev": {
       "command": "grafana-mcp-analyzer",
       "env": {

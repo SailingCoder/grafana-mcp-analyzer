@@ -1,6 +1,6 @@
 # Grafana MCP Analyzer 🤖
 
-![Version](https://img.shields.io/npm/v/grafana-mcp-analyzer) ![License](https://img.shields.io/npm/l/grafana-mcp-analyzer)
+![Version](https://img.shields.io/npm/v/grafana-mcp-analyzer) ![License](https://img.shields.io/npm/l/grafana-mcp-analyzer) 
 
 **Let AI directly understand your monitoring data - Intelligent DevOps Analysis Assistant**
 
@@ -10,50 +10,34 @@
 
 Imagine these scenarios:
 
-*   You ask AI: "How is my server doing now?"
-*   AI directly checks your Grafana monitoring and responds: "CPU usage is high, recommend checking these processes..."
+* You ask AI: "How is my server doing now?"
+* AI directly checks your Grafana monitoring and responds: "CPU usage is high, recommend checking these processes..."
 
 Complex monitoring charts analyzed by AI with one click! Say goodbye to traditional manual monitoring and let AI become your dedicated DevOps assistant!
-
 
 ## 🚀 Core Features
 
 Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowering AI assistants like Claude and ChatGPT with the following superpowers:
 
--   【Natural Language Queries】Easy access to monitoring data with AI providing professional analysis in one click
--   【Smart Formatting】Support for **large data volume** analysis with efficient parsing of various data types
--   【cURL Support】Direct use of browser-copied cURL commands for query composition
--   【Aggregate Analysis】Single query or dashboard-level comprehensive analysis
--   【Anomaly Detection】AI proactively reports performance issues with early warnings
--   【Full Data Source Support】Prometheus, MySQL, ES, and all other data sources fully supported
--   【Professional DevOps Recommendations】Not just displaying data, but providing actionable optimization solutions to improve DevOps efficiency
-
+-   🗣️ **Natural Language Queries** - Easy access to monitoring data with AI providing professional analysis in one click
+-   📈 **Smart Formatting** - Support for **large data volume** analysis with efficient parsing of various data types
+-   🔗 **cURL Support** - Direct use of browser-copied cURL commands for query composition
+-   🔄 **Aggregate Analysis** - Single query or dashboard-level comprehensive analysis
+-   🚨 **Anomaly Detection** - AI proactively reports performance issues with early warnings
+-   🔌 **Full Data Source Support** - Prometheus, MySQL, ES, and all other data sources fully supported
+-   💡 **Professional DevOps Recommendations** - Not just displaying data, but providing actionable optimization solutions to improve DevOps efficiency
 
 ## 🛠️ Quick Start
 
-### Step 1: Installation and Configuration
-
-### Global Installation
+### Step 1: Installation
 
 ```bash
 npm install -g grafana-mcp-analyzer
 ```
 
-MCP requires `Node.js 18+` environment, [Complete Guide to Quick Node.js Installation](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
+> **Requirements**: Node.js 18+ | [Installation Guide](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
-### Command Line Options
-
-```bash
-# Show version information
-grafana-mcp-analyzer -v
-grafana-mcp-analyzer --version
-
-# Show help information
-grafana-mcp-analyzer -h
-grafana-mcp-analyzer --help
-```
-
-#### Configure AI Assistant (Using Cursor as example)
+### Step 2: Configure AI Assistant (Using Cursor as example)
 
 ```json
 {
@@ -61,60 +45,16 @@ grafana-mcp-analyzer --help
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js",
-        "CONFIG_MAX_AGE": "300",
-        "DATA_EXPIRY_HOURS": "24"
+        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js"
       }
     }
   }
 }
 ```
 
-#### 🌐 Remote Configuration Support (⭐ New Feature)
+Note: `CONFIG_PATH` supports absolute paths and remote paths. See Advanced Configuration below for details.
 
-Now supports accessing remote configuration files via HTTPS URLs, perfect for team collaboration and multi-environment deployments:
-
-```json
-{
-  "mcpServers": {
-    "grafana-dev": {
-      "command": "grafana-mcp-analyzer",
-      "env": {
-        "CONFIG_PATH": "./config/grafana-config.js"
-      }
-    },
-    "grafana-prod": {
-      "command": "grafana-mcp-analyzer",
-      "env": {
-        "CONFIG_PATH": "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/configs/production-config.js",
-        "CONFIG_MAX_AGE": "600"
-      }
-    }
-  }
-}
-```
-
-**Supported Remote Storage**:
-- Alibaba Cloud OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
-- Tencent Cloud COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
-- AWS S3: `https://bucket.s3.amazonaws.com/config.js`
-- GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
-
-#### 📋 Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CONFIG_PATH` | Required | Configuration file path (local path or HTTPS URL) |
-| `CONFIG_MAX_AGE` | `300` | Remote config cache time (seconds), set to 0 to disable cache |
-| `DATA_EXPIRY_HOURS` | `24` | Query data expiration time (hours) |
-
-**Cache Features**:
-- 🚀 **Smart Caching**: Default 5-minute cache for improved access speed
-- 🔄 **Fault Tolerance**: Automatically uses expired cache when network fails
-- 🗑️ **Auto Cleanup**: Automatically cleans expired cache files on startup
-- ⚡ **Real-time Updates**: Set `CONFIG_MAX_AGE=0` to disable cache and fetch latest config every time 
-
-### Step 2: Create Configuration File `grafana-config.js`
+### Step 3: Create Configuration File `grafana-config.js`
 
 ```javascript
 const config = {
@@ -163,7 +103,7 @@ module.exports = config;
 1.  Get Data parameters: Go to chart → "Query Inspector" → "JSON" parse → Copy request body
 2.  Get URL and Headers Token: View request parameters through Network panel, manually construct HTTP configuration.
 
-### Step 3: Start Using
+### Step 4: Start Using
 
 **Completely restart Cursor**, then experience intelligent analysis:
 
@@ -177,8 +117,113 @@ module.exports = config;
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
 
+## MCP Tools List
 
-## Business Scenario Configuration Examples
+| Tool | Function | Use Case |
+|------|----------|----------|
+| `analyze_query` | Query+AI Analysis | Need professional recommendations |
+| `query_data` | Raw data query | Only need data |
+| `aggregate_analyze` | Aggregate analysis | Unified analysis of multiple queries |
+| `batch_analyze` | Batch analysis ⚠️ Not recommended | Output format issues |
+| `list_queries` | Query list | View configuration |
+| `check_health` | Health check | Status monitoring |
+| `manage_sessions` | Session management | Manage analysis sessions |
+| `list_data` | Data list | View stored data |
+| `server_status` | Server status | Server information |
+
+### Tool Usage
+
+```javascript
+// AI assistant will automatically select appropriate tools
+👤 "Analyze CPU usage" → 🤖 Calls analyze_query
+👤 "Aggregate analyze system metrics" → 🤖 Calls aggregate_analyze
+👤 "Get memory data" → 🤖 Calls query_data  
+👤 "Check service status" → 🤖 Calls check_health
+👤 "What monitoring queries are available" → 🤖 Calls list_queries
+👤 "Batch analyze multiple metrics" → 🤖 Recommends aggregate_analyze instead
+```
+
+## Advanced Configuration
+
+<details>
+<summary>Remote Configuration Support ⭐ CONFIG_PATH</summary>
+
+Supports accessing remote configuration files via HTTPS URLs, suitable for team collaboration and multi-environment deployments:
+
+```json
+{
+  "mcpServers": {
+    "grafana": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js",
+        "CONFIG_MAX_AGE": "600"
+      }
+    }
+  }
+}
+```
+
+**Completely restart Cursor**, then experience intelligent analysis:
+
+> 👤 You: Analyze dogecoin_panel_2 data\
+> 🤖 AI: Let me help you analyze dogecoin_panel_2 data. First, let me check the currently available Grafana queries...
+
+
+**Supported Remote Storage**:
+- Alibaba Cloud OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
+- Tencent Cloud COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
+- AWS S3: `https://bucket.s3.amazonaws.com/config.js`
+- GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
+
+
+#### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONFIG_PATH` | Required | Configuration file path (local path or HTTPS URL) |
+| `CONFIG_MAX_AGE` | `300` | Remote config cache time (seconds), set to 0 to disable cache |
+
+**Cache Features:**
+
+* Smart caching: Default 5-minute cache, improves access speed
+* Fault tolerance: Automatically uses expired cache when network fails
+* Auto cleanup: Automatically cleans expired cache files on startup
+* Real-time updates: Set CONFIG_MAX_AGE=0 to disable cache and get latest config every time
+
+
+</details>
+
+
+<details>
+<summary>Command Line Options</summary>
+
+```bash
+# Show version information
+grafana-mcp-analyzer -v
+grafana-mcp-analyzer --version
+
+# Show help information
+grafana-mcp-analyzer -h
+grafana-mcp-analyzer --help
+```
+
+</details>
+
+
+<details>
+<summary>Environment Variables Configuration</summary>
+
+```bash
+export GRAFANA_URL="https://your-grafana.com"
+export GRAFANA_TOKEN="your-api-token"
+```
+
+</details>
+
+## Configuration Examples
+
+### Business Scenarios
 
 <details>
 <summary>E-commerce Business Analysis</summary>
@@ -215,7 +260,7 @@ revenue_analysis: {
     -X POST \\
     -H 'Content-Type: application/json' \\
     -d '{"queries":[{"refId":"A","expr":"sum(increase(revenue_total[1d]))","range":{"from":"now-90d","to":"now"}}]}'`,
-  systemPrompt: 'You are a financial data analysis expert, focusing on revenue growth and profitability analysis. Please analyze revenue data, focusing on: 1. Revenue trends and growth pattern analysis 2. Revenue source structure and contribution analysis 3. Seasonal and cyclical factor impacts 4. Revenue forecasting and target achievement analysis 5. Profitability and cost-effectiveness assessment 6. Revenue growth strategy recommendations.'
+  systemPrompt: 'You are a financial data analysis expert, focusing on revenue growth and profitability analysis. Please analyze revenue data, focusing on: 1. Revenue trends and growth pattern analysis 2. Revenue source structure and contribution 3. Seasonal and cyclical factor impacts 4. Revenue forecasting and target achievement analysis 5. Profitability and cost-effectiveness assessment 6. Revenue growth strategy recommendations.'
 }
 ```
 
@@ -231,7 +276,7 @@ user_activity: {
     -X POST \\
     -H 'Content-Type: application/json' \\
     -d '{"queries":[{"refId":"A","expr":"count(increase(user_sessions_total[1h]))","range":{"from":"now-30d","to":"now"}}]}'`,
-  systemPrompt: 'You are a user behavior analysis expert, focusing on user retention and engagement optimization. Please analyze user activity data, focusing on: 1. User activity trends and retention rates 2. User behavior patterns and preferences 3. User lifecycle analysis 4. Churn risk user identification 5. User engagement improvement strategies 6. Personalized recommendation suggestions.'
+  systemPrompt: 'You are a user behavior analysis expert, focusing on user retention and engagement optimization. Please analyze user activity data, focusing on: 1. User activity trends and retention rates 2. User behavior patterns and preferences 3. User lifecycle analysis 4. At-risk user identification 5. User engagement improvement strategies 6. Personalized recommendation suggestions.'
 },
 
 // Content consumption analysis
@@ -255,14 +300,19 @@ security_logs: {
   url: "api/ds/es/query",
   method: "POST",
   data: {
-    "queries": [
-      {
-        "refId": "A",
-        "query": "tags:security AND level:WARN",
-        "timeField": "@timestamp",
-        "size": 200
+    es: {
+      index: "app-logs-*",
+      query: {
+        "query": {
+          "bool": {
+            "must": [
+              {"term": {"level": "ERROR"}},
+              {"range": {"@timestamp": {"gte": "now-1h"}}}
+            ]
+          }
+        }
       }
-    ]
+    }
   },
   systemPrompt: 'You are a network security analysis expert, focusing on security threat detection and risk assessment. Please analyze security log data, focusing on: 1. Abnormal access patterns and potential threat identification 2. Security event trends and attack patterns 3. Risk level assessment and emergency response recommendations 4. Security policy optimization recommendations 5. Compliance checks and audit recommendations 6. Security monitoring and alerting strategies.'
 }
@@ -280,7 +330,7 @@ iot_devices: {
     -X POST \\
     -H 'Content-Type: application/json' \\
     -d '{"queries":[{"refId":"A","expr":"avg(temperature_celsius)","range":{"from":"now-24h","to":"now"}}]}'`,
-  systemPrompt: 'You are an IoT data analysis expert, focusing on device monitoring and intelligent operations. Please analyze IoT device data, focusing on: 1. Device health status and performance trends 2. Abnormal devices and fault warnings 3. Device usage patterns and optimization opportunities 4. Energy consumption analysis and energy-saving recommendations 5. Device lifecycle management 6. Predictive maintenance strategies.'
+  systemPrompt: 'You are an IoT data analysis expert, focusing on device monitoring and intelligent operations. Please analyze IoT device data, focusing on: 1. Device health status and performance trends 2. Abnormal device and fault warning 3. Device usage patterns and optimization opportunities 4. Energy consumption analysis and energy saving recommendations 5. Device lifecycle management 6. Predictive maintenance strategies.'
 },
 
 // Sensor data analysis
@@ -328,12 +378,12 @@ user_funnel_purchases: {
 
 // Usage:
 // 👤 You: Use aggregate_analyze to comprehensively analyze user conversion funnel: user_funnel_views, user_funnel_signups, user_funnel_purchases
-// 🤖 AI: Will simultaneously analyze data from all three stages, providing complete funnel analysis and optimization recommendations
+// 🤖 AI: Will simultaneously analyze data from all three stages and provide complete funnel analysis and optimization recommendations
 ```
 
 </details>
 
-## System Monitoring Configuration Examples
+### System Monitoring
 
 <details>
 <summary>Metrics Monitoring Configuration</summary>
@@ -378,7 +428,7 @@ error_logs: {
       }
     }
   },
-  systemPrompt: `Log analysis expert: Identify error patterns, frequency analysis, impact assessment, and troubleshooting recommendations.`
+  systemPrompt: `Log analysis expert: Identify error patterns, frequency analysis, impact assessment, and problem localization recommendations.`
 }
 ```
 
@@ -397,7 +447,7 @@ network_latency: {
       "expr":"histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
       "range":{"from":"now-30m","to":"now"}
     }]}'`,
-  systemPrompt: `Network performance expert: Analyze P95 latency, identify slow requests, locate network bottlenecks, and optimization strategies.`
+  systemPrompt: `Network performance expert: Analyze P95 latency, identify slow requests, network bottleneck localization, and optimization strategies.`
 }
 ```
 
@@ -420,20 +470,19 @@ mysql_performance: {
 
 </details>
 
-
 ## Common Issues
 
 <details>
-<summary>Unable to connect to Grafana service</summary>
+<summary>Cannot connect to Grafana service</summary>
 
 *   Check Grafana address format: Must include `https://` or `http://`
-*   Verify API key validity: Ensure not expired and has sufficient permissions
+*   Verify API key validity: Ensure it's not expired and has sufficient permissions
 *   Test network connectivity and firewall settings
 
 </details>
 
 <details>
-<summary>AI reports MCP tools not found</summary>
+<summary>AI prompts that MCP tools cannot be found</summary>
 
 *   Completely exit Cursor and restart
 *   Check if configuration file path is correct
@@ -442,60 +491,20 @@ mysql_performance: {
 </details>
 
 <details>
-<summary>Query execution failure or timeout</summary>
+<summary>Query execution failed or timeout</summary>
 
 *   Increase timeout settings
 *   Check data source connection status
-*   For large data volumes, reduce time range
+*   When data volume is too large, reduce time range
 
-</details>
-
-## Advanced Configuration
-
-<details>
-<summary>Environment Variables Configuration</summary>
-
-```bash
-export GRAFANA_URL="https://your-grafana.com"
-export GRAFANA_TOKEN="your-api-token"
-```
-
-</details>
-
-<details>
-<summary>MCP Tools List</summary>
-
-| Tool | Function | Use Case |
-|------|----------|----------|
-| `analyze_query` | Query + AI analysis | Need professional advice |
-| `query_data` | Raw data query | Only need data |
-| `aggregate_analyze` | Aggregate analysis | Multi-query unified analysis |
-| `batch_analyze` | Batch analysis ⚠️ Not Recommended | Output format issues |
-| `list_queries` | Query list | View configuration |
-| `check_health` | Health check | Status monitoring |
-| `manage_sessions` | Session management | Manage analysis sessions |
-| `list_data` | Data list | View stored data |
-| `server_status` | Server status | Server information |
-
-Tool Usage
-
-```javascript
-// AI assistant automatically selects appropriate tools
-👤 "Analyze CPU usage" → 🤖 Calls analyze_query
-👤 "Get memory data" → 🤖 Calls query_data  
-👤 "Check service status" → 🤖 Calls check_health
-👤 "What monitoring queries are available" → 🤖 Calls list_queries
-👤 "Aggregate analyze system metrics" → 🤖 Calls aggregate_analyze
-👤 "Batch analyze multiple metrics" → 🤖 Recommend aggregate_analyze instead
-```
 </details>
 
 ---
 
 ## Recommended Articles
 
-- [grafana-mcp-analyzer：基于 MCP 的轻量 AI 分析监控图表的运维神器！](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - In-depth Analysis on CSDN Tech Blog
+- [grafana-mcp-analyzer: Lightweight AI analysis monitoring chart DevOps artifact based on MCP!](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - In-depth analysis on CSDN technical blog
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) file for details. 
+MIT open source license. See [LICENSE](LICENSE) file for details. 

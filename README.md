@@ -10,50 +10,34 @@
 
 想象一下这样的场景：
 
-*   您问AI："我的服务器现在怎么样？"
-*   AI直接查看您的Grafana监控，回答："CPU使用率偏高，建议检查这几个进程..."
+* 您问AI："我的服务器现在怎么样？"
+* AI直接查看您的Grafana监控，回答："CPU使用率偏高，建议检查这几个进程..."
 
 复杂的监控图表，AI帮您一键分析！告别传统的手动监控方式，让AI成为您的专属运维助手！
-
 
 ## 🚀 核心特性
 
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
--   【自然语言查询】轻松访问监控数据，AI 一键输出专业分析
--   【智能格式化】支持**大数据量**分析，高效解析各类数据
--   【curl支持】直接使用浏览器 copy 的 curl 合成查询
--   【聚合分析】单个查询或 Dashboard 级别综合分析
--   【异常检测】AI 主动报告性能问题，提前警报
--   【全数据源支持】Prometheus、MySQL、ES 等通通支持
--   【专业 DevOps 建议】不只是展示数据，更提供可执行的优化方案，提升DevOps效率
-
+-   🗣️ **自然语言查询** - 轻松访问监控数据，AI 一键输出专业分析
+-   📈 **智能格式化** - 支持**大数据量**分析，高效解析各类数据
+-   🔗 **curl支持** - 直接使用浏览器 copy 的 curl 合成查询
+-   🔄 **聚合分析** - 单个查询或 Dashboard 级别综合分析
+-   🚨 **异常检测** - AI 主动报告性能问题，提前警报
+-   🔌 **全数据源支持** - Prometheus、MySQL、ES 等通通支持
+-   💡 **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 
 ## 🛠️ 快速开始
 
-### 步骤1：安装和配置
-
-### 全局安装
+### 步骤1：安装
 
 ```bash
 npm install -g grafana-mcp-analyzer
 ```
 
-MCP 依赖 `Node.js 18+` 环境，[Node.js 快速安装最全指南](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
+> **环境要求**：Node.js 18+ | [安装指南](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
-### 命令行选项
-
-```bash
-# 显示版本信息
-grafana-mcp-analyzer -v
-grafana-mcp-analyzer --version
-
-# 显示帮助信息
-grafana-mcp-analyzer -h
-grafana-mcp-analyzer --help
-```
-
-#### 配置AI助手（以Cursor为例）
+### 步骤2：配置AI助手（以Cursor为例）
 
 ```json
 {
@@ -61,60 +45,16 @@ grafana-mcp-analyzer --help
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js",
-        "CONFIG_MAX_AGE": "300",
-        "DATA_EXPIRY_HOURS": "24"
+        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js"
       }
     }
   }
 }
 ```
 
-#### 🌐 远程配置支持（⭐ 新功能）
+注：`CONFIG_PATH`支持绝对路径、远程路径，具体详见下方高级配置。
 
-现在支持通过HTTPS URL访问远程配置文件，适用于团队协作和多环境部署：
-
-```json
-{
-  "mcpServers": {
-    "grafana-dev": {
-      "command": "grafana-mcp-analyzer",
-      "env": {
-        "CONFIG_PATH": "./config/grafana-config.js"
-      }
-    },
-    "grafana-prod": {
-      "command": "grafana-mcp-analyzer",
-      "env": {
-        "CONFIG_PATH": "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/configs/production-config.js",
-        "CONFIG_MAX_AGE": "600"
-      }
-    }
-  }
-}
-```
-
-**支持的远程存储**：
-- 阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
-- 腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
-- AWS S3: `https://bucket.s3.amazonaws.com/config.js`
-- GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
-
-#### 📋 环境变量说明
-
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `CONFIG_PATH` | 必填 | 配置文件路径（本地路径或HTTPS URL） |
-| `CONFIG_MAX_AGE` | `300` | 远程配置缓存时间（秒），设为0禁用缓存 |
-| `DATA_EXPIRY_HOURS` | `24` | 查询数据过期时间（小时） |
-
-**缓存特性**：
-- 🚀 **智能缓存**：默认缓存5分钟，提升访问速度
-- 🔄 **容错机制**：网络失败时自动使用过期缓存
-- 🗑️ **自动清理**：启动时自动清理过期缓存文件
-- ⚡ **实时更新**：设置`CONFIG_MAX_AGE=0`禁用缓存，每次获取最新配置
-
-### 步骤2：编写配置文件 `grafana-config.js`
+### 步骤3：编写配置文件 `grafana-config.js`
 
 ```javascript
 const config = {
@@ -163,7 +103,7 @@ module.exports = config;
 1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
 2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
 
-### 步骤3：开始使用
+### 步骤4：开始使用
 
 **完全重启Cursor**，然后体验智能分析：
 
@@ -177,8 +117,113 @@ module.exports = config;
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
 
+## MCP工具清单
 
-## 业务场景配置示例
+| 工具 | 功能 | 使用场景 |
+|------|------|----------|
+| `analyze_query` | 查询+AI分析 | 需要专业建议 |
+| `query_data` | 原始数据查询 | 仅需要数据 |
+| `aggregate_analyze` | 聚合分析 | 多查询统一分析 |
+| `batch_analyze` | 批量分析 ⚠️ 不推荐 | 输出格式有问题 |
+| `list_queries` | 查询列表 | 查看配置 |
+| `check_health` | 健康检查 | 状态监控 |
+| `manage_sessions` | 会话管理 | 管理分析会话 |
+| `list_data` | 数据列表 | 查看存储数据 |
+| `server_status` | 服务器状态 | 服务器信息 |
+
+### 工具使用方式
+
+```javascript
+// AI助手会自动选择合适的工具
+👤 "分析CPU使用情况" → 🤖 调用 analyze_query
+👤 "聚合分析系统指标" → 🤖 调用 aggregate_analyze
+👤 "获取内存数据" → 🤖 调用 query_data  
+👤 "检查服务状态" → 🤖 调用 check_health
+👤 "有哪些监控查询" → 🤖 调用 list_queries
+👤 "批量分析多个指标" → 🤖 推荐调用 aggregate_analyze 替代
+```
+
+## 高级配置
+
+<details>
+<summary>远程配置支持 ⭐ CONFIG_PATH</summary>
+
+支持通过HTTPS URL访问远程配置文件，适用于团队协作和多环境部署：
+
+```json
+{
+  "mcpServers": {
+    "grafana": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js",
+        "CONFIG_MAX_AGE": "600"
+      }
+    }
+  }
+}
+```
+
+**完全重启Cursor**，然后体验智能分析：
+
+> 👤 您：分析dogecoin_panel_2数据\
+> 🤖 AI：我来帮您分析dogecoin_panel_2数据。首先让我检查当前可用的Grafana查询...
+
+
+**支持的远程存储**：
+- 阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
+- 腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
+- AWS S3: `https://bucket.s3.amazonaws.com/config.js`
+- GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
+
+
+#### 环境变量说明
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `CONFIG_PATH` | 必填 | 配置文件路径（本地路径或HTTPS URL） |
+| `CONFIG_MAX_AGE` | `300` | 远程配置缓存时间（秒），设为0禁用缓存 |
+
+**缓存特性：**
+
+* 智能缓存：默认缓存5分钟，提升访问速度
+* 容错机制：网络失败时自动使用过期缓存
+* 自动清理：启动时自动清理过期缓存文件
+* 实时更新：设置CONFIG_MAX_AGE=0禁用缓存，每次获取最新配置
+
+
+</details>
+
+
+<details>
+<summary>命令行选项</summary>
+
+```bash
+# 显示版本信息
+grafana-mcp-analyzer -v
+grafana-mcp-analyzer --version
+
+# 显示帮助信息
+grafana-mcp-analyzer -h
+grafana-mcp-analyzer --help
+```
+
+</details>
+
+
+<details>
+<summary>环境变量配置</summary>
+
+```bash
+export GRAFANA_URL="https://your-grafana.com"
+export GRAFANA_TOKEN="your-api-token"
+```
+
+</details>
+
+## 配置示例
+
+### 业务场景
 
 <details>
 <summary>电商业务分析</summary>
@@ -255,14 +300,19 @@ security_logs: {
   url: "api/ds/es/query",
   method: "POST",
   data: {
-    "queries": [
-      {
-        "refId": "A",
-        "query": "tags:security AND level:WARN",
-        "timeField": "@timestamp",
-        "size": 200
+    es: {
+      index: "app-logs-*",
+      query: {
+        "query": {
+          "bool": {
+            "must": [
+              {"term": {"level": "ERROR"}},
+              {"range": {"@timestamp": {"gte": "now-1h"}}}
+            ]
+          }
+        }
       }
-    ]
+    }
   },
   systemPrompt: '您是网络安全分析专家，专注于安全威胁检测和风险评估。请分析安全日志数据，重点关注：1. 异常访问模式和潜在威胁识别 2. 安全事件趋势和攻击模式 3. 风险等级评估和紧急响应建议 4. 安全策略优化建议 5. 合规性检查和审计建议 6. 安全监控和告警策略。'
 }
@@ -333,7 +383,7 @@ user_funnel_purchases: {
 
 </details>
 
-## 系统监控配置示例
+### 系统监控
 
 <details>
 <summary>指标监控配置</summary>
@@ -420,7 +470,6 @@ mysql_performance: {
 
 </details>
 
-
 ## 常见问题
 
 <details>
@@ -448,46 +497,6 @@ mysql_performance: {
 *   检查数据源连接状态
 *   数据量过大时，缩小时间范围
 
-</details>
-
-## 高级配置
-
-<details>
-<summary>环境变量配置</summary>
-
-```bash
-export GRAFANA_URL="https://your-grafana.com"
-export GRAFANA_TOKEN="your-api-token"
-```
-
-</details>
-
-<details>
-<summary>MCP工具清单</summary>
-
-| 工具 | 功能 | 使用场景 |
-|------|------|----------|
-| `analyze_query` | 查询+AI分析 | 需要专业建议 |
-| `query_data` | 原始数据查询 | 仅需要数据 |
-| `aggregate_analyze` | 聚合分析 | 多查询统一分析 |
-| `batch_analyze` | 批量分析 ⚠️ 不推荐 | 输出格式有问题 |
-| `list_queries` | 查询列表 | 查看配置 |
-| `check_health` | 健康检查 | 状态监控 |
-| `manage_sessions` | 会话管理 | 管理分析会话 |
-| `list_data` | 数据列表 | 查看存储数据 |
-| `server_status` | 服务器状态 | 服务器信息 |
-
-工具使用方式
-
-```javascript
-// AI助手会自动选择合适的工具
-👤 "分析CPU使用情况" → 🤖 调用 analyze_query
-👤 "获取内存数据" → 🤖 调用 query_data  
-👤 "检查服务状态" → 🤖 调用 check_health
-👤 "有哪些监控查询" → 🤖 调用 list_queries
-👤 "聚合分析系统指标" → 🤖 调用 aggregate_analyze
-👤 "批量分析多个指标" → 🤖 推荐调用 aggregate_analyze 替代
-```
 </details>
 
 ---
