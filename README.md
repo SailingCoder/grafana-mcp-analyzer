@@ -45,7 +45,7 @@ npm install -g grafana-mcp-analyzer
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js"
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main-remote/config/grafana-config-play.js"
       }
     }
   }
@@ -57,37 +57,81 @@ npm install -g grafana-mcp-analyzer
 ### 步骤3：编写配置文件 `grafana-config.js`
 
 ```javascript
+/**
+ * 基于Grafana Play演示实例的配置文件
+ * 数据源：https://play.grafana.org (狗狗币OHLC数据)
+ */
 const config = {
-  // Grafana基础配置
-  baseUrl: 'https://your-grafana-domain.com',
-  defaultHeaders: {
-    'Authorization': 'Bearer your-api-token',
-    'Content-Type': 'application/json'
-  },
+  // Grafana服务器地址
+  baseUrl: 'https://play.grafana.org',
   
+  // 默认请求头
+  defaultHeaders: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/plain, */*'
+  },
+
   // 健康检查配置
-  healthCheck: { 
+  healthCheck: {
     url: 'api/health'
   },
-  
+
   // 查询定义
   queries: {
-    // 方式1：curl命令（推荐，浏览器直接复制）
-    cpu_usage: {
-      curl: `curl ...`,
-      systemPrompt: `您是CPU分析专家，请从趋势、瓶颈、建议三个维度解读该数据...`
+    // 第一个查询 - 使用curl格式（面板2的狗狗币数据）
+    'dogecoin_panel_2': {
+      curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=grafana-testdata-datasource&requestId=SQR108' \\
+        -X POST \\
+        -H 'accept: application/json, text/plain, */*' \\
+        -H 'content-type: application/json' \\
+        -H 'x-datasource-uid: 9cY0WtPMz' \\
+        -H 'x-grafana-org-id: 1' \\
+        -H 'x-panel-id: 2' \\
+        -H 'x-panel-plugin-id: candlestick' \\
+        -H 'x-plugin-id: grafana-testdata-datasource' \\
+        --data-raw '{"queries":[{"csvFileName":"ohlc_dogecoin.csv","datasource":{"type":"grafana-testdata-datasource","uid":"9cY0WtPMz"},"refId":"A","scenarioId":"csv_file","datasourceId":153,"intervalMs":2000,"maxDataPoints":1150}],"from":"1626214410740","to":"1626216378921"}'`,
+      systemPrompt: '您是狗狗币数据分析专家，专注于OHLC（开盘价、最高价、最低价、收盘价）数据分析。请分析狗狗币价格数据，重点关注：1. 价格趋势和波动模式 2. 支撑位和阻力位识别 3. 交易机会分析 4. 风险评估和建议 5. 技术指标分析。请提供专业的投资分析和建议。'
     },
-    // 方式2：HTTP API配置（适合复杂查询）
-    frontend_performance: {
-      url: "api/ds/es/query",
-      method: "POST",
-      data: { ... },
-      systemPrompt: `您是前端性能专家...`
+
+    // 第二个查询 - 使用HTTP API格式（面板7的狗狗币数据）
+    'dogecoin_panel_7': {
+      url: 'api/ds/query',
+      method: 'POST',
+      params: {
+        ds_type: 'grafana-testdata-datasource',
+        requestId: 'SQR109'
+      },
+      headers: {
+        'accept': 'application/json, text/plain, */*',
+        'content-type': 'application/json',
+        'x-datasource-uid': '9cY0WtPMz',
+        'x-grafana-org-id': '1',
+        'x-panel-id': '7',
+        'x-panel-plugin-id': 'candlestick',
+        'x-plugin-id': 'grafana-testdata-datasource'
+      },
+      data: {
+        queries: [{
+          csvFileName: "ohlc_dogecoin.csv",
+          datasource: {
+            type: "grafana-testdata-datasource",
+            uid: "9cY0WtPMz"
+          },
+          refId: "A",
+          scenarioId: "csv_file",
+          datasourceId: 153,
+          intervalMs: 2000,
+          maxDataPoints: 1150
+        }],
+        from: "1626214410740",
+        to: "1626216378921"
+      },
+      systemPrompt: '您是金融市场技术分析专家，专注于加密货币市场分析。请分析狗狗币市场数据，重点关注：1. 市场趋势和动量分析 2. 价格模式识别（头肩顶、双底等） 3. 成交量与价格关系 4. 市场情绪评估 5. 短期和长期投资策略建议。请提供详细的技术分析报告。'
     }
   }
 };
 
-module.exports = config;
+module.exports = config; 
 ```
 
 **配置获取技巧**：
@@ -103,14 +147,16 @@ module.exports = config;
 1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
 2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
 
+> 配置文件示例，可见：[基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main-remote/config/grafana-config.simple.js)和[远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main-remote/config/grafana-config-play.js)
+
 ### 步骤4：开始使用
 
 **完全重启Cursor**，然后体验智能分析：
 
-> 👤 您：分析前端性能监控数据 frontend\_performance\
-> 🤖 AI：正在连接Grafana并分析前端性能指标...
+> 👤 您：分析dogecoin_panel_2数据\
+> 🤖 AI：正在连接Grafana并分析...
 
-> 👤 您：聚合分析cpu_usage, frontend_performance\
+> 👤 您：聚合分析dogecoin_panel_2、dogecoin_panel_7的数据\
 > 🤖 AI：同时查询多个指标并进行综合关联分析...
 
 **配置完成！**
@@ -146,8 +192,12 @@ module.exports = config;
 ## 高级配置
 
 <details>
-<summary>远程配置支持 ⭐ CONFIG_PATH</summary>
+<summary>配置支持：绝对路径、远程路径</summary>
 
+**绝对路径、远程路径**：
+    
+1. 远程路径
+    
 支持通过HTTPS URL访问远程配置文件，适用于团队协作和多环境部署：
 
 ```json
@@ -164,36 +214,45 @@ module.exports = config;
 }
 ```
 
-**完全重启Cursor**，然后体验智能分析：
-
-> 👤 您：分析dogecoin_panel_2数据\
-> 🤖 AI：我来帮您分析dogecoin_panel_2数据。首先让我检查当前可用的Grafana查询...
-
+2. 绝对路径
+    
+也支持配置配置本地绝对路径，快速配置分析：
+    
+```json
+{
+  "mcpServers": {
+    "grafana": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "/Users/your-username/project/grafana-config.js"
+      }
+    }
+  }
+}
+```
 
 **支持的远程存储**：
-- 阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
-- 腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
-- AWS S3: `https://bucket.s3.amazonaws.com/config.js`
-- GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
 
+*   阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
+*   腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
+*   AWS S3: `https://bucket.s3.amazonaws.com/config.js`
+*   GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
 
 #### 环境变量说明
 
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `CONFIG_PATH` | 必填 | 配置文件路径（本地路径或HTTPS URL） |
-| `CONFIG_MAX_AGE` | `300` | 远程配置缓存时间（秒），设为0禁用缓存 |
+| 变量名              | 默认值   | 说明                     |
+| ---------------- | ----- | ---------------------- |
+| `CONFIG_PATH`    | 必填    | 配置文件路径（本地路径或HTTPS URL） |
+| `CONFIG_MAX_AGE` | `300` | 远程配置缓存时间（秒），设为0禁用缓存    |
 
 **缓存特性：**
 
-* 智能缓存：默认缓存5分钟，提升访问速度
-* 容错机制：网络失败时自动使用过期缓存
-* 自动清理：启动时自动清理过期缓存文件
-* 实时更新：设置CONFIG_MAX_AGE=0禁用缓存，每次获取最新配置
-
+*   智能缓存：默认缓存5分钟，提升访问速度
+*   容错机制：网络失败时自动使用过期缓存
+*   自动清理：启动时自动清理过期缓存文件
+*   实时更新：设置CONFIG\_MAX\_AGE=0禁用缓存，每次获取最新配置
 
 </details>
-
 
 <details>
 <summary>命令行选项</summary>
