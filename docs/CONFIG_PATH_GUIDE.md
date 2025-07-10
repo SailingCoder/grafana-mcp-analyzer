@@ -48,7 +48,7 @@ CONFIG_PATH="https://your-bucket-1234567890.cos.ap-shanghai.myqcloud.com/config/
 CONFIG_PATH="https://your-bucket.s3.amazonaws.com/configs/grafana-config.js"
 
 # GitHub Raw文件（推荐 - 真实可用）
-CONFIG_PATH="https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js"
+CONFIG_PATH="https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
 
 # 其他GitHub示例
 CONFIG_PATH="https://raw.githubusercontent.com/user/repo/main/config/grafana-config.js"
@@ -157,12 +157,12 @@ GitHub是最简单免费的远程配置托管方案：
 
 2. **获取Raw文件URL**：
    - GitHub页面：`https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js`
-   - Raw文件URL：`https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js`
+   - Raw文件URL：`https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js`
 
 3. **真实可用示例**：
    ```bash
    # 使用已经可用的狗狗币数据分析配置
-   export CONFIG_PATH="https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js"
+   export CONFIG_PATH="https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
    
    # 启动分析器
    grafana-mcp-analyzer
@@ -181,7 +181,7 @@ GitHub是最简单免费的远程配置托管方案：
 ### 快速体验（推荐）
 ```bash
 # 使用真实可用的GitHub远程配置（狗狗币OHLC数据分析）
-export CONFIG_PATH="https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js"
+export CONFIG_PATH="https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
 grafana-mcp-analyzer
 ```
 
@@ -213,7 +213,7 @@ grafana-mcp-analyzer
     "grafana-play": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js"
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
       }
     },
     "grafana-dev": {

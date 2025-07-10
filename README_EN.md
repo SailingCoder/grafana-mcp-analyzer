@@ -45,7 +45,7 @@ npm install -g grafana-mcp-analyzer
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js"
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
       }
     }
   }
@@ -204,7 +204,7 @@ Supports accessing remote configuration files via HTTPS URLs, suitable for team 
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js",
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
         "CONFIG_MAX_AGE": "600"
       }
     }
@@ -218,6 +218,12 @@ Supported remote storage:
 *   Tencent Cloud COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
 *   AWS S3: `https://bucket.s3.amazonaws.com/config.js`
 *   GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
+
+
+Please note, as follows：
+
+❌ GitHub Page	https://github.com/user/repo/blob/main/file.js	Return to HTML page
+✅ GitHub Raw	https://raw.githubusercontent.com/user/repo/main/file.js	Return the original file
 
 **2. Absolute Paths**
     
@@ -249,6 +255,7 @@ Cache features:
 *   Fault tolerance: Automatically uses expired cache when network fails
 *   Auto cleanup: Automatically cleans expired cache files on startup
 *   Real-time updates: Set CONFIG_MAX_AGE=0 to disable cache and get latest configuration every time
+
 
 </details>
 

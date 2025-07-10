@@ -45,7 +45,7 @@ npm install -g grafana-mcp-analyzer
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js"
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
       }
     }
   }
@@ -204,7 +204,7 @@ module.exports = config;
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js",
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
         "CONFIG_MAX_AGE": "600"
       }
     }
@@ -218,6 +218,11 @@ module.exports = config;
 *   腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
 *   AWS S3: `https://bucket.s3.amazonaws.com/config.js`
 *   GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
+
+注意，如下：
+❌ GitHub页面	https://github.com/user/repo/blob/main/file.js	返回HTML页面
+✅ GitHub Raw	https://raw.githubusercontent.com/user/repo/main/file.js	返回原始文件
+
 
 **2. 绝对路径**
     
