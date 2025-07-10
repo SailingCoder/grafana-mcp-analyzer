@@ -80,5 +80,8 @@
   "bugs": {
     "url": "https://github.com/SailingCoder/grafana-mcp-analyzer/issues"
   },
-  "homepage": "https://github.com/SailingCoder/grafana-mcp-analyzer#readme"
+  "homepage": "https://github.com/SailingCoder/grafana-mcp-analyzer#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  }
 }
