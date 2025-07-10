@@ -2,7 +2,7 @@
 
 ## 概述
 
-Grafana MCP Analyzer 提供了 9 个核心工具，专注于配置驱动的数据查询和分析。所有查询都从配置文件获取，支持自动数据存储和智能分析。
+Grafana MCP Analyzer 提供了 8 个核心工具，专注于配置驱动的数据查询和分析。所有查询都从配置文件获取，支持自动数据存储和智能分析。
 
 ## MCP 工具接口
 
@@ -109,44 +109,7 @@ const result = await mcp.callTool('aggregate_analyze', {
 });
 ```
 
-### 4. batch_analyze
-
-批量分析多个查询，每个查询单独分析并返回独立结果。
-
-**参数**：
-```typescript
-{
-  queryNames: string[];    // 查询名称列表（从配置文件获取）
-  prompt: string;          // 批量分析需求描述
-  sessionId?: string;      // 会话ID（可选）
-}
-```
-
-**返回值**：
-```typescript
-{
-  success: boolean;
-  results: Array<{
-    queryName: string;
-    requestId: string;
-    dataSize: number;
-    storageType: 'full' | 'chunked';
-    formattedData?: string;
-  }>;
-  message: string;  // 包含所有格式化数据的汇总
-}
-```
-
-**使用示例**：
-```javascript
-const result = await mcp.callTool('batch_analyze', {
-  queryNames: ['cpu_usage', 'memory_usage', 'disk_usage'],
-  prompt: '分析系统资源使用情况，识别潜在瓶颈',
-  sessionId: 'session-001'
-});
-```
-
-### 5. list_queries
+### 4. list_queries
 
 列出配置文件中可用的查询名称。
 
@@ -177,7 +140,7 @@ const queriesWithConfig = await mcp.callTool('list_queries', {
 });
 ```
 
-### 6. manage_sessions
+### 5. manage_sessions
 
 管理MCP会话，支持创建、查看、删除会话。
 
@@ -226,7 +189,7 @@ const deleteResult = await mcp.callTool('manage_sessions', {
 });
 ```
 
-### 7. list_data
+### 6. list_data
 
 列出存储的监控数据，支持按会话筛选。
 
@@ -269,7 +232,7 @@ const sessionData = await mcp.callTool('list_data', {
 });
 ```
 
-### 8. server_status
+### 7. server_status
 
 获取MCP服务器状态信息。
 
@@ -300,7 +263,7 @@ const sessionData = await mcp.callTool('list_data', {
 const status = await mcp.callTool('server_status', {});
 ```
 
-### 9. check_health
+### 8. check_health
 
 检查Grafana连接和MCP服务器健康状态。
 
@@ -448,10 +411,10 @@ cpu_monitoring: {
 ## 版本更新
 
 ### v2.0.0 (当前版本)
-- ✅ 重构为9个核心工具
+- ✅ 重构为8个核心工具
 - ✅ 配置驱动的查询管理
 - ✅ 智能数据分析（小数据直接分析，大数据存储）
-- ✅ 聚合分析和批量分析
+- ✅ 聚合分析功能
 - ✅ 简化的用户体验
 
 ### 迁移指南

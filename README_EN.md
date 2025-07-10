@@ -170,7 +170,6 @@ module.exports = config;
 | `analyze_query` | Query+AI Analysis | Need professional recommendations |
 | `query_data` | Raw data query | Only need data |
 | `aggregate_analyze` | Aggregate analysis | Unified analysis of multiple queries |
-| `batch_analyze` | Batch analysis | Analyze multiple queries separately |
 | `list_queries` | Query list | View configuration |
 | `check_health` | Health check | Status monitoring |
 | `manage_sessions` | Session management | Manage analysis sessions |
@@ -186,7 +185,6 @@ module.exports = config;
 👤 "Get memory data" → 🤖 Calls query_data  
 👤 "Check service status" → 🤖 Calls check_health
 👤 "What monitoring queries are available" → 🤖 Calls list_queries
-👤 "Batch analyze multiple metrics" → 🤖 Calls batch_analyze
 👤 "Aggregate analyze system metrics" → 🤖 Calls aggregate_analyze
 ```
 
