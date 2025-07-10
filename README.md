@@ -56,6 +56,12 @@ npm install -g grafana-mcp-analyzer
 
 ### 步骤3：编写配置文件 `grafana-config.js`
 
+**快速体验：** 步骤2中`CONFIG_PATH`已经配置了远程路径，如果你只是想快速体验这个库，可以跳过这一步，直接执行步骤4。
+
+**自定义配置：** 如果你想使用自己的数据源或参数，可以参考以下配置来自定义。
+
+以下是步骤2中`CONFIG_PATH`指向的默认配置（来自文档示例）：
+
 ```javascript
 /**
  * 基于Grafana Play演示实例的配置文件
