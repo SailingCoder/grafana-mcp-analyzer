@@ -366,30 +366,26 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           ...analysisResults.filter(r => r.status === 'failed').map(r => ({ queryName: r.queryName, error: r.error }))
         ];
         
-        // 构建批量分析汇总消息
-        const summary = `## 批量分析完成\n\n**总查询数:** ${queryNames.length}\n**成功:** ${successResults.length}\n**失败:** ${failedResults.length}\n**分析需求:** ${prompt}\n\n`;
-        
-        // 成功查询的详细信息
-        const successDetails = successResults.map(result => {
-          return `### ✅ ${result.queryName}\n**数据大小:** ${(result.dataSize / 1024).toFixed(2)} KB\n**存储类型:** ${result.storageType}\n\n${result.formattedData}`;
-        }).join('\n\n---\n\n');
-        
-        // 失败查询的信息
-        const failureDetails = failedResults.length > 0 
-          ? `\n\n## ❌ 失败的查询\n${failedResults.map(f => `- **${f.queryName}**: ${f.error}`).join('\n')}`
-          : '';
-        
         // 返回结果（即使有部分失败也返回成功，只要有至少一个成功）
         return createResponse({
           success: successResults.length > 0,
-          results: successResults,
+          type: 'batch_analysis',
+          results: successResults.map(result => ({
+            queryName: result.queryName,
+            requestId: result.requestId,
+            dataSize: result.dataSize,
+            storageType: result.storageType,
+            analysis: result.formattedData,
+            success: true
+          })),
           failedQueries: failedResults.length > 0 ? failedResults : undefined,
           summary: {
             total: queryNames.length,
             successful: successResults.length,
-            failed: failedResults.length
+            failed: failedResults.length,
+            prompt: prompt
           },
-          message: summary + successDetails + failureDetails
+          message: `批量分析完成 - 总计 ${queryNames.length} 个查询，成功 ${successResults.length} 个，失败 ${failedResults.length} 个。每个查询的分析结果在 results 数组中独立返回。`
         });
         
       } catch (error: any) {

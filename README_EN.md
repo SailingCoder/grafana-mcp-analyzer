@@ -59,7 +59,7 @@ Note: `CONFIG_PATH` supports absolute paths and remote paths. See Advanced Confi
 ```javascript
 /**
  * Configuration file based on Grafana Play demo instance
- * Data source: https://play.grafana.org/d/candlesticksss/candlestick2?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc (Dogecoin OHLC data)
+ * Data source(Dogecoin OHLC data): https://play.grafana.org/d/candlesticksss/candlestick2?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc 
  */
 const config = {
   // Grafana server address
