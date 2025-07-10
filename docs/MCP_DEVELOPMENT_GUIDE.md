@@ -33,7 +33,7 @@ AI助手可以读取的数据源（文件、数据库等）
 | `analyze_query` | 分析单个查询 | `queryName`, `prompt`, `sessionId` |
 | `query_data` | 仅查询数据 | `queryName`, `description`, `sessionId` |
 | `aggregate_analyze` | 聚合分析多个查询 | `queryNames`, `prompt`, `sessionId` |
-| `batch_analyze` | 批量分析多个查询 ⚠️ 不推荐 | `queryNames`, `prompt`, `sessionId` |
+| `batch_analyze` | 批量分析多个查询 | `queryNames`, `prompt`, `sessionId` |
 | `manage_sessions` | 会话管理 | `action`, `sessionId`, `metadata` |
 | `list_data` | 列出历史数据 | `sessionId`, `limit` |
 | `server_status` | 服务器状态 | 无参数 |
@@ -363,28 +363,26 @@ server.tool('aggregate_analyze', {
 });
 ```
 
-### ⚠️ 批量分析（不推荐使用）
+### 批量分析
 ```typescript
-// 多个查询的批量分析 - 当前实现有输出格式问题
+// 多个查询的批量分析 - 分别分析每个查询
 server.tool('batch_analyze', {
   queryNames: z.array(z.string()).describe('查询名称列表'),
   prompt: z.string().describe('批量分析需求描述'),
   sessionId: z.string().optional().describe('会话ID（可选）')
 }, async ({ queryNames, prompt, sessionId }) => {
-  // ❌ 问题：输出格式会导致信息过载，不适合MCP+AI工作流程
-  // ✅ 推荐：使用 aggregate_analyze 替代
+  // 对每个查询单独分析，保持结果的独立性
+  // 适合需要了解每个查询详细分析的场景
 });
 ```
 
-#### 🚨 为什么不推荐 batch_analyze？
-- **输出过长**：将所有查询的分析指引拼接在一个响应中
-- **格式混乱**：多个完整的分析框架混合，难以解析
-- **ResourceLinks分散**：每个查询的数据链接分散，不便访问
-- **AI处理困难**：输出格式不适合AI模型进行后续处理
+### 批量分析 vs 聚合分析
+- **批量分析(`batch_analyze`)**：对多个查询分别进行分析，每个查询保持独立的分析结果
+- **聚合分析(`aggregate_analyze`)**：将多个查询的数据合并后进行统一分析
 
-#### ✅ 推荐替代方案
-- 使用 `aggregate_analyze` 进行多查询统一分析
-- 或者逐个调用 `analyze_query` 进行单独分析
+#### 使用场景建议
+- **批量分析**：适合需要了解每个查询详细分析的场景，如故障排查、性能对比
+- **聚合分析**：适合需要从整体角度分析多个相关数据源的场景，如系统综合评估
 
 ## 📋 最佳实践
 

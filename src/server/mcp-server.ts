@@ -278,18 +278,19 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     }
   );
 
-  // 聚合分析工具
+  // 批量分析工具
   server.tool(
-    'aggregate_analyze',
+    'batch_analyze',
     {
       queryNames: z.array(z.string()).describe('查询名称列表'),
-      prompt: z.string().describe('聚合分析需求描述'),
+      prompt: z.string().describe('批量分析需求描述'),
       sessionId: z.string().optional().describe('会话ID')
     },
     async ({ queryNames, prompt, sessionId }) => {
       try {
-        const allResults = [];
+        const results = [];
         
+        // 对每个查询单独分析
         for (const queryName of queryNames) {
           const queryConfig = validateQueryConfig(queryName);
           const requestId = generateRequestId();
@@ -322,27 +323,127 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
             resourceLinks
           });
           
-          allResults.push({
+          results.push({
             queryName,
             requestId,
             dataSize: storageResult.size,
             storageType: storageResult.type,
-            analysisGuidance,
-            resourceLinks
+            formattedData: analysisGuidance
           });
         }
         
-        // 构建批量分析响应
+        // 构建批量分析汇总消息
         const summary = `## 批量分析完成\n\n**查询数量:** ${queryNames.length}\n**分析需求:** ${prompt}\n\n`;
-        const details = allResults.map(result => {
-          const resultText = `### ${result.queryName}\n**数据大小:** ${(result.dataSize / 1024).toFixed(2)} KB\n**存储类型:** ${result.storageType}\n**分析指引:**\n${result.analysisGuidance}`;
-          return resultText;
-        }).join('\n\n');
+        const details = results.map(result => {
+          return `### ${result.queryName}\n**数据大小:** ${(result.dataSize / 1024).toFixed(2)} KB\n**存储类型:** ${result.storageType}\n\n${result.formattedData}`;
+        }).join('\n\n---\n\n');
         
         return createResponse({
           success: true,
-          results: allResults,
+          results,
           message: summary + details
+        });
+        
+      } catch (error: any) {
+        return createErrorResponse(error);
+      }
+    }
+  );
+
+  // 聚合分析工具
+  server.tool(
+    'aggregate_analyze',
+    {
+      queryNames: z.array(z.string()).describe('查询名称列表'),
+      prompt: z.string().describe('聚合分析需求描述'),
+      sessionId: z.string().optional().describe('会话ID')
+    },
+    async ({ queryNames, prompt, sessionId }) => {
+      try {
+        const allResults = [];
+        const allResourceLinks = [];
+        const allDataOverviews = [];
+        let totalDataSize = 0;
+        
+        // 第一阶段：收集所有查询数据
+        for (const queryName of queryNames) {
+          const queryConfig = validateQueryConfig(queryName);
+          const requestId = generateRequestId();
+          
+          const { result, storageResult, resourceLinks } = await executeAndStoreQuery(
+            queryConfig,
+            requestId,
+            { queryName, prompt, sessionId, aggregateAnalysis: true }
+          );
+          
+          // 生成数据概览
+          const dataOverview = generateDataOverview(result);
+          
+          allResults.push({
+            queryName,
+            requestId,
+            result,
+            dataSize: storageResult.size,
+            storageType: storageResult.type,
+            dataOverview,
+            resourceLinks
+          });
+          
+          allResourceLinks.push(...resourceLinks);
+          allDataOverviews.push({ queryName, ...dataOverview });
+          totalDataSize += storageResult.size;
+        }
+        
+        // 第二阶段：生成统一的聚合分析指引
+        const aggregateRequestId = generateRequestId();
+        const aggregateDataOverview = {
+          totalQueries: queryNames.length,
+          totalDataSize,
+          queryDetails: allDataOverviews,
+          summary: `包含 ${queryNames.length} 个查询的聚合数据：${queryNames.join(', ')}`
+        };
+        
+        // 构建综合分析指引
+        const aggregateAnalysisGuidance = buildAnalysisGuidance(
+          prompt,
+          aggregateRequestId,
+          aggregateDataOverview,
+          allResourceLinks,
+          { 
+            type: 'aggregate', 
+            queries: queryNames,
+            description: '多查询聚合分析'
+          }
+        );
+        
+        // 存储聚合分析指引
+        await storeAnalysis(aggregateRequestId, {
+          prompt,
+          timestamp: new Date().toISOString(),
+          result: aggregateAnalysisGuidance,
+          queryNames,
+          dataOverview: aggregateDataOverview,
+          resourceLinks: allResourceLinks,
+          type: 'aggregate'
+        });
+        
+        // 构建详细的查询信息
+        const queryDetails = allResults.map(result => ({
+          queryName: result.queryName,
+          requestId: result.requestId,
+          dataSize: result.dataSize,
+          storageType: result.storageType,
+          resourceLinks: result.resourceLinks
+        }));
+        
+        return createResponse({
+          success: true,
+          aggregateRequestId,
+          queryNames,
+          totalDataSize,
+          queryDetails,
+          message: aggregateAnalysisGuidance,
+          type: 'aggregate_analysis'
         });
         
       } catch (error: any) {
