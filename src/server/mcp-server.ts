@@ -278,7 +278,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     }
   );
 
-  // 批量分析工具
+  // 批量分析工具（优化版：并行处理 + 错误容错）
   server.tool(
     'batch_analyze',
     {
@@ -288,60 +288,108 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     },
     async ({ queryNames, prompt, sessionId }) => {
       try {
-        const results = [];
+        // 预先验证所有查询配置，收集有效的查询
+        const validQueries: Array<{ name: string; config: any }> = [];
+        const invalidQueries: Array<{ name: string; error: string }> = [];
         
-        // 对每个查询单独分析
         for (const queryName of queryNames) {
-          const queryConfig = validateQueryConfig(queryName);
-          const requestId = generateRequestId();
-          
-          const { result, storageResult, resourceLinks } = await executeAndStoreQuery(
-            queryConfig,
-            requestId,
-            { queryName, prompt: `${prompt} - 针对 ${queryName}`, sessionId }
-          );
-          
-          // 生成数据概览
-          const dataOverview = generateDataOverview(result);
-          
-          // 构建分析指引
-          const analysisGuidance = buildAnalysisGuidance(
-            `${prompt} - 针对 ${queryName}`,
-            requestId,
-            dataOverview,
-            resourceLinks,
-            queryConfig
-          );
-          
-          // 存储分析指引
-          await storeAnalysis(requestId, {
-            prompt: `${prompt} - 针对 ${queryName}`,
-            timestamp: new Date().toISOString(),
-            result: analysisGuidance,
-            queryName,
-            dataOverview,
-            resourceLinks
-          });
-          
-          results.push({
-            queryName,
-            requestId,
-            dataSize: storageResult.size,
-            storageType: storageResult.type,
-            formattedData: analysisGuidance
-          });
+          try {
+            const queryConfig = validateQueryConfig(queryName);
+            validQueries.push({ name: queryName, config: queryConfig });
+          } catch (error: any) {
+            invalidQueries.push({ name: queryName, error: error.message });
+          }
         }
         
+        // 如果没有有效查询，直接返回错误
+        if (validQueries.length === 0) {
+          return createErrorResponse(`所有查询配置都无效: ${invalidQueries.map(q => `${q.name} (${q.error})`).join(', ')}`);
+        }
+        
+        // 并行处理所有有效查询
+        const analysisPromises = validQueries.map(async ({ name, config }) => {
+          try {
+            const requestId = generateRequestId();
+            
+            const { result, storageResult, resourceLinks } = await executeAndStoreQuery(
+              config,
+              requestId,
+              { queryName: name, prompt: `${prompt} - 针对 ${name}`, sessionId }
+            );
+            
+            // 生成数据概览
+            const dataOverview = generateDataOverview(result);
+            
+            // 构建分析指引
+            const analysisGuidance = buildAnalysisGuidance(
+              `${prompt} - 针对 ${name}`,
+              requestId,
+              dataOverview,
+              resourceLinks,
+              config
+            );
+            
+            // 存储分析指引
+            await storeAnalysis(requestId, {
+              prompt: `${prompt} - 针对 ${name}`,
+              timestamp: new Date().toISOString(),
+              result: analysisGuidance,
+              queryName: name,
+              dataOverview,
+              resourceLinks
+            });
+            
+            return {
+              status: 'success' as const,
+              queryName: name,
+              requestId,
+              dataSize: storageResult.size,
+              storageType: storageResult.type,
+              formattedData: analysisGuidance
+            };
+          } catch (error: any) {
+            return {
+              status: 'failed' as const,
+              queryName: name,
+              error: error.message
+            };
+          }
+        });
+        
+        // 等待所有分析完成
+        const analysisResults = await Promise.all(analysisPromises);
+        
+        // 分离成功和失败的结果
+        const successResults = analysisResults.filter(r => r.status === 'success');
+        const failedResults = [
+          ...invalidQueries.map(q => ({ queryName: q.name, error: q.error })),
+          ...analysisResults.filter(r => r.status === 'failed').map(r => ({ queryName: r.queryName, error: r.error }))
+        ];
+        
         // 构建批量分析汇总消息
-        const summary = `## 批量分析完成\n\n**查询数量:** ${queryNames.length}\n**分析需求:** ${prompt}\n\n`;
-        const details = results.map(result => {
-          return `### ${result.queryName}\n**数据大小:** ${(result.dataSize / 1024).toFixed(2)} KB\n**存储类型:** ${result.storageType}\n\n${result.formattedData}`;
+        const summary = `## 批量分析完成\n\n**总查询数:** ${queryNames.length}\n**成功:** ${successResults.length}\n**失败:** ${failedResults.length}\n**分析需求:** ${prompt}\n\n`;
+        
+        // 成功查询的详细信息
+        const successDetails = successResults.map(result => {
+          return `### ✅ ${result.queryName}\n**数据大小:** ${(result.dataSize / 1024).toFixed(2)} KB\n**存储类型:** ${result.storageType}\n\n${result.formattedData}`;
         }).join('\n\n---\n\n');
         
+        // 失败查询的信息
+        const failureDetails = failedResults.length > 0 
+          ? `\n\n## ❌ 失败的查询\n${failedResults.map(f => `- **${f.queryName}**: ${f.error}`).join('\n')}`
+          : '';
+        
+        // 返回结果（即使有部分失败也返回成功，只要有至少一个成功）
         return createResponse({
-          success: true,
-          results,
-          message: summary + details
+          success: successResults.length > 0,
+          results: successResults,
+          failedQueries: failedResults.length > 0 ? failedResults : undefined,
+          summary: {
+            total: queryNames.length,
+            successful: successResults.length,
+            failed: failedResults.length
+          },
+          message: summary + successDetails + failureDetails
         });
         
       } catch (error: any) {
