@@ -56,6 +56,12 @@ Note: `CONFIG_PATH` supports absolute paths and remote paths. See Advanced Confi
 
 ### Step 3: Create Configuration File `grafana-config.js`
 
+**Quick Experience:** Step 2 has already configured the remote path for `CONFIG_PATH`. If you just want to quickly experience this library, you can skip this step and go directly to Step 4.
+
+**Custom Configuration:** If you want to use your own data source or parameters, you can refer to the following configuration for customization.
+
+The following is the default configuration pointed to by `CONFIG_PATH` in Step 2 (from documentation examples):
+
 ```javascript
 /**
  * Configuration file based on Grafana Play demo instance
