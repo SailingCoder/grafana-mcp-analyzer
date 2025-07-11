@@ -26,6 +26,7 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 -   🚨 **异常检测** - AI 主动报告性能问题，提前警报
 -   🔌 **全数据源支持** - Prometheus、MySQL、ES 等通通支持
 -   💡 **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
+-   ⚡ **高性能架构** - 并发查询处理、智能缓存系统、错误自动重试，支持大规模数据分析
 
 ## 🛠️ 快速开始
 

@@ -283,95 +283,123 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     'aggregate_analyze',
     {
       queryNames: z.array(z.string()).describe('查询名称列表'),
-      prompt: z.string().describe('聚合分析需求描述'),
+      prompt: z.string().describe('分析需求描述'),
       sessionId: z.string().optional().describe('会话ID')
     },
     async ({ queryNames, prompt, sessionId }) => {
       try {
-        const allResults = [];
-        const allResourceLinks = [];
-        const allDataOverviews = [];
-        let totalDataSize = 0;
+        // 验证所有查询配置
+        const queryConfigs = queryNames.map(queryName => {
+          try {
+            return validateQueryConfig(queryName);
+          } catch (error: any) {
+            throw new Error(`查询配置 "${queryName}" 无效: ${error.message}`);
+          }
+        });
         
-        // 第一阶段：收集所有查询数据
-        for (const queryName of queryNames) {
-          const queryConfig = validateQueryConfig(queryName);
-          const requestId = generateRequestId();
+        // 生成请求ID
+        const aggregateRequestId = generateRequestId();
+        
+        // 并发执行所有查询，而不是串行执行
+        const queryPromises = queryConfigs.map(async (queryConfig, index) => {
+          const queryName = queryNames[index];
+          const requestId = `${aggregateRequestId}-${index}`;
           
-          const { result, storageResult, resourceLinks } = await executeAndStoreQuery(
-            queryConfig,
-            requestId,
-            { queryName, prompt, sessionId, aggregateAnalysis: true }
-          );
-          
-          // 生成数据概览
-          const dataOverview = generateDataOverview(result);
-          
-          allResults.push({
-            queryName,
-            requestId,
-            result,
-            dataSize: storageResult.size,
-            storageType: storageResult.type,
-            dataOverview,
-            resourceLinks
-          });
-          
-          allResourceLinks.push(...resourceLinks);
-          allDataOverviews.push({ queryName, ...dataOverview });
-          totalDataSize += storageResult.size;
+          try {
+            // 执行单个查询
+            const { result, storageResult } = await executeAndStoreQuery(
+              queryConfig,
+              requestId,
+              { queryName, prompt: `${prompt} (子查询: ${queryName})`, sessionId }
+            );
+            
+            return {
+              queryName,
+              requestId,
+              result,
+              storageResult,
+              success: true
+            };
+          } catch (error: any) {
+            console.error(`❌ 聚合查询中的子查询 "${queryName}" 失败:`, error);
+            return {
+              queryName,
+              requestId,
+              error: error.message || '未知错误',
+              success: false
+            };
+          }
+        });
+        
+        // 等待所有查询完成
+        const queryResults = await Promise.all(queryPromises);
+        
+        // 收集成功的查询结果
+        const successfulQueries = queryResults.filter(r => r.success);
+        const failedQueries = queryResults.filter(r => !r.success);
+        
+        // 如果所有查询都失败，则抛出错误
+        if (successfulQueries.length === 0) {
+          throw new Error(`所有聚合查询都失败: ${failedQueries.map(q => `${q.queryName}: ${q.error}`).join('; ')}`);
         }
         
-        // 第二阶段：生成统一的聚合分析指引
-        const aggregateRequestId = generateRequestId();
-        const aggregateDataOverview = {
-          totalQueries: queryNames.length,
-          totalDataSize,
-          queryDetails: allDataOverviews,
-          summary: `包含 ${queryNames.length} 个查询的聚合数据：${queryNames.join(', ')}`
+        // 准备聚合数据
+        const aggregatedData = {
+          type: 'aggregate-analysis',
+          timestamp: new Date().toISOString(),
+          queryNames: queryNames,
+          results: successfulQueries.map(q => ({
+            queryName: q.queryName,
+            requestId: q.requestId,
+            hasData: q.result?.hasData || false,
+            type: q.result?.type || 'unknown'
+          })),
+          failedQueries: failedQueries.map(q => ({
+            queryName: q.queryName,
+            error: q.error
+          }))
         };
         
-        // 构建综合分析指引
-        const aggregateAnalysisGuidance = buildAnalysisGuidance(
+        // 存储聚合元数据
+        await storeRequestMetadata(aggregateRequestId, {
+          timestamp: new Date().toISOString(),
+          url: 'aggregate-analysis',
+          method: 'AGGREGATE',
+          data: { queryNames },
           prompt,
-          aggregateRequestId,
-          aggregateDataOverview,
-          allResourceLinks,
-          { 
-            type: 'aggregate', 
-            queries: queryNames,
-            description: '多查询聚合分析'
-          }
+          sessionId
+        });
+        
+        // 生成资源链接
+        const resourceLinks = successfulQueries.map(q => 
+          `monitoring-data://${q.requestId}/data`
         );
         
-        // 存储聚合分析指引
+        // 构建分析指引
+        const analysisGuidance = buildAnalysisGuidance(
+          prompt,
+          aggregateRequestId,
+          aggregatedData,
+          resourceLinks
+        );
+        
+        // 存储分析指引
         await storeAnalysis(aggregateRequestId, {
           prompt,
           timestamp: new Date().toISOString(),
-          result: aggregateAnalysisGuidance,
+          result: analysisGuidance,
           queryNames,
-          dataOverview: aggregateDataOverview,
-          resourceLinks: allResourceLinks,
-          type: 'aggregate'
+          aggregatedData,
+          resourceLinks
         });
-        
-        // 构建详细的查询信息
-        const queryDetails = allResults.map(result => ({
-          queryName: result.queryName,
-          requestId: result.requestId,
-          dataSize: result.dataSize,
-          storageType: result.storageType,
-          resourceLinks: result.resourceLinks
-        }));
         
         return createResponse({
           success: true,
-          aggregateRequestId,
+          requestId: aggregateRequestId,
           queryNames,
-          totalDataSize,
-          queryDetails,
-          message: aggregateAnalysisGuidance,
-          type: 'aggregate_analysis'
+          successfulQueries: successfulQueries.length,
+          failedQueries: failedQueries.length,
+          message: analysisGuidance
         });
         
       } catch (error: any) {

@@ -26,6 +26,7 @@ Grafana MCP Analyzer is based on the **MCP (Model Context Protocol)**, empowerin
 -   🚨 **Anomaly Detection** - AI proactively reports performance issues with early warnings
 -   🔌 **Full Data Source Support** - Prometheus, MySQL, ES, and all other data sources fully supported
 -   💡 **Professional DevOps Recommendations** - Not just displaying data, but providing actionable optimization solutions to improve DevOps efficiency
+-   ⚡ **High-Performance Architecture** - Concurrent query processing, intelligent caching system, automatic error retry, supporting large-scale data analysis
 
 ## 🛠️ Quick Start
 

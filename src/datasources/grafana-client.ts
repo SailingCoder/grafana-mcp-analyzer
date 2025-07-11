@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { parseCurlCommand } from './curl-parser.js';
 import type { HttpRequest, HttpResponse, ExtractedData, HealthStatus } from '../types/index.js';
+import { cacheManager } from '../services/cache-manager.js';
 
 const DEFAULT_TIMEOUT = 30000; // 默认请求超时时间（30秒） - 避免长时间等待
 
@@ -25,6 +26,24 @@ export async function executeQuery(request: HttpRequest | { curl: string }, base
     
     const url = actualRequest.url.startsWith('http') ? actualRequest.url : `${baseUrl}/${actualRequest.url}`;
     
+    // 尝试从缓存获取结果
+    const cacheKey = {
+      action: 'executeQuery',
+      url,
+      method: actualRequest.method || 'POST',
+      data: actualRequest.data,
+      params: actualRequest.params
+    };
+    
+    try {
+      const cachedResult = await cacheManager.getCachedResult(cacheKey);
+      if (cachedResult) {
+        return cachedResult;
+      }
+    } catch (error) {
+      // 忽略缓存错误，继续执行查询
+    }
+    
     const response = await axios({
       url,
       method: actualRequest.method || 'POST',
@@ -35,7 +54,7 @@ export async function executeQuery(request: HttpRequest | { curl: string }, base
       ...actualRequest.axiosConfig
     });
     
-    return {
+    const result = {
       success: true,
       status: response.status,
       statusText: response.statusText,
@@ -44,6 +63,16 @@ export async function executeQuery(request: HttpRequest | { curl: string }, base
       ),
       data: response.data
     };
+    
+    // 异步缓存结果
+    try {
+      // 缓存有效期：5分钟
+      await cacheManager.setCachedResult(cacheKey, result, 5 * 60 * 1000);
+    } catch (error) {
+      // 忽略缓存错误
+    }
+    
+    return result;
   } catch (error: any) {
     if (error.response) {
       // 服务器返回了错误响应
@@ -225,3 +254,93 @@ export async function executeBatchQueries(
   
   return results;
 } 
+
+/**
+ * 延迟函数
+ * @param ms 毫秒数
+ * @returns Promise
+ */
+export function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * 带重试机制的查询执行器
+ * 增强错误处理，支持自动重试
+ */
+export class ResilientQueryExecutor {
+  private maxRetries: number;
+  private baseDelay: number;
+  private debug: boolean;
+
+  constructor(maxRetries: number = 3, baseDelay: number = 1000, debug: boolean = false) {
+    this.maxRetries = maxRetries;
+    this.baseDelay = baseDelay;
+    this.debug = debug;
+  }
+
+  /**
+   * 执行查询，支持自动重试
+   * @param request HTTP请求配置
+   * @param baseUrl 基础URL
+   * @returns 提取的数据
+   */
+  async executeWithRetry(request: any, baseUrl: string): Promise<any> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= this.maxRetries + 1; attempt++) {
+      try {
+        // 执行原始查询
+        const result = await executeQuery(request, baseUrl);
+        
+        if (this.debug && attempt > 1) {
+          console.log(`✅ 重试成功 (尝试 ${attempt}/${this.maxRetries + 1})`);
+        }
+        
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        
+        // 如果已经达到最大重试次数，则抛出错误
+        if (attempt > this.maxRetries) {
+          if (this.debug) {
+            console.error(`❌ 达到最大重试次数 (${this.maxRetries})，放弃重试`);
+          }
+          throw new Error(`查询失败，已重试 ${this.maxRetries} 次: ${error.message}`);
+        }
+        
+        // 计算指数退避延迟时间
+        const delayTime = this.calculateBackoff(attempt);
+        
+        if (this.debug) {
+          console.warn(`⚠️ 查询失败，重试 ${attempt}/${this.maxRetries} (延迟 ${delayTime}ms): ${error.message}`);
+        }
+        
+        // 等待一段时间后重试
+        await delay(delayTime);
+      }
+    }
+    
+    // 这行代码应该永远不会执行，因为循环内部会处理所有情况
+    throw lastError || new Error('未知错误');
+  }
+
+  /**
+   * 计算指数退避延迟时间
+   * @param attempt 当前尝试次数
+   * @returns 延迟毫秒数
+   */
+  private calculateBackoff(attempt: number): number {
+    // 指数退避算法: baseDelay * 2^(attempt-1) + 随机抖动
+    const exponentialDelay = this.baseDelay * Math.pow(2, attempt - 1);
+    const jitter = Math.random() * this.baseDelay;
+    return Math.min(exponentialDelay + jitter, 30000); // 最大延迟30秒
+  }
+}
+
+// 创建默认的重试执行器实例
+export const resilientExecutor = new ResilientQueryExecutor(
+  parseInt(process.env.MAX_RETRIES || '3'),
+  parseInt(process.env.BASE_DELAY || '1000'),
+  process.env.DEBUG_RETRIES === 'true'
+); 
