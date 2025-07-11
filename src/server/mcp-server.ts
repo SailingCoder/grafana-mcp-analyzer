@@ -288,13 +288,12 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     },
     async ({ queryNames, prompt, sessionId }) => {
       try {
-        const allResults = [];
-        const allResourceLinks = [];
-        const allDataOverviews = [];
+        const allResourceLinks: string[] = [];
+        const allDataOverviews: Array<{queryName: string, [key: string]: any}> = [];
         let totalDataSize = 0;
         
-        // 第一阶段：收集所有查询数据
-        for (const queryName of queryNames) {
+        // 第一阶段：并行收集所有查询数据
+        const queryPromises = queryNames.map(async (queryName) => {
           const queryConfig = validateQueryConfig(queryName);
           const requestId = generateRequestId();
           
@@ -307,7 +306,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           // 生成数据概览
           const dataOverview = generateDataOverview(result);
           
-          allResults.push({
+          return {
             queryName,
             requestId,
             result,
@@ -315,12 +314,18 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
             storageType: storageResult.type,
             dataOverview,
             resourceLinks
-          });
-          
-          allResourceLinks.push(...resourceLinks);
-          allDataOverviews.push({ queryName, ...dataOverview });
-          totalDataSize += storageResult.size;
-        }
+          };
+        });
+        
+        // 并行执行所有查询
+        const allResults = await Promise.all(queryPromises);
+        
+        // 处理结果
+        allResults.forEach(result => {
+          allResourceLinks.push(...result.resourceLinks);
+          allDataOverviews.push({ queryName: result.queryName, ...result.dataOverview });
+          totalDataSize += result.dataSize;
+        });
         
         // 第二阶段：生成统一的聚合分析指引
         const aggregateRequestId = generateRequestId();
