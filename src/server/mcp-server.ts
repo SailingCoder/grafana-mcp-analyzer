@@ -163,18 +163,58 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     "monitoring-data://{requestId}/{dataType}",
     {
       name: "监控数据",
-      description: "Grafana监控数据资源查看器"
+      description: "Grafana监控数据资源查看器 - 支持分块数据访问"
     },
     createResourceHandler(async (parts) => {
       const requestId = parts[1];
       const dataType = parts[2];
       
-      if (dataType === 'analysis') {
-        return await getAnalysis(requestId);
-      } else if (dataType?.startsWith('chunk-')) {
-        return await getResponseData(requestId, dataType);
-      } else {
-        return await getResponseData(requestId);
+      try {
+        if (dataType === 'analysis') {
+          return await getAnalysis(requestId);
+        } else if (dataType === 'overview') {
+          // 数据概览资源
+          const analysis = await getAnalysis(requestId);
+          return {
+            requestId,
+            dataType: analysis?.dataOverview?.type || 'unknown',
+            hasData: analysis?.dataOverview?.hasData || false,
+            dataSize: analysis?.dataOverview?.stats || {},
+            resourceLinks: analysis?.resourceLinks || [],
+            timestamp: analysis?.timestamp || new Date().toISOString(),
+            prompt: analysis?.prompt || ''
+          };
+        } else if (dataType === 'all') {
+          // 获取所有分块数据
+          const analysis = await getAnalysis(requestId);
+          const allData = [];
+          
+          for (const link of analysis?.resourceLinks || []) {
+            if (link.includes('chunk-')) {
+              const chunkData = await getResponseData(requestId, link.split('/').pop());
+              allData.push(chunkData);
+            }
+          }
+          
+          return {
+            requestId,
+            totalChunks: allData.length,
+            data: allData,
+            timestamp: new Date().toISOString()
+          };
+        } else if (dataType?.startsWith('chunk-')) {
+          return await getResponseData(requestId, dataType);
+        } else {
+          // 默认返回第一个分块或完整数据
+          return await getResponseData(requestId);
+        }
+      } catch (error: any) {
+        return {
+          error: error.message,
+          requestId,
+          dataType,
+          timestamp: new Date().toISOString()
+        };
       }
     })
   );
@@ -214,9 +254,26 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     },
     async ({ includeConfig }) => {
       const queries = config.queries ? Object.keys(config.queries) : [];
+      
+      // 构建查询信息摘要
+      const querySummaries = queries.map(name => {
+        const query = config.queries?.[name];
+        if (!query) return { name, type: 'unknown', hasSystemPrompt: false, description: '配置缺失' };
+        
+        return {
+          name,
+          type: (query as any).curl ? 'curl' : 'http',
+          hasSystemPrompt: !!(query as any).systemPrompt,
+          description: (query as any).systemPrompt ? 
+            (query as any).systemPrompt.substring(0, 100) + '...' : 
+            '无专业分析指导'
+        };
+      });
+      
       return createResponse({
         queries,
         count: queries.length,
+        summaries: querySummaries,
         ...(includeConfig && { config: config.queries || {} })
       });
     }
@@ -269,7 +326,19 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           queryName,
           dataSize: storageResult.size,
           storageType: storageResult.type,
-          message: analysisGuidance
+          message: analysisGuidance,
+          dataSummary: {
+            type: dataOverview.type,
+            hasData: dataOverview.hasData,
+            dataPoints: dataOverview.stats?.totalDataPoints || dataOverview.stats?.totalRows || '未知',
+            timeRange: dataOverview.timestamp,
+            resourceCount: resourceLinks.length
+          },
+          quickAccess: {
+            overview: `monitoring-data://${requestId}/overview`,
+            allData: `monitoring-data://${requestId}/all`,
+            analysis: `monitoring-data://${requestId}/analysis`
+          }
         });
         
       } catch (error: any) {
@@ -453,14 +522,26 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           limitedRequests.map(async (req) => {
             try {
               const stats = await getRequestStats(req.id);
-              return stats;
+              return {
+                ...stats,
+                quickAccess: {
+                  overview: `monitoring-data://${req.id}/overview`,
+                  allData: `monitoring-data://${req.id}/all`,
+                  analysis: `monitoring-data://${req.id}/analysis`
+                }
+              };
             } catch (error) {
               return {
                 requestId: req.id,
                 timestamp: req.timestamp,
                 prompt: req.prompt,
                 sessionId: req.sessionId,
-                error: 'Failed to get stats'
+                error: 'Failed to get stats',
+                quickAccess: {
+                  overview: `monitoring-data://${req.id}/overview`,
+                  allData: `monitoring-data://${req.id}/all`,
+                  analysis: `monitoring-data://${req.id}/analysis`
+                }
               };
             }
           })
