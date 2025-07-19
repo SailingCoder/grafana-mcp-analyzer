@@ -253,7 +253,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           queryConfig
         );
         
-        // 存储分析指引
+        // 存储分析指引（同步等待完成）
         await storeAnalysis(requestId, {
           prompt,
           timestamp: new Date().toISOString(),

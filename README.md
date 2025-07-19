@@ -20,12 +20,12 @@
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
 -   🗣️ **自然语言查询** - 轻松访问监控数据，AI 一键输出专业分析
--   📈 **智能格式化** - 支持**大数据量**分析，高效解析各类数据
--   🔗 **curl支持** - 直接使用浏览器 copy 的 curl 合成查询
--   🔄 **聚合分析** - 单个查询或 Dashboard 级别综合分析
--   🚨 **异常检测** - AI 主动报告性能问题，提前警报
--   🔌 **全数据源支持** - Prometheus、MySQL、ES 等通通支持
--   💡 **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
+-   **智能格式化** - 支持**大数据量**分析，高效解析各类数据
+-   **curl支持** - 直接使用浏览器 copy 的 curl 合成查询
+-   **聚合分析** - 单个查询或 Dashboard 级别综合分析
+-   **异常检测** - AI 主动报告性能问题，提前警报
+-   **全数据源支持** - Prometheus、MySQL、ES 等通通支持
+-   **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 
 ## 🛠️ 快速开始
 
@@ -94,7 +94,22 @@ const config = {
         -H 'x-panel-plugin-id: candlestick' \\
         -H 'x-plugin-id: grafana-testdata-datasource' \\
         --data-raw '{"queries":[{"csvFileName":"ohlc_dogecoin.csv","datasource":{"type":"grafana-testdata-datasource","uid":"9cY0WtPMz"},"refId":"A","scenarioId":"csv_file","datasourceId":153,"intervalMs":2000,"maxDataPoints":1150}],"from":"1626214410740","to":"1626216378921"}'`,
-      systemPrompt: '您是狗狗币数据分析专家，专注于OHLC（开盘价、最高价、最低价、收盘价）数据分析。请分析狗狗币价格数据，重点关注：1. 价格趋势和波动模式 2. 支撑位和阻力位识别 3. 交易机会分析 4. 风险评估和建议 5. 技术指标分析。请提供专业的投资分析和建议。'
+      systemPrompt: `您是狗狗币数据分析专家，专注于OHLC（开盘价、最高价、最低价、收盘价）数据分析。
+
+**分析重点**：
+1. 价格趋势和波动模式 - 识别主要趋势方向和变化周期
+2. 支撑位和阻力位识别 - 找出关键价格水平
+3. 交易机会分析 - 基于技术指标识别入场和出场时机
+4. 风险评估和建议 - 评估当前市场风险和投资建议
+5. 技术指标分析 - 结合多个技术指标进行综合分析
+
+**输出要求**：
+- 基于实际数据进行分析，提供具体数值解读
+- 识别关键的价格水平和趋势变化
+- 给出明确的交易建议和风险提示
+- 提供可操作的投资策略
+
+请提供专业的投资分析和建议。`
     },
 
     // 第二个查询 - 使用HTTP API格式（面板7的狗狗币数据）
@@ -130,7 +145,22 @@ const config = {
         from: "1626214410740",
         to: "1626216378921"
       },
-      systemPrompt: '您是金融市场技术分析专家，专注于加密货币市场分析。请分析狗狗币市场数据，重点关注：1. 市场趋势和动量分析 2. 价格模式识别（头肩顶、双底等） 3. 成交量与价格关系 4. 市场情绪评估 5. 短期和长期投资策略建议。请提供详细的技术分析报告。'
+      systemPrompt: `您是金融市场技术分析专家，专注于加密货币市场分析。
+
+**分析重点**：
+1. 市场趋势和动量分析 - 识别主要趋势方向和动量变化
+2. 价格模式识别 - 识别头肩顶、双底、三角形等经典形态
+3. 成交量与价格关系 - 分析成交量对价格走势的支撑
+4. 市场情绪评估 - 基于技术指标评估市场情绪状态
+5. 短期和长期投资策略建议 - 提供不同时间周期的投资建议
+
+**输出要求**：
+- 基于实际数据进行分析，提供具体数值解读
+- 识别关键的价格模式和趋势变化
+- 给出明确的交易建议和风险提示
+- 提供可操作的投资策略
+
+请提供详细的技术分析报告。`
     }
   }
 };
@@ -358,10 +388,11 @@ export GRAFANA_TOKEN="your-api-token"
 
 ## 配置示例
 
-### 业务场景
+### 业务场景配置
 
-<details>
-<summary>电商业务分析</summary>
+#### 电商业务分析
+
+**用户问题**："我的电商转化率怎么样？如何提升销售额？"
 
 ```javascript
 // 电商转化率分析
@@ -370,68 +401,196 @@ ecommerce_conversion: {
     -X POST \\
     -H 'Content-Type: application/json' \\
     -d '{"queries":[{"refId":"A","expr":"rate(orders_total[5m]) / rate(page_views_total[5m]) * 100","range":{"from":"now-24h","to":"now"}}]}'`,
-  systemPrompt: '您是电商业务分析专家，专注于转化率优化和用户购买行为分析。请分析销售转化率数据，重点关注：1. 转化率趋势变化和关键拐点 2. 高峰和低谷时段识别 3. 用户购买行为模式 4. 影响转化的关键因素 5. 转化率优化建议和A/B测试方案 6. 预期收益评估。请提供具体的业务改进建议。'
+  systemPrompt: `您是电商业务分析专家。请分析转化率数据并回答以下关键问题：
+
+**核心分析问题**：
+1. 当前转化率是多少？与行业标准对比如何？
+2. 转化率在一天中的高峰和低谷时段是什么时候？
+3. 哪些因素可能影响转化率下降？
+4. 具体建议如何提升转化率？预期能带来多少收益？
+
+**输出格式**：
+- 数据概览：当前转化率数值和趋势
+- 问题诊断：识别转化率瓶颈
+- 优化建议：3-5个可执行的改进方案
+- 收益预测：预期提升效果和ROI
+
+请用通俗易懂的语言，给出可操作的具体建议。`
 }
 ```
 
-</details>
+**AI回答示例**：
+> **转化率分析报告**
+> 
+> 当前转化率：2.3%（行业平均3.5%）
+> 
+> **问题诊断**：
+> - 下午2-4点转化率最低（1.2%）
+> - 移动端转化率比PC端低40%
+> 
+> **优化建议**：
+> 1. 优化移动端支付流程，预期提升0.5%
+> 2. 下午时段增加促销活动，预期提升0.3%
+> 3. 改进产品页面加载速度，预期提升0.2%
+> 
+> **预期收益**：转化率提升至3.0%，月销售额增加15万元
 
-<details>
-<summary>金融数据分析</summary>
+#### 金融风控分析
+
+**用户问题**："我的交易系统有风险吗？如何预防欺诈？"
 
 ```javascript
-// 交易量分析
-finance_transactions: {
+// 交易风控分析
+finance_risk_analysis: {
   curl: `curl 'api/ds/query' \\
     -X POST \\
     -H 'Content-Type: application/json' \\
     -d '{"queries":[{"refId":"A","expr":"sum(rate(transaction_amount_total[5m]))","range":{"from":"now-7d","to":"now"}}]}'`,
-  systemPrompt: '您是金融数据分析专家，专长于交易风险控制和业务增长分析。请分析交易量数据，重点关注：1. 交易量趋势和周期性模式 2. 异常交易模式识别 3. 风险信号检测 4. 业务增长机会 5. 风控策略优化建议 6. 合规性评估。请提供风险控制和业务增长的平衡建议。'
-},
+  systemPrompt: `您是金融风控专家。请分析交易数据并回答以下关键问题：
 
-// 收入分析
-revenue_analysis: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"sum(increase(revenue_total[1d]))","range":{"from":"now-90d","to":"now"}}]}'`,
-  systemPrompt: '您是财务数据分析专家，专注于收入增长和盈利能力分析。请分析收入数据，重点关注：1. 收入趋势和增长模式分析 2. 收入来源结构和贡献度 3. 季节性和周期性因素影响 4. 收入预测和目标达成分析 5. 盈利能力和成本效益评估 6. 收入增长策略建议。'
+**核心分析问题**：
+1. 当前交易量是否异常？与历史对比如何？
+2. 是否存在可疑的交易模式？
+3. 哪些交易需要重点关注？
+4. 如何优化风控策略？
+
+**输出格式**：
+- 风险等级：低/中/高风险
+- 异常指标：具体异常数据点
+- 风险分析：潜在风险原因
+- 防护建议：具体风控措施
+- 紧急行动：需要立即处理的事项
+
+请用红色标记高风险，黄色标记中风险，绿色标记低风险。`
 }
 ```
 
-</details>
+**AI回答示例**：
+> **风控警报：中等风险**
+> 
+> **异常指标**：
+> - 凌晨2-4点交易量异常增加200%
+> - 单笔交易金额超过平均值的10倍
+> 
+> **风险分析**：
+> 疑似自动化交易或异常用户行为
+> 
+> **防护建议**：
+> 1. 立即启用凌晨时段交易限额
+> 2. 增加大额交易人工审核
+> 3. 加强用户身份验证
+> 
+> **紧急行动**：暂停可疑账户交易
 
-<details>
-<summary>用户行为分析</summary>
+#### 用户行为分析
+
+**用户问题**："我的用户活跃度怎么样？如何提高用户留存？"
 
 ```javascript
 // 用户活跃度分析
-user_activity: {
+user_engagement: {
   curl: `curl 'api/ds/query' \\
     -X POST \\
     -H 'Content-Type: application/json' \\
     -d '{"queries":[{"refId":"A","expr":"count(increase(user_sessions_total[1h]))","range":{"from":"now-30d","to":"now"}}]}'`,
-  systemPrompt: '您是用户行为分析专家，专注于用户留存和参与度优化。请分析用户活跃度数据，重点关注：1. 用户活跃度趋势和留存率 2. 用户行为模式和偏好 3. 用户生命周期分析 4. 流失风险用户识别 5. 用户参与度提升策略 6. 个性化推荐建议。'
-},
+  systemPrompt: `您是用户行为分析专家。请分析用户活跃度数据并回答以下关键问题：
 
-// 内容消费分析
-content_engagement: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"rate(content_views_total[5m])","range":{"from":"now-7d","to":"now"}}]}'`,
-  systemPrompt: '您是内容运营分析专家，专注于内容策略和用户参与度优化。请分析内容消费数据，重点关注：1. 内容消费趋势和热点识别 2. 用户内容偏好分析 3. 内容质量评估 4. 内容推荐优化 5. 创作者生态健康度 6. 内容策略建议。'
+**核心分析问题**：
+1. 用户活跃度趋势如何？是否在增长？
+2. 用户使用习惯有什么特点？
+3. 哪些用户群体最活跃？
+4. 如何提高用户留存率？
+
+**输出格式**：
+- 用户画像：活跃用户特征
+- 趋势分析：活跃度变化趋势
+- 目标用户：最有价值的用户群体
+- 留存策略：提高用户粘性的方法
+- 预期效果：实施建议后的预期改善
+
+请结合用户生命周期，给出个性化的运营建议。`
 }
 ```
 
-</details>
+**AI回答示例**：
+> **用户画像分析**
+> 
+> **活跃度趋势**：
+> - 日活跃用户：12,500人（环比增长8%）
+> - 周活跃用户：45,000人（环比增长12%）
+> 
+> **目标用户群体**：
+> - 25-35岁女性用户最活跃
+> - 晚上8-10点使用高峰期
+> 
+> **留存策略**：
+> 1. 针对女性用户推出个性化推荐
+> 2. 晚上时段增加互动功能
+> 3. 建立用户成长体系
+> 
+> **预期效果**：用户留存率提升15%，月活跃用户增长20%
 
-<details>
-<summary>安全分析</summary>
+### 系统监控配置
+
+#### 服务器性能监控
+
+**用户问题**："我的服务器性能怎么样？需要扩容吗？"
 
 ```javascript
-// 安全日志分析
-security_logs: {
+// 服务器性能分析
+server_performance: {
+  curl: `curl 'api/ds/query' \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d '{"queries":[{
+      "refId":"A",
+      "expr":"node_cpu_seconds_total{mode=\"user\"} / node_cpu_seconds_total * 100",
+      "range":{"from":"now-2h","to":"now"}
+    }]}'`,
+  systemPrompt: `您是系统性能专家。请分析服务器性能数据并回答以下关键问题：
+
+**核心分析问题**：
+1. CPU使用率是否正常？是否接近瓶颈？
+2. 内存使用情况如何？是否存在泄漏？
+3. 磁盘I/O是否成为瓶颈？
+4. 是否需要扩容或优化？
+
+**输出格式**：
+- 性能评分：优秀/良好/一般/差
+- 关键指标：CPU、内存、磁盘使用率
+- 瓶颈分析：性能问题原因
+- 优化建议：具体改进方案
+- 告警建议：需要立即关注的问题
+
+请用颜色标记不同严重程度：正常 注意 危险`
+}
+```
+
+**AI回答示例**：
+> **性能评分：良好**
+> 
+> **关键指标**：
+> - CPU使用率：65%（注意）
+> - 内存使用率：78%（注意）
+> - 磁盘I/O：45%（正常）
+> 
+> **瓶颈分析**：
+> CPU使用率在业务高峰期达到85%，接近阈值
+> 
+> **优化建议**：
+> 1. 优化数据库查询，预期降低CPU使用率15%
+> 2. 增加缓存层，预期降低CPU使用率10%
+> 3. 考虑扩容2个CPU核心
+> 
+> **告警建议**：设置CPU使用率80%告警
+
+#### 应用错误监控
+
+**用户问题**："我的应用有错误吗？影响用户体验吗？"
+
+```javascript
+// 应用错误分析
+app_error_analysis: {
   url: "api/ds/es/query",
   method: "POST",
   data: {
@@ -449,161 +608,104 @@ security_logs: {
       }
     }
   },
-  systemPrompt: '您是网络安全分析专家，专注于安全威胁检测和风险评估。请分析安全日志数据，重点关注：1. 异常访问模式和潜在威胁识别 2. 安全事件趋势和攻击模式 3. 风险等级评估和紧急响应建议 4. 安全策略优化建议 5. 合规性检查和审计建议 6. 安全监控和告警策略。'
+  systemPrompt: `您是应用监控专家。请分析错误日志并回答以下关键问题：
+
+**核心分析问题**：
+1. 错误频率如何？是否在增加？
+2. 哪些错误最严重？影响多少用户？
+3. 错误集中在哪些功能模块？
+4. 如何快速修复和预防？
+
+**输出格式**：
+- 错误等级：严重/中等/轻微
+- 错误统计：错误数量、影响用户数
+- 错误分类：按模块和类型分类
+- 修复建议：具体修复步骤
+- 预防措施：避免类似错误的方法
+
+请按严重程度排序，优先处理影响用户最多的错误。`
 }
 ```
 
-</details>
+**AI回答示例**：
+> **错误等级：中等**
+> 
+> **错误统计**：
+> - 1小时内错误：156次
+> - 影响用户：约2,300人
+> - 错误率：0.8%（行业标准<0.5%）
+> 
+> **错误分类**：
+> 1. 支付模块错误：89次（最严重）
+> 2. 用户登录错误：45次
+> 3. 数据查询错误：22次
+> 
+> **修复建议**：
+> 1. 立即检查支付网关连接
+> 2. 优化登录验证逻辑
+> 3. 增加数据库连接池
+> 
+> **预防措施**：增加错误监控告警，设置错误率阈值
 
-<details>
-<summary>IoT设备监控</summary>
+### 聚合分析配置
+
+#### 全链路性能分析
+
+**用户问题**："我的系统整体性能怎么样？哪里是瓶颈？"
 
 ```javascript
-// IoT设备监控
-iot_devices: {
+// 前端性能
+frontend_performance: {
   curl: `curl 'api/ds/query' \\
     -X POST \\
     -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"avg(temperature_celsius)","range":{"from":"now-24h","to":"now"}}]}'`,
-  systemPrompt: '您是IoT数据分析专家，专注于设备监控和智能运维。请分析IoT设备数据，重点关注：1. 设备健康状态和性能趋势 2. 异常设备和故障预警 3. 设备使用模式和优化机会 4. 能耗分析和节能建议 5. 设备生命周期管理 6. 预测性维护策略。'
+    -d '{"queries":[{"refId":"A","expr":"histogram_quantile(0.95, rate(page_load_time_seconds_bucket[5m]))","range":{"from":"now-1h","to":"now"}}]}'`,
+  systemPrompt: '前端性能专家：分析页面加载时间，识别前端性能瓶颈。'
 },
 
-// 传感器数据分析
-sensor_data: {
+// 后端性能
+backend_performance: {
   curl: `curl 'api/ds/query' \\
     -X POST \\
     -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"rate(sensor_readings_total[10m])","range":{"from":"now-12h","to":"now"}}]}'`,
-  systemPrompt: '您是传感器数据分析专家，专注于环境监控和数据质量分析。请分析传感器数据，重点关注：1. 数据质量和传感器可靠性评估 2. 环境参数变化趋势和异常检测 3. 传感器校准和维护建议 4. 数据采集优化策略 5. 预警阈值设置建议 6. 传感器网络优化方案。'
-}
-```
-
-</details>
-
-<details>
-<summary>用户转化漏斗分析（聚合分析示例）</summary>
-
-```javascript
-// 用户转化漏斗 - 页面浏览
-user_funnel_views: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"rate(page_views_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
-  systemPrompt: '您是转化漏斗分析专家。请分析页面浏览量数据，重点关注访问流量趋势、用户获取效果、流量来源分析。'
+    -d '{"queries":[{"refId":"A","expr":"histogram_quantile(0.95, rate(api_response_time_seconds_bucket[5m]))","range":{"from":"now-1h","to":"now"}}]}'`,
+  systemPrompt: '后端性能专家：分析API响应时间，识别后端性能问题。'
 },
 
-// 用户转化漏斗 - 用户注册
-user_funnel_signups: {
+// 数据库性能
+database_performance: {
   curl: `curl 'api/ds/query' \\
     -X POST \\
     -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"rate(user_signups_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
-  systemPrompt: '您是用户注册分析专家。请分析用户注册数据，重点关注注册转化率、注册流程优化、用户获取成本分析。'
-},
-
-// 用户转化漏斗 - 购买转化
-user_funnel_purchases: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"rate(purchases_total[5m])","range":{"from":"now-24h","to":"now"}}]}'`,
-  systemPrompt: '您是购买转化分析专家。请分析购买数据，重点关注购买转化率、客单价分析、购买行为模式。'
-}
-
-// 使用方式：
-// 👤 您：使用aggregate_analyze综合分析用户转化漏斗：user_funnel_views, user_funnel_signups, user_funnel_purchases
-// 🤖 AI：将同时分析三个环节的数据，提供完整的漏斗分析和优化建议
-```
-
-</details>
-
-### 系统监控
-
-<details>
-<summary>指标监控配置</summary>
-
-```javascript
-// 指标查询
-prometheus_metrics: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{
-      "refId":"A",
-      "expr":"node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100",
-      "range":{"from":"now-2h","to":"now"}
-    }]}'`,
-  systemPrompt: `内存使用率专家分析：重点关注内存泄漏风险、使用趋势、异常波动和优化建议。`
+    -d '{"queries":[{"refId":"A","expr":"rate(mysql_queries_total[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
+  systemPrompt: '数据库性能专家：分析数据库查询性能，识别数据库瓶颈。'
 }
 ```
 
-</details>
+**使用方式**：
+> 👤 您：聚合分析全链路性能：frontend_performance, backend_performance, database_performance
+> 
+> 🤖 AI：综合分析前端、后端、数据库性能，提供完整的性能优化建议
 
-<details>
-<summary>日志分析配置</summary>
-
-```javascript
-// Elasticsearch日志查询
-error_logs: {
-  url: "api/ds/es/query", 
-  method: "POST",
-  data: {
-    es: {
-      index: "app-logs-*",
-      query: {
-        "query": {
-          "bool": {
-            "must": [
-              {"term": {"level": "ERROR"}},
-              {"range": {"@timestamp": {"gte": "now-1h"}}}
-            ]
-          }
-        }
-      }
-    }
-  },
-  systemPrompt: `日志分析专家：识别错误模式、频率分析、影响评估和问题定位建议。`
-}
-```
-
-</details>
-
-<details>
-<summary>网络监控配置</summary>
-
-```javascript
-// 网络延迟监控
-network_latency: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -d '{"queries":[{
-      "refId":"A", 
-      "expr":"histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
-      "range":{"from":"now-30m","to":"now"}
-    }]}'`,
-  systemPrompt: `网络性能专家：分析P95延迟、识别慢请求、网络瓶颈定位和优化策略。`
-}
-```
-
-</details>
-
-<details>
-<summary>数据库监控配置</summary>
-
-```javascript
-// MySQL性能监控
-mysql_performance: {
-  url: "api/ds/mysql/query",
-  method: "POST", 
-  data: {
-    sql: "SELECT * FROM performance_schema.events_statements_summary_by_digest ORDER BY avg_timer_wait DESC LIMIT 10"
-  },
-  systemPrompt: `数据库性能专家：慢查询分析、索引优化建议、查询性能趋势评估。`
-}
-```
-
-</details>
+**AI回答示例**：
+> **全链路性能分析报告**
+> 
+> **性能概览**：
+> - 前端加载时间：2.1秒（目标<1.5秒）
+> - 后端响应时间：850ms（目标<500ms）
+> - 数据库查询：120ms（目标<100ms）
+> 
+> **瓶颈识别**：
+> 1. 前端：图片资源过大，建议压缩
+> 2. 后端：API处理逻辑复杂，建议优化
+> 3. 数据库：查询缺少索引，建议添加
+> 
+> **优化建议**：
+> 1. 前端优化：预期提升30%加载速度
+> 2. 后端优化：预期提升40%响应速度
+> 3. 数据库优化：预期提升20%查询速度
+> 
+> **整体效果**：用户体验提升35%，页面加载时间降至1.4秒
 
 ## 常见问题
 
@@ -639,6 +741,7 @@ mysql_performance: {
 ## 文章推荐
 
 - [grafana-mcp-analyzer：基于 MCP 的轻量 AI 分析监控图表的运维神器！](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - CSDN技术博客深度解析
+- [AI智能分析演示](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/analysis-results) - 查看真实的AI分析结果演示
 
 ## 许可证
 

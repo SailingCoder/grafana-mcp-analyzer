@@ -34,11 +34,14 @@ Grafana MCP Analyzer 提供了 8 个核心工具，专注于配置驱动的数�
 
 **使用示例**：
 ```javascript
+// 用户只需要用自然语言描述需求
 const result = await mcp.callTool('analyze_query', {
   queryName: 'cpu_usage',
   prompt: '分析CPU使用率趋势，识别异常峰值',
   sessionId: 'session-001'
 });
+
+// AI会自动处理技术细节，返回分析结果
 ```
 
 ### 2. query_data
@@ -68,11 +71,14 @@ const result = await mcp.callTool('analyze_query', {
 
 **使用示例**：
 ```javascript
+// 用户只需要描述需要什么数据
 const result = await mcp.callTool('query_data', {
   queryName: 'memory_usage',
   description: '获取内存使用率数据',
   sessionId: 'session-001'
 });
+
+// AI会自动获取并格式化数据
 ```
 
 ### 3. aggregate_analyze
@@ -102,11 +108,14 @@ const result = await mcp.callTool('query_data', {
 
 **使用示例**：
 ```javascript
+// 用户只需要描述综合分析需求
 const result = await mcp.callTool('aggregate_analyze', {
   queryNames: ['front_analysis', 'frontend_performance', 'front_analysis_2'],
   prompt: '聚合分析前端性能数据，对比不同时间段的表现',
   sessionId: 'session-001'
 });
+
+// AI会自动综合分析多个数据源，提供统一的分析报告
 ```
 
 ### 4. list_queries

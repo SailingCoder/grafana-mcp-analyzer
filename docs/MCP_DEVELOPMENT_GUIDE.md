@@ -26,22 +26,22 @@ AI助手可以读取的数据源（文件、数据库等）
 ## 🔧 本项目的MCP实现
 
 ### 工具清单
-| 工具名 | 功能 | 主要参数 |
+| 工具名 | 功能 | 用户使用方式 |
 |--------|------|----------|
-| `check_health` | 健康检查 | `timeout`, `expectedStatus` |
-| `list_queries` | 查询配置列表 | `includeConfig` |
-| `analyze_query` | 分析单个查询 | `queryName`, `prompt`, `sessionId` |
-| `query_data` | 仅查询数据 | `queryName`, `description`, `sessionId` |
-| `aggregate_analyze` | 聚合分析多个查询 | `queryNames`, `prompt`, `sessionId` |
-| `manage_sessions` | 会话管理 | `action`, `sessionId`, `metadata` |
-| `list_data` | 列出历史数据 | `sessionId`, `limit` |
-| `server_status` | 服务器状态 | 无参数 |
+| `check_health` | 健康检查 | "检查服务状态" |
+| `list_queries` | 查询配置列表 | "有哪些监控指标" |
+| `analyze_query` | 分析单个查询 | "分析CPU使用率" |
+| `query_data` | 仅查询数据 | "获取内存数据" |
+| `aggregate_analyze` | 聚合分析多个查询 | "综合分析系统性能" |
+| `manage_sessions` | 会话管理 | "管理分析会话" |
+| `list_data` | 列出历史数据 | "查看历史数据" |
+| `server_status` | 服务器状态 | "查看服务器信息" |
 
 ### 资源清单
 | 资源名 | URI模式 | 功能 |
 |--------|---------|------|
-| `monitoring-data` | `monitoring-data://{requestId}/{dataType}` | 访问监控数据 |
-| `monitoring-data-index` | `monitoring-data-index://requests` | 查看所有请求 |
+| `monitoring-data` | `monitoring-data://{requestId}/{dataType}` | 访问监控数据（AI自动处理） |
+| `monitoring-data-index` | `monitoring-data-index://requests` | 查看所有请求（AI自动处理） |
 | `monitoring-data-index` | `monitoring-data-index://session/{sessionId}` | 查看会话请求 |
 
 ## 📊 数据存储架构
@@ -83,11 +83,11 @@ AI助手可以读取的数据源（文件、数据库等）
 ### 大数据处理
 
 - **自动分块**: 超过100KB自动分块存储
-- **透明访问**: 通过ResourceLinks统一访问
+- **透明访问**: AI自动处理数据访问
 - **按需加载**: 支持完整或分块访问
 - **性能**: 避免内存溢出，支持大数据处理
 
-## ResourceLinks
+## 数据访问
 
 ### 格式
 ```
@@ -174,7 +174,7 @@ server.resource("monitoring-data", "monitoring-data://{requestId}/{dataType}", {
 1. 从配置文件获取查询配置
 2. 执行查询并存储数据
 3. 小数据（≤100KB）：格式化数据供IDE AI分析
-4. 大数据（>100KB）：存储数据，通过ResourceLinks访问
+4. 大数据（>100KB）：存储数据，AI自动访问
 
 ```typescript
 // src/services/monitoring-analyzer.ts
