@@ -179,17 +179,15 @@ export function generateDataOverview(data: ExtractedData): any {
 }
 
 /**
- * 为AI提供专业的DevOps分析指引，结合查询配置的systemPrompt
- * 针对不同数据类型和分析场景提供专门的分析方法论
+ * 生成完整的默认分析指导（原有实现）
  */
-export function buildAnalysisGuidance(
+function buildFullAnalysisGuidance(
   prompt: string, 
   requestId: string,
   dataOverview: any,
   resourceLinks: string[],
   queryConfig?: any
 ): string {
-  // 获取专业的系统提示
   const customSystemPrompt = queryConfig?.systemPrompt;
   const isAggregateAnalysis = Array.isArray(dataOverview?.queryNames) || dataOverview?.type === 'aggregate-analysis';
   
@@ -252,4 +250,58 @@ ${analysisTemplate}
 
 ---
 **🔥 开始分析：请按照以上要求，通过ResourceLinks获取完整数据，进行深度专业分析，输出结构化的数据分析报告。**`;
+}
+
+/**
+ * 为AI提供专业的DevOps分析指引，支持多种提示模式
+ * 
+ * @param prompt 用户分析请求
+ * @param requestId 请求ID
+ * @param dataOverview 数据概览
+ * @param resourceLinks 数据资源链接
+ * @param queryConfig 查询配置
+ */
+export function buildAnalysisGuidance(
+  prompt: string, 
+  requestId: string,
+  dataOverview: any,
+  resourceLinks: string[],
+  queryConfig?: any
+): string {
+  const customSystemPrompt = queryConfig?.systemPrompt;
+  const promptMode = queryConfig?.promptMode || 'default'; // 默认使用专业全面的分析
+  const isAggregateAnalysis = Array.isArray(dataOverview?.queryNames) || dataOverview?.type === 'aggregate-analysis';
+  
+  // Custom模式：用户想要自定义，简洁实用
+  if (promptMode === 'custom') {
+    const systemPrompt = customSystemPrompt || '您是数据分析专家，请进行专业的数据分析。';
+    
+    // 构建必要的数据上下文，但保持简洁
+    const resourceLinksDisplay = resourceLinks.length > 0 
+      ? resourceLinks.map(link => `- 📊 ${link}`).join('\n')
+      : '- ⚠️ 暂无数据资源';
+      
+    return `${systemPrompt}
+
+## 🎯 分析目标
+${prompt}
+
+## 📋 数据信息
+- **请求ID**: ${requestId}
+- **数据类型**: ${dataOverview?.type || '未知'}
+- **数据状态**: ${dataOverview?.hasData ? '✅ 有效' : '❌ 无数据'}
+- **HTTP状态**: ${dataOverview?.status || '未知'}
+- **采集时间**: ${dataOverview?.timestamp || '未知'}
+${isAggregateAnalysis ? '- **分析类型**: 🔄 综合分析' : '- **分析类型**: 📊 单项分析'}
+
+## 🔗 数据资源
+**重要**：请通过以下ResourceLinks获取完整数据进行分析：
+${resourceLinksDisplay}
+
+## 🚀 分析要求
+请基于以上数据进行专业分析，重点关注数据趋势、异常模式和实用建议。`;
+  }
+  
+  // Default模式：专业全面的分析（原来的buildFullAnalysisGuidance）
+  return buildFullAnalysisGuidance(prompt, requestId, dataOverview, resourceLinks, queryConfig);
 }
