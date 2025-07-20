@@ -263,6 +263,9 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           resourceLinks
         });
         
+        // 构建更明确的分析结果前缀，告诉AI这是完整的最终分析
+        const finalAnalysisPrefix = `# 【最终分析结果 - 无需再次查询】\n\n以下是对"${queryName}"的完整分析结果。此分析已包含所有必要信息，无需再调用其他工具或进行额外查询。请直接基于以下内容回答用户问题：\n\n`;
+        
         // 返回更明确的分析指引，直接包含完整的分析任务
         return createResponse({
           success: true,
@@ -270,7 +273,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           queryName,
           dataSize: storageResult.size,
           storageType: storageResult.type,
-          message: analysisGuidance
+          isFinalAnalysis: true, // 明确标记这是最终分析
+          message: finalAnalysisPrefix + analysisGuidance
         });
         
       } catch (error: any) {
@@ -370,13 +374,17 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           resourceLinks: result.resourceLinks
         }));
         
+        // 构建更明确的分析结果前缀
+        const finalAnalysisPrefix = `# 【最终聚合分析结果 - 无需再次查询】\n\n以下是对${queryNames.join('和')}的完整聚合分析结果。此分析已包含所有必要信息，无需再调用其他工具或进行额外查询。请直接基于以下内容回答用户问题：\n\n`;
+        
         return createResponse({
           success: true,
           aggregateRequestId,
           queryNames,
           totalDataSize,
           queryDetails,
-          message: aggregateAnalysisGuidance,
+          isFinalAnalysis: true, // 明确标记这是最终分析
+          message: finalAnalysisPrefix + aggregateAnalysisGuidance,
           type: 'aggregate_analysis'
         });
         
@@ -449,6 +457,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
         let requests = [];
         let errorMessage = null;
         let analysisResults: Record<string, any> = {};
+        let hasAnalysisResults = false;
         
         // 优先处理requestId参数
         if (requestId) {
@@ -462,6 +471,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
               try {
                 const analysis = await getAnalysis(requestId);
                 analysisResults[requestId] = analysis;
+                hasAnalysisResults = true;
               } catch (error) {
                 console.error(`获取分析结果失败: ${requestId}`, error);
               }
@@ -486,6 +496,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
                 try {
                   const analysis = await getAnalysis(sessionId);
                   analysisResults[sessionId] = analysis;
+                  hasAnalysisResults = true;
                 } catch (error) {
                   console.error(`获取分析结果失败: ${sessionId}`, error);
                 }
@@ -507,6 +518,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
                   try {
                     const analysis = await getAnalysis(req.id);
                     analysisResults[req.id] = analysis;
+                    hasAnalysisResults = true;
                   } catch (error) {
                     console.error(`获取分析结果失败: ${req.id}`, error);
                   }
@@ -545,6 +557,17 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
             }
           })
         );
+
+        // 检查是否有分析结果
+        const hasAnalysisCompleted = requestsWithStats.some(req => req.hasAnalysis);
+        
+        // 构建引导信息
+        let guidanceMessage = "";
+        if (hasAnalysisCompleted) {
+          guidanceMessage = "\n\n【提示】已发现完成的分析结果。如果您需要查看分析结果，请注意：\n1. 使用 analyze_query 工具的返回结果已包含完整分析，无需再次查询\n2. 不要重复调用工具获取相同的数据\n3. 直接基于已有的分析结果回答用户问题";
+        } else {
+          guidanceMessage = "\n\n【提示】尚未发现完成的分析结果。请使用 analyze_query 工具进行分析。";
+        }
         
         return createResponse({
           data: requestsWithStats,
@@ -552,8 +575,9 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           returned: limitedRequests.length,
           sessionId: sessionId || 'all',
           requestId: requestId || undefined,
-          ...(includeAnalysis && Object.keys(analysisResults).length > 0 && { analysisResults }),
-          ...(errorMessage && { warning: errorMessage })
+          ...(hasAnalysisResults && includeAnalysis && { analysisResults }),
+          ...(errorMessage && { warning: errorMessage }),
+          guidance: guidanceMessage
         });
         
       } catch (error: any) {

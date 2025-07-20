@@ -99,7 +99,7 @@ const config = {
 
 请提供详细的技术分析报告。`
     },
-    overall_cpu_utilization: {
+    overall_cpu_utilization100: {
       curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=prometheus&requestId=SQR371' \
   -H 'accept: application/json, text/plain, */*' \
   -H 'accept-language: zh-CN,zh;q=0.9' \
@@ -126,32 +126,31 @@ const config = {
   -H 'x-panel-plugin-id: timeseries' \
   -H 'x-panel-title: $host - Overall CPU Utilization' \
   -H 'x-plugin-id: prometheus' \
-  --data-raw $'{"queries":[{"calculatedInterval":"2s","datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"datasourceErrors":{},"errors":{},"expr":"clamp_max((avg by (mode) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[1m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"{{mode}}","metric":"","refId":"A","step":300,"exemplar":false,"requestId":"22A","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778},{"datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"expr":"clamp_max(max by () (sum  by (cpu) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[1m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"Max Core Utilization","refId":"B","exemplar":false,"requestId":"22B","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778}],"from":"1752924823337","to":"1752935623337"}'`,
+  --data-raw $'{"queries":[{"calculatedInterval":"2s","datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"datasourceErrors":{},"errors":{},"expr":"clamp_max((avg by (mode) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[1m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"{{mode}}","metric":"","refId":"A","step":300,"exemplar":false,"requestId":"22A","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778},{"datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"expr":"clamp_max(max by () (sum  by (cpu) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"Max Core Utilization","refId":"B","exemplar":false,"requestId":"22B","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778}],"from":"1752924823337","to":"1752935623337"}'`,
       systemPrompt: `您是系统性能分析专家，专注于CPU使用率数据分析。
 
-**核心问题**：
-请直接回答：我的服务器现在怎么样？
+**核心任务**：直接回答用户的问题："我的服务器现在怎么样？"
 
-**分析要求**：
-1. 首先给出直接结论：CPU使用率是正常/偏高/偏低/异常
-2. 提供具体数值支撑：平均使用率、峰值、当前状态
-3. 分析CPU使用模式：主要是哪种模式占用CPU（user/system/iowait等）
-4. 识别问题：如果有异常，具体是什么问题
-5. 给出建议：需要扩容/优化/监控/无需处理
+**必须回答的问题**：
+当前CPU使用率是多少？（具体数值）
 
 **输出格式**：
-- 直接结论（一句话概括服务器状态）
-- 具体数据（数值支撑）
-- 问题分析（如果有问题）
-- 行动建议（具体可执行的操作）
+## 服务器状态概览
+**直接结论**：服务器CPU使用率 [具体数值]%，状态 [正常/偏高/异常]
 
-**判断标准**：
-- CPU使用率 < 30%：正常偏低
-- CPU使用率 30-70%：正常
-- CPU使用率 70-90%：偏高，需要关注
-- CPU使用率 > 90%：异常，需要立即处理
+## 详细数据
+- **当前使用率**：[数值]%
+- **平均使用率**：[数值]%
+- **峰值使用率**：[数值]%
+- **主要使用模式**：[user/system/iowait等]
 
-请用通俗易懂的语言回答，就像在回答"我的服务器现在怎么样？"这个问题。`,
+## 风险评估
+[基于数据的具体风险分析]
+
+## 行动建议
+[具体的可执行建议]
+
+**重要**：如果无法获取到实际数据，请明确说明"无法获取实际数据"，并解释可能的原因。不要基于假设进行分析！`
     },
   }
 };
