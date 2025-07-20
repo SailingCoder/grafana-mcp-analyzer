@@ -140,39 +140,106 @@ function generateAnalysisTemplate(prompt: string, hasAggregateData: boolean = fa
 /**
  * 生成数据概览
  * 提供数据统计信息而非完整数据内容
+ * 采用优雅的错误处理，保持数据类型的连续性
  */
 export function generateDataOverview(data: ExtractedData): any {
+  // 基础数据验证
+  if (!data || typeof data !== 'object') {
+    console.warn('generateDataOverview: 输入数据无效', { data });
+    return {
+      type: 'unknown',
+      hasData: false,
+      timestamp: new Date().toISOString(),
+      status: 'unknown',
+      stats: null
+    };
+  }
+
   const overview: any = {
-    type: data.type,
-    hasData: data.hasData,
-    timestamp: data.timestamp,
-    status: data.status
+    type: data.type || 'unknown',
+    hasData: Boolean(data.hasData),
+    timestamp: data.timestamp || new Date().toISOString(),
+    status: data.status || 'unknown'
+  };
+
+  // 安全的数据访问函数
+  const safeGet = (obj: any, path: (string | number)[], defaultValue: any = 0): any => {
+    try {
+      return path.reduce((current, key) => current?.[key], obj) ?? defaultValue;
+    } catch (error) {
+      console.warn(`generateDataOverview: 安全访问失败 ${path.join('.')}`, error);
+      return defaultValue;
+    }
+  };
+
+  const safeReduce = (array: any[], reducer: (sum: number, item: any) => number, initialValue: number = 0): number => {
+    try {
+      if (!Array.isArray(array)) return initialValue;
+      return array.reduce(reducer, initialValue);
+    } catch (error) {
+      console.warn('generateDataOverview: reduce操作失败', error);
+      return initialValue;
+    }
   };
 
   // 根据数据类型生成统计信息
-  if (data.type === 'timeseries' && data.data?.series) {
-    overview.stats = {
-      seriesCount: data.data.series.length,
-      totalDataPoints: data.data.series.reduce((sum: number, series: any) => 
-        sum + (series.fields?.[0]?.values?.length || 0), 0),
-      fieldCount: data.data.series.reduce((sum: number, series: any) => 
-        sum + (series.fields?.length || 0), 0)
-    };
-  } else if (data.type === 'tables' && data.data?.tables) {
-    overview.stats = {
-      tableCount: data.data.tables.length,
-      totalRows: data.data.tables.reduce((sum: number, table: any) => 
-        sum + (table.rows?.length || 0), 0),
-      columnCount: data.data.tables.reduce((sum: number, table: any) => 
-        sum + (table.columns?.length || 0), 0)
-    };
-  } else if (data.type === 'elasticsearch' && data.data?.responses) {
-    overview.stats = {
-      responseCount: data.data.responses.length,
-      totalHits: data.data.responses.reduce((sum: number, response: any) => 
-        sum + (typeof response.hits?.total === 'object' ? response.hits.total.value : response.hits?.total || 0), 0),
-      hasAggregations: data.data.responses.some((r: any) => r.aggregations)
-    };
+  try {
+    if (data.type === 'timeseries' && data.data?.series) {
+      const series = safeGet(data.data, ['series'], []);
+      overview.stats = {
+        seriesCount: Array.isArray(series) ? series.length : 0,
+        totalDataPoints: safeReduce(series, (sum: number, seriesItem: any) => {
+          const values = safeGet(seriesItem, ['fields', 0, 'values'], []);
+          return sum + (Array.isArray(values) ? values.length : 0);
+        }),
+        fieldCount: safeReduce(series, (sum: number, seriesItem: any) => {
+          const fields = safeGet(seriesItem, ['fields'], []);
+          return sum + (Array.isArray(fields) ? fields.length : 0);
+        })
+      };
+    } else if (data.type === 'tables' && data.data?.tables) {
+      const tables = safeGet(data.data, ['tables'], []);
+      overview.stats = {
+        tableCount: Array.isArray(tables) ? tables.length : 0,
+        totalRows: safeReduce(tables, (sum: number, table: any) => {
+          const rows = safeGet(table, ['rows'], []);
+          return sum + (Array.isArray(rows) ? rows.length : 0);
+        }),
+        columnCount: safeReduce(tables, (sum: number, table: any) => {
+          const columns = safeGet(table, ['columns'], []);
+          return sum + (Array.isArray(columns) ? columns.length : 0);
+        })
+      };
+    } else if (data.type === 'elasticsearch' && data.data?.responses) {
+      const responses = safeGet(data.data, ['responses'], []);
+      overview.stats = {
+        responseCount: Array.isArray(responses) ? responses.length : 0,
+        totalHits: safeReduce(responses, (sum: number, response: any) => {
+          const hits = safeGet(response, ['hits'], {});
+          const total = safeGet(hits, ['total'], 0);
+          // 处理ES中total可能是对象的情况
+          if (typeof total === 'object' && total !== null) {
+            return sum + (safeGet(total, ['value'], 0));
+          }
+          return sum + (typeof total === 'number' ? total : 0);
+        }),
+        hasAggregations: Array.isArray(responses) && responses.some((r: any) => {
+          try {
+            return Boolean(safeGet(r, ['aggregations']));
+          } catch {
+            return false;
+          }
+        })
+      };
+    } else {
+      // 未知数据类型或数据格式不符合预期，提供空的统计信息
+      overview.stats = null;
+      console.warn(`generateDataOverview: 不支持的数据类型或格式: ${data.type}`);
+    }
+  } catch (error) {
+    // 统计生成失败时，保持数据类型不变，只将stats设为null
+    console.error('generateDataOverview: 统计生成失败', error);
+    overview.stats = null;
   }
 
   return overview;
@@ -219,6 +286,12 @@ ${isAggregateAnalysis ? `- **分析类型**: 综合分析 (${dataOverview.queryN
 ## 数据访问资源
 **重要：必须通过以下ResourceLinks获取完整的原始数据进行分析**
 ${resourceLinks.map(link => `- ${link}`).join('\n')}
+
+**关键要求**：
+1. **必须获取实际数据**：通过ResourceLinks获取真实的数据值
+2. **基于数据回答**：所有结论必须基于实际数据，不要只分析配置
+3. **直接回答问题**：用户关心的是"现在怎么样"，不是"配置怎么样"
+4. **提供具体数值**：给出具体的百分比、数值等量化信息
 
 ${analysisTemplate}
 

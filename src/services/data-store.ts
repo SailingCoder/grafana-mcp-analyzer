@@ -172,6 +172,40 @@ export async function storeAnalysis(requestId: string, analysis: any) {
   await fs.writeFile(analysisPath, JSON.stringify(analysis, null, 2));
 }
 
+/**
+ * 安全存储分析结果，确保写入后可读取
+ * @param requestId 请求ID
+ * @param analysis 分析数据
+ * @param timeout 超时时间(毫秒)
+ * @returns 存储的分析数据
+ */
+export async function safeStoreAnalysis(requestId: string, analysis: any, timeout = 15000) {
+  // 先存储数据
+  await storeAnalysis(requestId, analysis);
+  
+  // 带超时的验证函数
+  const validateWithTimeout = async () => {
+    return Promise.race([
+      // 验证尝试
+      getAnalysis(requestId),
+      
+      // 超时Promise
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`验证超时: ${timeout}ms内无法读取分析数据`)), timeout)
+      )
+    ]);
+  };
+  
+  // 执行验证
+  try {
+    const verifiedData = await validateWithTimeout();
+    console.log(`✅ 分析数据已成功存储并验证: ${requestId}`);
+    return verifiedData;
+  } catch (error: any) {
+    throw new Error(`分析数据存储验证失败: ${error.message}`);
+  }
+}
+
 // 获取分析结果
 export async function getAnalysis(requestId: string) {
   const analysisPath = path.join(DATA_STORE_ROOT, requestId, 'analysis.json');

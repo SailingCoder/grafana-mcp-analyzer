@@ -7,7 +7,7 @@ import {
   storeRequestMetadata,
   storeResponseData,
   getResponseData,
-  storeAnalysis,
+  safeStoreAnalysis,
   getAnalysis,
   listAllRequests,
   listRequestsBySession,
@@ -253,8 +253,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           queryConfig
         );
         
-        // 存储分析指引（同步等待完成）
-        await storeAnalysis(requestId, {
+        // 存储分析指引（同步等待完成并验证）
+        await safeStoreAnalysis(requestId, {
           prompt,
           timestamp: new Date().toISOString(),
           result: analysisGuidance,
@@ -263,6 +263,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           resourceLinks
         });
         
+        // 返回更明确的分析指引，直接包含完整的分析任务
         return createResponse({
           success: true,
           requestId,
@@ -288,6 +289,11 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     },
     async ({ queryNames, prompt, sessionId }) => {
       try {
+        // 如果只有一个查询名称，建议使用analyze_query
+        if (queryNames.length === 1) {
+          return createErrorResponse(`只有一个查询时请使用analyze_query工具。当前查询: ${queryNames[0]}`);
+        }
+        
         const allResults = [];
         const allResourceLinks = [];
         const allDataOverviews = [];
@@ -344,8 +350,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           }
         );
         
-        // 存储聚合分析指引
-        await storeAnalysis(aggregateRequestId, {
+        // 存储聚合分析指引（同步等待完成并验证）
+        await safeStoreAnalysis(aggregateRequestId, {
           prompt,
           timestamp: new Date().toISOString(),
           result: aggregateAnalysisGuidance,
@@ -434,14 +440,83 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     'list_data',
     {
       sessionId: z.string().optional().describe('会话ID，不提供则列出所有数据'),
-      limit: z.number().optional().default(10).describe('返回数量限制')
+      requestId: z.string().optional().describe('请求ID，如果提供则只返回该请求的数据'),
+      limit: z.number().optional().default(10).describe('返回数量限制'),
+      includeAnalysis: z.boolean().optional().default(false).describe('是否包含分析结果')
     },
-    async ({ sessionId, limit }) => {
+    async ({ sessionId, requestId, limit, includeAnalysis }) => {
       try {
-        let requests;
-        if (sessionId) {
-          requests = await listRequestsBySession(sessionId);
-        } else {
+        let requests = [];
+        let errorMessage = null;
+        let analysisResults: Record<string, any> = {};
+        
+        // 优先处理requestId参数
+        if (requestId) {
+          try {
+            // 不需要单独获取metadata，直接使用getRequestStats
+            const stats = await getRequestStats(requestId);
+            requests = [stats];
+            
+            // 如果需要包含分析结果
+            if (includeAnalysis && stats.hasAnalysis) {
+              try {
+                const analysis = await getAnalysis(requestId);
+                analysisResults[requestId] = analysis;
+              } catch (error) {
+                console.error(`获取分析结果失败: ${requestId}`, error);
+              }
+            }
+          } catch (error: any) {
+            errorMessage = `请求ID不存在: ${requestId}`;
+            requests = [];
+          }
+        } 
+        // 处理sessionId参数
+        else if (sessionId) {
+          // 智能识别：如果传入的是requestId格式，尝试获取该请求
+          if (sessionId.startsWith('request-')) {
+            try {
+              // 不需要单独获取metadata，直接使用getRequestStats
+              const stats = await getRequestStats(sessionId);
+              requests = [stats];
+              errorMessage = `警告: 您提供的似乎是请求ID而不是会话ID。已尝试返回该请求的数据。`;
+              
+              // 如果需要包含分析结果
+              if (includeAnalysis && stats.hasAnalysis) {
+                try {
+                  const analysis = await getAnalysis(sessionId);
+                  analysisResults[sessionId] = analysis;
+                } catch (error) {
+                  console.error(`获取分析结果失败: ${sessionId}`, error);
+                }
+              }
+            } catch (error) {
+              errorMessage = `无效的ID: ${sessionId} (看起来像请求ID但未找到)`;
+              requests = [];
+            }
+          } 
+          // 正常会话ID处理
+          else {
+            requests = await listRequestsBySession(sessionId);
+            if (requests.length === 0) {
+              errorMessage = `未找到会话相关的请求: ${sessionId}`;
+            } else if (includeAnalysis) {
+              // 获取会话中所有请求的分析结果
+              for (const req of requests) {
+                if (req.hasAnalysis) {
+                  try {
+                    const analysis = await getAnalysis(req.id);
+                    analysisResults[req.id] = analysis;
+                  } catch (error) {
+                    console.error(`获取分析结果失败: ${req.id}`, error);
+                  }
+                }
+              }
+            }
+          }
+        } 
+        // 不提供任何ID，返回所有请求
+        else {
           requests = await listAllRequests();
         }
         
@@ -452,6 +527,11 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
         const requestsWithStats = await Promise.all(
           limitedRequests.map(async (req) => {
             try {
+              // 如果已经是统计信息，直接返回
+              if (req.requestId && req.dataType) {
+                return req;
+              }
+              // 否则获取统计信息
               const stats = await getRequestStats(req.id);
               return stats;
             } catch (error) {
@@ -470,7 +550,10 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           data: requestsWithStats,
           total: requests.length,
           returned: limitedRequests.length,
-          sessionId: sessionId || 'all'
+          sessionId: sessionId || 'all',
+          requestId: requestId || undefined,
+          ...(includeAnalysis && Object.keys(analysisResults).length > 0 && { analysisResults }),
+          ...(errorMessage && { warning: errorMessage })
         });
         
       } catch (error: any) {
@@ -495,6 +578,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       });
     }
   );
+
+  // 移除 get_analysis 工具
 
   return server;
 } 
