@@ -276,25 +276,45 @@ ${dataTypeGuidance}
 
 ## 数据资源信息
 - **请求ID**: ${requestId}
-- **数据类型**: ${dataOverview?.type || '未知'}
-- **有效数据**: ${dataOverview?.hasData ? '是' : '否'}
-- **HTTP状态**: ${dataOverview?.status || '未知'}
-- **采集时间**: ${dataOverview?.timestamp || '未知'}
-- **数据规模**: ${dataOverview?.stats ? JSON.stringify(dataOverview?.stats, null, 2) : '统计信息不可用'}
-${isAggregateAnalysis ? `- **分析类型**: 综合分析 (${dataOverview?.queryNames?.join(', ') || '多数据源'})` : '- **分析类型**: 单项分析'}
+- **数据状态**: ${dataOverview?.message || '数据已准备完成'}
+- **数据获取方式**: 必须通过下方ResourceLinks获取
+${isAggregateAnalysis ? `- **分析类型**: 综合分析` : '- **分析类型**: 单项分析'}
 
-  ## 数据访问资源
-  **重要：必须通过ResourceLinks获取完整的原始数据进行分析**
-  ${resourceLinks.map(link => `- ${link}`).join('\n')}
+  ## 🔗 数据访问资源（必须执行）
+  
+  **⚠️ 关键指令 - 禁止使用工具访问数据**：
+  - **严禁使用** test_resource_access 工具
+  - **严禁使用** list_data 工具
+  - **严禁使用** 任何其他MCP工具获取数据
+  - **必须直接访问** 下方的ResourceLinks
+  
+  **必须直接访问的ResourceLinks**：
+  ${resourceLinks.map(link => `- 📊 ${link}`).join('\n')}
 
-  **数据获取方式**：
-  直接访问上述ResourceLinks获取实际数据
+  **明确执行步骤**：
+  1. **直接访问ResourceLinks**：直接读取上述每个资源链接的内容（不要使用工具）
+  2. **获取JSON数据**：您应该能看到完整的JSON格式监控数据
+  3. **提取数值指标**：从JSON数据中提取具体的数值、百分比、时间序列
+  4. **基于真实数据分析**：使用实际获取的数据回答用户问题
 
-  **关键要求**：
-  1. **必须获取实际数据**：通过ResourceLinks获取真实的数据值，不要只分析配置
-  2. **基于数据回答**：所有结论必须基于实际数据进行分析
-  3. **直接回答问题**：用户关心的是"现在怎么样"，不是"配置怎么样"
-  4. **提供具体数值**：给出具体的百分比、数值等量化信息
+  **预期数据格式**：
+  您应该能直接看到类似以下格式的监控数据：
+  \`\`\`json
+  {
+    "data": { "values": [...] },
+    "timestamp": "2025-01-21T...",
+    "metrics": { "cpu_usage": 45.2 }
+  }
+  \`\`\`
+
+  **重要验证**：
+  - 如果您无法直接访问ResourceLinks，请使用 get_monitoring_data 工具作为备用方案
+  - 如果您看到了实际的监控数据，请提供具体的数值分析
+  - 不要基于此分析指引或配置信息进行推测性分析
+  
+  **备用数据获取方案**：
+  如果ResourceLinks访问失败，请使用以下工具获取相同数据：
+  \`get_monitoring_data\` 工具，参数：requestId="${requestId}"
 
 ${analysisTemplate}
 
@@ -330,6 +350,7 @@ ${analysisTemplate}
 
 /**
  * 为AI提供专业的DevOps分析指引，支持多种提示模式
+ * 重要：这个函数返回的是指引信息，不是最终分析结果
  * 
  * @param prompt 用户分析请求
  * @param requestId 请求ID
@@ -364,28 +385,33 @@ ${prompt}
 
 ## 数据信息
 - **请求ID**: ${requestId}
-- **数据类型**: ${dataOverview?.type || '未知'}
-- **数据状态**: ${dataOverview?.hasData ? '有效数据已存储' : '无有效数据'}
-- **HTTP状态**: ${dataOverview?.status || '未知'}
-- **采集时间**: ${dataOverview?.timestamp || '未知'}
+- **数据状态**: ${dataOverview?.message || '数据已准备完成'}
+- **获取方式**: 通过ResourceLinks访问原始数据
 ${isAggregateAnalysis ? '- **分析类型**: 综合分析' : '- **分析类型**: 单项分析'}
 
-  ## 分析数据源
-  **重要：必须通过ResourceLinks获取并分析完整数据**
-  ${resourceLinksDisplay}
+  ## 🔗 分析数据源（必须执行）
+  **您必须通过以下ResourceLinks获取实际数据**
+${resourceLinksDisplay}
 
-  **数据获取方式**：
-  直接访问上述ResourceLinks获取实际数据
+  **执行步骤**：
+  1. **访问ResourceLinks**: 立即访问上述每个资源链接
+  2. **获取数据**: 确保获得完整的JSON格式数据
+  3. **提取指标**: 从原始数据中提取关键数值
+  4. **回答问题**: 基于实际数据直接回答用户需求
+
+  **备用数据获取方案**：
+  如果ResourceLinks访问失败，请使用以下工具获取相同数据：
+  \`get_monitoring_data\` 工具，参数：requestId="${requestId}"
 
   ## 分析要求
-  1. **获取数据**: 使用ResourceLinks获取完整数据
-  2. **深入分析**: 基于实际数据进行全面分析
-  3. **量化结论**: 提供具体的数值和量化指标
-  4. **直接回答**: 针对用户需求"${prompt}"给出直接回答
-  5. **避免推测**: 所有结论必须基于实际数据，不要基于配置推测
+  1. **必须获取数据**: 不访问ResourceLinks就无法进行分析
+  2. **基于数据分析**: 所有结论必须来自实际数据
+  3. **提供具体数值**: 给出准确的百分比、数值等
+  4. **直接回答**: 针对"${prompt}"给出明确答案
+  5. **避免推测**: 不要基于配置或假设进行分析
 
 ---
-**开始分析**: 请通过ResourceLinks获取数据并进行专业分析。`;
+** 重要提醒**: 必须先通过ResourceLinks获取数据，然后进行分析！`;
   }
   
   // Default模式：专业全面的分析（使用buildFullAnalysisGuidance）

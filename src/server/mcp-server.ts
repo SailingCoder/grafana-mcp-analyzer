@@ -1,7 +1,7 @@
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { executeQuery, extractData, checkHealth } from '../datasources/grafana-client.js';
-import { buildAnalysisGuidance, generateDataOverview } from '../services/monitoring-analyzer.js';
+import { buildAnalysisGuidance } from '../services/monitoring-analyzer.js';
 import { 
   generateRequestId,
   storeRequestMetadata,
@@ -11,7 +11,8 @@ import {
   getAnalysis,
   listAllRequests,
   listRequestsBySession,
-  getRequestStats
+  getRequestStats,
+  
 } from '../services/data-store.js';
 import {
   createSession,
@@ -24,7 +25,7 @@ import type {
   HttpRequest, 
   ExtractedData,
   HealthStatus 
-} from '../types/index.js';
+  } from '../types/index.js';
 
 /**
  * 创建配置好的MCP服务器
@@ -68,7 +69,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     return queries[queryName];
   }
 
-  // 构建ResourceLinks
+  // 构建ResourceLinks（使用monitoring-data协议）
   function buildResourceLinks(storageResult: any, requestId: string): string[] {
     return storageResult.type === 'chunked' 
       ? storageResult.resourceUris || []
@@ -122,8 +123,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
 
   // 创建MCP服务器实例
   const server = new McpServer(SERVER_INFO);
-
-  // 注册监控数据资源
+  
+    // 注册监控数据资源模板（使用monitoring-data协议）
   server.registerResource(
     "monitoring-data",
     new ResourceTemplate("monitoring-data://{requestId}/{dataType}", { list: undefined }),
@@ -164,6 +165,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           }]
         };
       } catch (error: any) {
+        console.error(`[MCP Resource] 资源访问失败: ${error.message}`);
         return {
           contents: [{ 
             uri: uri.href, 
@@ -182,8 +184,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       title: '健康检查',
       description: 'Grafana服务健康检查',
       inputSchema: {
-        timeout: z.number().optional().describe('超时时间（毫秒）'),
-        expectedStatus: z.number().optional().describe('期望的HTTP状态码')
+      timeout: z.number().optional().describe('超时时间（毫秒）'),
+      expectedStatus: z.number().optional().describe('期望的HTTP状态码')
       }
     },
     async ({ timeout, expectedStatus }) => {
@@ -213,7 +215,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       title: '查询列表',
       description: '列出配置文件中可用的查询名称',
       inputSchema: {
-        includeConfig: z.boolean().optional().describe('是否包含完整配置信息').default(false)
+      includeConfig: z.boolean().optional().describe('是否包含完整配置信息').default(false)
       }
     },
     async ({ includeConfig }) => {
@@ -233,9 +235,9 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       title: '查询分析',
       description: '分析单个查询的数据，集成查询、存储和分析功能',
       inputSchema: {
-        queryName: z.string().describe('查询名称'),
-        prompt: z.string().describe('分析需求描述'),
-        sessionId: z.string().optional().describe('会话ID')
+      queryName: z.string().describe('查询名称'),
+      prompt: z.string().describe('分析需求描述'),
+      sessionId: z.string().optional().describe('会话ID')
       }
     },
     async ({ queryName, prompt, sessionId }) => {
@@ -244,7 +246,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
         const requestId = generateRequestId();
         
         // 第一步：执行查询并存储数据
-        const { result, storageResult, resourceLinks } = await executeAndStoreQuery(
+        const { storageResult, resourceLinks } = await executeAndStoreQuery(
           queryConfig,
           requestId,
           { queryName, prompt, sessionId }
@@ -273,7 +275,15 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
         }
         
         // 第三步：生成数据概览（仅用于元信息）
-        const dataOverview = generateDataOverview(result);
+        // TODO: 暂时注释掉dataOverview，测试AI是否会直接通过ResourceLinks获取完整数据
+        // const dataOverview = generateDataOverview(result);
+        const dataOverview = {
+          type: 'raw_data_available',
+          hasData: true,
+          timestamp: new Date().toISOString(),
+          status: 'success',
+          message: '完整数据可通过ResourceLinks获取'
+        };
         
         // 第四步：构建基于Resources机制的分析指引
         const analysisGuidance = buildAnalysisGuidance(
@@ -284,17 +294,19 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           queryConfig
         );
         
-        // 第五步：存储分析指引（同步等待完成并验证）
+        // 第五步：存储查询元信息（不存储分析指引本身）
         await safeStoreAnalysis(requestId, {
           prompt,
           timestamp: new Date().toISOString(),
-          result: analysisGuidance,
           queryName,
           dataOverview,
-          resourceLinks
+          resourceLinks,
+          status: 'ready_for_analysis', // 标记数据已准备就绪
+          type: 'query_metadata'
         });
         
         // 第六步：返回基于Resources机制的完整分析指引
+        // 重要：这里返回的message就是AI需要执行的分析任务
         return createResponse({
           success: true,
           requestId,
@@ -302,8 +314,10 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           dataSize: storageResult.size,
           storageType: storageResult.type,
           resourceLinks,
-          message: analysisGuidance, // 直接使用分析指引
-          analysisMode: 'resources-based' // 标记这是基于Resources机制的分析
+          message: analysisGuidance, // 这是给AI的分析指引，AI应该基于此访问ResourceLinks
+          analysisMode: 'resources-based', // 标记这是基于Resources机制的分析
+          dataReady: true, // 标记数据已准备完成
+          analysisInstructions: "请按照message中的指引，通过resourceLinks获取实际数据并进行分析"
         });
         
       } catch (error: any) {
@@ -319,9 +333,9 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       title: '聚合分析',
       description: '聚合分析多个查询的数据，将数据合并后进行统一分析',
       inputSchema: {
-        queryNames: z.array(z.string()).describe('查询名称列表'),
-        prompt: z.string().describe('聚合分析需求描述'),
-        sessionId: z.string().optional().describe('会话ID')
+      queryNames: z.array(z.string()).describe('查询名称列表'),
+      prompt: z.string().describe('聚合分析需求描述'),
+      sessionId: z.string().optional().describe('会话ID')
       }
     },
     async ({ queryNames, prompt, sessionId }) => {
@@ -341,7 +355,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           const queryConfig = validateQueryConfig(queryName);
           const requestId = generateRequestId();
           
-          const { result, storageResult, resourceLinks } = await executeAndStoreQuery(
+          const { storageResult, resourceLinks } = await executeAndStoreQuery(
             queryConfig,
             requestId,
             { queryName, prompt, sessionId, aggregateAnalysis: true }
@@ -367,12 +381,19 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           }
           
           // 生成数据概览
-          const dataOverview = generateDataOverview(result);
+          // TODO: 暂时注释掉，让AI直接通过ResourceLinks获取数据
+          // const dataOverview = generateDataOverview(result);
+          const dataOverview = {
+            type: 'raw_data_available',
+            hasData: true,
+            timestamp: new Date().toISOString(),
+            status: 'success',
+            message: '完整数据可通过ResourceLinks获取'
+          };
           
           allResults.push({
             queryName,
             requestId,
-            result,
             dataSize: storageResult.size,
             storageType: storageResult.type,
             dataOverview,
@@ -408,15 +429,15 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           }
         );
         
-        // 存储聚合分析指引
+        // 存储聚合分析元信息
         await safeStoreAnalysis(aggregateRequestId, {
           prompt,
           timestamp: new Date().toISOString(),
-          result: aggregateAnalysisGuidance,
           queryNames,
           dataOverview: aggregateDataOverview,
           resourceLinks: allResourceLinks,
-          type: 'aggregate'
+          type: 'aggregate_metadata',
+          status: 'ready_for_analysis'
         });
         
         // 构建查询详情
@@ -436,9 +457,11 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           totalDataSize,
           queryDetails,
           resourceLinks: allResourceLinks,
-          message: aggregateAnalysisGuidance, // 直接使用分析指引
+          message: aggregateAnalysisGuidance, // 这是给AI的分析指引
           type: 'aggregate_analysis',
-          analysisMode: 'resources-based' // 标记这是基于Resources机制的分析
+          analysisMode: 'resources-based', // 标记这是基于Resources机制的分析
+          dataReady: true, // 标记数据已准备完成
+          analysisInstructions: "请按照message中的指引，通过resourceLinks获取实际数据并进行聚合分析"
         });
         
       } catch (error: any) {
@@ -454,9 +477,9 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       title: '会话管理',
       description: '管理MCP会话，支持创建、查看、删除会话',
       inputSchema: {
-        action: z.enum(['list', 'create', 'get', 'delete']).describe('操作类型'),
-        sessionId: z.string().optional().describe('会话ID'),
-        metadata: z.record(z.any()).optional().describe('会话元数据')
+      action: z.enum(['list', 'create', 'get', 'delete']).describe('操作类型'),
+      sessionId: z.string().optional().describe('会话ID'),
+      metadata: z.record(z.any()).optional().describe('会话元数据')
       }
     },
     async ({ action, sessionId, metadata }) => {
@@ -507,10 +530,10 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       title: '数据列表',
       description: '列出历史数据和分析结果',
       inputSchema: {
-        sessionId: z.string().optional().describe('会话ID，不提供则列出所有数据'),
-        requestId: z.string().optional().describe('请求ID，如果提供则只返回该请求的数据'),
-        limit: z.number().optional().default(10).describe('返回数量限制'),
-        includeAnalysis: z.boolean().optional().default(false).describe('是否包含分析结果')
+      sessionId: z.string().optional().describe('会话ID，不提供则列出所有数据'),
+      requestId: z.string().optional().describe('请求ID，如果提供则只返回该请求的数据'),
+      limit: z.number().optional().default(10).describe('返回数量限制'),
+      includeAnalysis: z.boolean().optional().default(false).describe('是否包含分析结果')
       }
     },
     async ({ sessionId, requestId, limit, includeAnalysis }) => {
@@ -668,7 +691,47 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     }
   );
 
-  // 移除 get_data 工具 - AI现在应该能直接通过ResourceLinks访问数据
+  // 获取监控数据工具（ResourceLinks替代方案）
+  server.registerTool(
+    'get_monitoring_data',
+    {
+      title: '获取监控数据',
+      description: '当AI无法直接访问ResourceLinks时的数据获取工具',
+      inputSchema: {
+        requestId: z.string().describe('请求ID'),
+        dataType: z.string().default('data').describe('数据类型：data/analysis/chunk-*')
+      }
+    },
+    async ({ requestId, dataType }) => {
+      try {
+        // 获取数据
+        let data;
+        if (dataType === 'analysis') {
+          data = await getAnalysis(requestId);
+        } else if (dataType?.startsWith('chunk-')) {
+          data = await getResponseData(requestId, dataType);
+        } else {
+          data = await getResponseData(requestId);
+        }
+        
+        const dataSize = JSON.stringify(data).length;
+        
+        return createResponse({
+          success: true,
+          requestId,
+          dataType,
+          data: data,
+          dataSize,
+          message: '数据获取成功',
+          note: '这是通过工具获取的数据，与ResourceLinks包含相同内容'
+        });
+        
+      } catch (error: any) {
+        console.error(`[Get Data Tool] 数据获取失败: ${error.message}`);
+        return createErrorResponse(`无法获取数据: ${error.message}`);
+      }
+    }
+  );
 
   return server;
 } 
