@@ -10,6 +10,7 @@ dist/
 .env.*
 .history/
 .data-store/
+.cursor/
 
 # Logs
 *.log

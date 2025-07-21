@@ -246,7 +246,7 @@ export function generateDataOverview(data: ExtractedData): any {
 }
 
 /**
- * 生成完整的默认分析指导（原有实现）
+ * 生成基于Resources机制的完整分析指导
  */
 function buildFullAnalysisGuidance(
   prompt: string, 
@@ -264,7 +264,7 @@ function buildFullAnalysisGuidance(
   // 生成分析报告模板
   const analysisTemplate = generateAnalysisTemplate(prompt, isAggregateAnalysis);
 
-  return `# Grafana数据专业分析任务
+  return `# 数据已准备完成 - 请通过Resources机制进行Grafana数据专业分析任务
 
 ## 分析目标
 ${prompt}
@@ -276,22 +276,25 @@ ${dataTypeGuidance}
 
 ## 数据资源信息
 - **请求ID**: ${requestId}
-- **数据类型**: ${dataOverview.type || '未知'}
-- **有效数据**: ${dataOverview.hasData ? '是' : '否'}
-- **HTTP状态**: ${dataOverview.status || '未知'}
-- **采集时间**: ${dataOverview.timestamp || '未知'}
-- **数据规模**: ${dataOverview.stats ? JSON.stringify(dataOverview.stats, null, 2) : '统计信息不可用'}
-${isAggregateAnalysis ? `- **分析类型**: 综合分析 (${dataOverview.queryNames?.join(', ') || '多数据源'})` : '- **分析类型**: 单项分析'}
+- **数据类型**: ${dataOverview?.type || '未知'}
+- **有效数据**: ${dataOverview?.hasData ? '是' : '否'}
+- **HTTP状态**: ${dataOverview?.status || '未知'}
+- **采集时间**: ${dataOverview?.timestamp || '未知'}
+- **数据规模**: ${dataOverview?.stats ? JSON.stringify(dataOverview?.stats, null, 2) : '统计信息不可用'}
+${isAggregateAnalysis ? `- **分析类型**: 综合分析 (${dataOverview?.queryNames?.join(', ') || '多数据源'})` : '- **分析类型**: 单项分析'}
 
-## 数据访问资源
-**重要：必须通过以下ResourceLinks获取完整的原始数据进行分析**
-${resourceLinks.map(link => `- ${link}`).join('\n')}
+  ## 数据访问资源
+  **重要：必须通过ResourceLinks获取完整的原始数据进行分析**
+  ${resourceLinks.map(link => `- ${link}`).join('\n')}
 
-**关键要求**：
-1. **必须获取实际数据**：通过ResourceLinks获取真实的数据值
-2. **基于数据回答**：所有结论必须基于实际数据，不要只分析配置
-3. **直接回答问题**：用户关心的是"现在怎么样"，不是"配置怎么样"
-4. **提供具体数值**：给出具体的百分比、数值等量化信息
+  **数据获取方式**：
+  直接访问上述ResourceLinks获取实际数据
+
+  **关键要求**：
+  1. **必须获取实际数据**：通过ResourceLinks获取真实的数据值，不要只分析配置
+  2. **基于数据回答**：所有结论必须基于实际数据进行分析
+  3. **直接回答问题**：用户关心的是"现在怎么样"，不是"配置怎么样"
+  4. **提供具体数值**：给出具体的百分比、数值等量化信息
 
 ${analysisTemplate}
 
@@ -362,18 +365,29 @@ ${prompt}
 ## 数据信息
 - **请求ID**: ${requestId}
 - **数据类型**: ${dataOverview?.type || '未知'}
-- **数据状态**: ${dataOverview?.hasData ? '有效' : '无数据'}
+- **数据状态**: ${dataOverview?.hasData ? '有效数据已存储' : '无有效数据'}
 - **HTTP状态**: ${dataOverview?.status || '未知'}
 - **采集时间**: ${dataOverview?.timestamp || '未知'}
 ${isAggregateAnalysis ? '- **分析类型**: 综合分析' : '- **分析类型**: 单项分析'}
 
-## 数据资源
-**重要**：请通过以下ResourceLinks获取完整数据进行分析：
-${resourceLinksDisplay}
+  ## 分析数据源
+  **重要：必须通过ResourceLinks获取并分析完整数据**
+  ${resourceLinksDisplay}
 
-请基于以上数据进行专业分析，重点关注数据趋势、异常模式和实用建议。`;
+  **数据获取方式**：
+  直接访问上述ResourceLinks获取实际数据
+
+  ## 分析要求
+  1. **获取数据**: 使用ResourceLinks获取完整数据
+  2. **深入分析**: 基于实际数据进行全面分析
+  3. **量化结论**: 提供具体的数值和量化指标
+  4. **直接回答**: 针对用户需求"${prompt}"给出直接回答
+  5. **避免推测**: 所有结论必须基于实际数据，不要基于配置推测
+
+---
+**开始分析**: 请通过ResourceLinks获取数据并进行专业分析。`;
   }
   
-  // Default模式：专业全面的分析（原来的buildFullAnalysisGuidance）
+  // Default模式：专业全面的分析（使用buildFullAnalysisGuidance）
   return buildFullAnalysisGuidance(prompt, requestId, dataOverview, resourceLinks, queryConfig);
 }
