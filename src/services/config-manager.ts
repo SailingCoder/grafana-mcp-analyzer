@@ -413,7 +413,7 @@ export async function saveConfig(config: QueryConfig, configPath?: string): Prom
  * 获取最大块大小配置（字节）
  */
 export function getMaxChunkSize(): number {
-  const maxChunkSizeKB = parseInt(process.env.MAX_CHUNK_SIZE || '500', 10);
+  const maxChunkSizeKB = parseInt(process.env.MAX_CHUNK_SIZE || '100', 10);
   return maxChunkSizeKB * 1024; // 转换为字节
 }
 
