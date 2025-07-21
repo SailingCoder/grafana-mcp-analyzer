@@ -1,4 +1,4 @@
-# Grafana MCP Analyzer
+# Grafana MCP Analyzer 🤖
 
 ![Version](https://img.shields.io/npm/v/grafana-mcp-analyzer) ![License](https://img.shields.io/npm/l/grafana-mcp-analyzer) 
 
@@ -111,57 +111,59 @@ const config = {
 
 Please provide professional investment analysis and recommendations.\`
     },
+    overall_cpu_utilization: {
+      curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=prometheus&requestId=SQR371' \\
+  -H 'accept: application/json, text/plain, */*' \\
+  -H 'accept-language: zh-CN,zh;q=0.9' \\
+  -H 'cache-control: no-cache' \\
+  -H 'content-type: application/json' \\
+  -b '_ga=GA1.2.387525048.1751712678; rl_page_init_referrer=RudderEncrypt%3AU2FsdGVkX191kw8iAnoyFkv6jbIl3EOkbSdK21uFLwGid2zCBcXWXVl4rK8kP9uB; rl_page_init_referring_domain=RudderEncrypt%3AU2FsdGVkX1%2FQpNd4Fbr7FgBG8YeyeoTAiBUO993bC9E%3D; _gid=GA1.2.354949503.1752935466; rl_group_id=RudderEncrypt%3AU2FsdGVkX1%2Fyd5jy%2Bq5XZfeqcDGhXMhz56ANft0NLCo%3D; rl_group_trait=RudderEncrypt%3AU2FsdGVkX1%2F9hmHjbWlb%2F%2B2RP0JlMRymkg9QBgUw3oE%3D; rl_anonymous_id=RudderEncrypt%3AU2FsdGVkX19JQD0l8hbD8ApQMSbVisxyXCEuam7wcYtcnfywOO67gQc7EjkFm0bW%2BNZjB%2BsmRZnHy5ccbyeoHQ%3D%3D; rl_user_id=RudderEncrypt%3AU2FsdGVkX18s9kRPf%2BwQSRIaYGd9O5kGPmZh%2FQhoq4LyI63CRJNoBrh7Cc06OuAO; rl_trait=RudderEncrypt%3AU2FsdGVkX1%2B%2FhZugE4qfWyjSTEFKcsYs0DwcOyfdazoJfVtGv4x0q%2BOFxbqHDD0r%2BLWcg%2F6CceMFQH3dJIa3C0WyF0hWoBLLwV%2BiQB4077KEHTtX%2BkJxjJ4X6czXwpsh%2FsV9e8l4ptVfz%2FgyJLh1qw%3D%3D; _gat=1; _ga_Y0HRZEVBCW=GS2.2.s1752935474$o2$g1$t1752935591$j38$l0$h0; rl_session=RudderEncrypt%3AU2FsdGVkX1%2BUhBGRm24hqUS5TRKZrN31aK8t518MW16GZKplO6iFClFnqmpYiglWbXqKgnDZz8o%2FaGxuQouIM%2BN0BBr8Nh3HY6chGRtVUEeRSRXAAQiiH30%2Bp6%2F57AoqhwV3k0jqvIikr69S9sDpCg%3D%3D' \\
+  -H 'origin: https://play.grafana.org' \\
+  -H 'pragma: no-cache' \\
+  -H 'priority: u=1, i' \\
+  -H 'referer: https://play.grafana.org/d/cNMLIAFK/cpu-utilization-details-cores?var-interval=$__auto&orgId=1&from=now-3h&to=now&timezone=browser&var-host=faro-shop-control-plane&var-cpu=$__all&refresh=5s&editPanel=22&inspect=22&inspectTab=query' \\
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \\
+  -H 'sec-ch-ua-mobile: ?0' \\
+  -H 'sec-ch-ua-platform: "macOS"' \\
+  -H 'sec-fetch-dest: empty' \\
+  -H 'sec-fetch-mode: cors' \\
+  -H 'sec-fetch-site: same-origin' \\
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' \\
+  -H 'x-dashboard-title: CPU Utilization Details (Cores)' \\
+  -H 'x-dashboard-uid: cNMLIAFK' \\
+  -H 'x-datasource-uid: grafanacloud-prom' \\
+  -H 'x-grafana-device-id: 2b0db28108a0a56f4a0dcf3d59537fe7' \\
+  -H 'x-grafana-org-id: 1' \\
+  -H 'x-panel-id: 22' \\
+  -H 'x-panel-plugin-id: timeseries' \\
+  -H 'x-panel-title: $host - Overall CPU Utilization' \\
+  -H 'x-plugin-id: prometheus' \\
+  --data-raw $'{"queries":[{"calculatedInterval":"2s","datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"datasourceErrors":{},"errors":{},"expr":"clamp_max((avg by (mode) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[1m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"{{mode}}","metric":"","refId":"A","step":300,"exemplar":false,"requestId":"22A","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778},{"datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"expr":"clamp_max(max by () (sum  by (cpu) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"Max Core Utilization","refId":"B","exemplar":false,"requestId":"22B","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778}],"from":"1752924823337","to":"1752935623337"}'`,
+      systemPrompt: \`You are a system performance analysis expert, focusing on CPU utilization data analysis.
 
-    // Second query - using HTTP API format (Dogecoin data from panel 7)
-    'dogecoin_panel_7': {
-      url: 'api/ds/query',
-      method: 'POST',
-      params: {
-        ds_type: 'grafana-testdata-datasource',
-        requestId: 'SQR109'
-      },
-      headers: {
-        'accept': 'application/json, text/plain, */*',
-        'content-type': 'application/json',
-        'x-datasource-uid': '9cY0WtPMz',
-        'x-grafana-org-id': '1',
-        'x-panel-id': '7',
-        'x-panel-plugin-id': 'candlestick',
-        'x-plugin-id': 'grafana-testdata-datasource'
-      },
-      data: {
-        queries: [{
-          csvFileName: "ohlc_dogecoin.csv",
-          datasource: {
-            type: "grafana-testdata-datasource",
-            uid: "9cY0WtPMz"
-          },
-          refId: "A",
-          scenarioId: "csv_file",
-          datasourceId: 153,
-          intervalMs: 2000,
-          maxDataPoints: 1150
-        }],
-        from: "1626214410740",
-        to: "1626216378921"
-      },
-      systemPrompt: \`You are a financial market technical analysis expert, focusing on cryptocurrency market analysis.
+**Core Task**: Directly answer the user's question: "How is my server doing right now?"
 
-**Analysis Focus**:
-1. Market trend and momentum analysis - Identify main trend direction and momentum changes
-2. Price pattern recognition - Identify classic patterns like head and shoulders, double bottom, triangles
-3. Volume and price relationship - Analyze volume support for price movements
-4. Market sentiment assessment - Evaluate market sentiment based on technical indicators
-5. Short-term and long-term investment strategy recommendations - Provide investment advice for different time frames
+**Must Answer Questions**:
+What is the current CPU utilization? (specific values)
 
-**Output Requirements**:
-- Analyze based on actual data, provide specific numerical interpretations
-- Identify key price patterns and trend changes
-- Give clear trading recommendations and risk warnings
-- Provide actionable investment strategies
+**Output Format**:
+## Server Status Overview
+**Direct Conclusion**: Server CPU utilization [specific value]%, status [Normal/High/Abnormal]
 
-Please provide detailed technical analysis report.\`
-    }
+## Detailed Data
+- **Current Utilization**: [value]%
+- **Average Utilization**: [value]%
+- **Peak Utilization**: [value]%
+- **Main Usage Modes**: [user/system/iowait etc]
+
+## Risk Assessment
+[Specific risk analysis based on data]
+
+## Action Recommendations
+[Specific actionable suggestions]
+
+**Important**: If unable to obtain actual data, please clearly state "Unable to obtain actual data" and explain possible reasons. Do not analyze based on assumptions!\`
+    },
   }
 };
 
