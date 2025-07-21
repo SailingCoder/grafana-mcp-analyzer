@@ -204,7 +204,6 @@ module.exports = config;
 | Tool | Function | Use Case |
 |------|----------|----------|
 | `analyze_query` | Query + AI Analysis | Need professional advice |
-| `query_data` | Raw data query | Only need data |
 | `aggregate_analyze` | Aggregate analysis | Multi-query unified analysis |
 | `list_queries` | Query list | View configuration |
 | `check_health` | Health check | Status monitoring |
@@ -341,7 +340,8 @@ export GRAFANA_TOKEN="your-api-token"
 
 ### Business Scenario Configuration
 
-#### E-commerce Business Analysis
+<details>
+<summary>E-commerce Business Analysis</summary>
 
 **User Question**: "How is my e-commerce conversion rate? How to improve sales?"
 
@@ -370,23 +370,10 @@ Please use simple language and give specific actionable suggestions.`
 }
 ```
 
-**AI Response Example**:
-> **Conversion Rate Analysis Report**
-> 
-> Current conversion rate: 2.3% (industry average 3.5%)
-> 
-> **Problem Diagnosis**:
-> - Lowest conversion rate from 2-4 PM (1.2%)
-> - Mobile conversion rate 40% lower than PC
-> 
-> **Optimization Suggestions**:
-> 1. Optimize mobile payment process, expected 0.5% improvement
-> 2. Add promotional activities in afternoon, expected 0.3% improvement
-> 3. Improve product page loading speed, expected 0.2% improvement
-> 
-> **Expected Revenue**: Conversion rate improved to 3.0%, monthly sales increase of 150,000
+</details>
 
-#### Financial Risk Analysis
+<details>
+<summary>Financial Risk Analysis</summary>
 
 **User Question**: "Is there risk in my trading system? How to prevent fraud?"
 
@@ -415,25 +402,10 @@ finance_risk_analysis: {
 Please mark high risk in red, medium risk in yellow, low risk in green.`
 }
 ```
+</details>
 
-**AI Response Example**:
-> **Risk Alert: Medium Risk**
-> 
-> **Abnormal Indicators**:
-> - Transaction volume increased abnormally by 200% from 2-4 AM
-> - Single transaction amount exceeds 10 times the average
-> 
-> **Risk Analysis**:
-> Suspected automated trading or abnormal user behavior
-> 
-> **Protection Suggestions**:
-> 1. Immediately enable transaction limits during early morning hours
-> 2. Increase manual review for large transactions
-> 3. Strengthen user identity verification
-> 
-> **Emergency Actions**: Suspend suspicious account transactions
-
-#### User Behavior Analysis
+<details>
+<summary>User Behavior Analysis</summary>
 
 **User Question**: "How is my user activity? How to improve user retention?"
 
@@ -463,27 +435,12 @@ Please provide personalized operational suggestions based on user lifecycle.`
 }
 ```
 
-**AI Response Example**:
-> **User Profile Analysis**
-> 
-> **Activity Trends**:
-> - Daily active users: 12,500 (8% increase week-over-week)
-> - Weekly active users: 45,000 (12% increase week-over-week)
-> 
-> **Target User Groups**:
-> - 25-35 year old female users most active
-> - 8-10 PM usage peak period
-> 
-> **Retention Strategy**:
-> 1. Launch personalized recommendations for female users
-> 2. Add interactive features during evening hours
-> 3. Build user growth system
-> 
-> **Expected Effects**: User retention rate improved by 15%, monthly active users increased by 20%
+</details>
 
 ### System Monitoring Configuration
 
-#### Server Performance Monitoring
+<details>
+<summary>Server Performance Monitoring</summary>
 
 **User Question**: "How is my server performance? Do I need to scale up?"
 
@@ -516,26 +473,10 @@ server_performance: {
 Please use colors to mark different severity levels: Normal Attention Danger`
 }
 ```
+</details>
 
-**AI Response Example**:
-> **Performance Score: Good**
-> 
-> **Key Indicators**:
-> - CPU usage: 65% (Attention)
-> - Memory usage: 78% (Attention)
-> - Disk I/O: 45% (Normal)
-> 
-> **Bottleneck Analysis**:
-> CPU usage reaches 85% during business peak, approaching threshold
-> 
-> **Optimization Suggestions**:
-> 1. Optimize database queries, expected 15% CPU usage reduction
-> 2. Add cache layer, expected 10% CPU usage reduction
-> 3. Consider scaling up 2 CPU cores
-> 
-> **Alert Recommendations**: Set CPU usage 80% alert
-
-#### Application Error Monitoring
+<details>
+<summary>Application Error Monitoring</summary>
 
 **User Question**: "Are there errors in my application? Does it affect user experience?"
 
@@ -577,30 +518,12 @@ app_error_analysis: {
 Please sort by severity, prioritize fixing errors affecting the most users.`
 }
 ```
-
-**AI Response Example**:
-> **Error Level: Medium**
-> 
-> **Error Statistics**:
-> - Errors in 1 hour: 156 times
-> - Affected users: About 2,300 people
-> - Error rate: 0.8% (industry standard <0.5%)
-> 
-> **Error Classification**:
-> 1. Payment module errors: 89 times (most serious)
-> 2. User login errors: 45 times
-> 3. Data query errors: 22 times
-> 
-> **Fix Suggestions**:
-> 1. Immediately check payment gateway connection
-> 2. Optimize login verification logic
-> 3. Increase database connection pool
-> 
-> **Prevention Measures**: Add error monitoring alerts, set error rate threshold
+</details>
 
 ### Aggregate Analysis Configuration
 
-#### Full-Chain Performance Analysis
+<details>
+<summary>Full-Chain Performance Analysis</summary>
 
 **User Question**: "How is my system's overall performance? Where are the bottlenecks?"
 
@@ -637,26 +560,7 @@ database_performance: {
 > 👤 You: Aggregate analysis of full-chain performance: frontend_performance, backend_performance, database_performance
 > 
 > 🤖 AI: Comprehensive analysis of frontend, backend, database performance, providing complete performance optimization recommendations
-
-**AI Response Example**:
-> **Full-Chain Performance Analysis Report**
-> 
-> **Performance Overview**:
-> - Frontend load time: 2.1 seconds (target <1.5 seconds)
-> - Backend response time: 850ms (target <500ms)
-> - Database query: 120ms (target <100ms)
-> 
-> **Bottleneck Identification**:
-> 1. Frontend: Image resources too large, recommend compression
-> 2. Backend: Complex API processing logic, recommend optimization
-> 3. Database: Queries missing indexes, recommend adding
-> 
-> **Optimization Suggestions**:
-> 1. Frontend optimization: Expected 30% load speed improvement
-> 2. Backend optimization: Expected 40% response speed improvement
-> 3. Database optimization: Expected 20% query speed improvement
-> 
-> **Overall Effect**: User experience improved by 35%, page load time reduced to 1.4 seconds
+</details>
 
 ## Troubleshooting
 

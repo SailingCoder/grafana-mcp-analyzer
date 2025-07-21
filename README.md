@@ -205,7 +205,6 @@ module.exports = config;
 | 工具 | 功能 | 使用场景 |
 |------|------|----------|
 | `analyze_query` | 查询+AI分析 | 需要专业建议 |
-| `query_data` | 原始数据查询 | 仅需要数据 |
 | `aggregate_analyze` | 聚合分析 | 多查询统一分析 |
 | `list_queries` | 查询列表 | 查看配置 |
 | `check_health` | 健康检查 | 状态监控 |
