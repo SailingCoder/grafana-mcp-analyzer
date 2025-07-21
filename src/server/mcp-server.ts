@@ -1,7 +1,10 @@
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import path from 'path';
+import os from 'os';
 import { executeQuery, extractData, checkHealth } from '../datasources/grafana-client.js';
-import { buildAnalysisGuidance } from '../services/monitoring-analyzer.js';
+import { buildAnalysisGuidance, generateSmartSummary, generateDataOverview, generateAggressiveSummary } from '../services/monitoring-analyzer.js';
+import { getMaxChunkSize } from '../services/config-manager.js';
 import { 
   generateRequestId,
   storeRequestMetadata,
@@ -26,6 +29,167 @@ import type {
   ExtractedData,
   HealthStatus 
   } from '../types/index.js';
+
+/**
+ * 检测客户端是否支持Resources
+ */
+function detectResourcesSupport(): boolean {
+  // 通过环境变量检测
+  const forceResourcesSupport = process.env.FORCE_RESOURCES_SUPPORT;
+  if (forceResourcesSupport === 'true') {
+    return true;
+  }
+  if (forceResourcesSupport === 'false') {
+    return false;
+  }
+  
+  // 默认禁用Resources支持，使用tool-based模式
+  return false;
+}
+
+/**
+ * 强制存储为full.json文件（避免分块）
+ */
+async function forceStoreAsFull(requestId: string, data: any) {
+  const requestDir = path.join(process.env.DATA_STORE_ROOT || path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store'), requestId);
+  const dataDir = path.join(requestDir, 'data');
+  
+  // 确保目录存在
+  const fs = await import('fs/promises');
+  await fs.mkdir(dataDir, { recursive: true });
+  
+  const dataStr = JSON.stringify(data, null, 2);
+  const dataSize = Buffer.byteLength(dataStr, 'utf8');
+  
+  // 强制存储为full.json
+  const fullPath = path.join(dataDir, 'full.json');
+  await fs.writeFile(fullPath, dataStr);
+  
+  return { 
+    type: 'full', 
+    size: dataSize,
+    chunks: 1,
+    resourceUri: `monitoring-data://${requestId}/data`
+  };
+}
+
+/**
+ * 根据数据大小和Resources支持情况决定处理策略
+ */
+async function processDataWithStrategy(requestId: string, data: any) {
+  const maxChunkSize = getMaxChunkSize();
+  const dataStr = JSON.stringify(data);
+  const dataSize = Buffer.byteLength(dataStr, 'utf8');
+  const supportsResources = detectResourcesSupport();
+  
+  console.error(`📊 数据大小: ${Math.round(dataSize / 1024)}KB, 阈值: ${Math.round(maxChunkSize / 1024)}KB, Resources支持: ${supportsResources}`);
+  
+  if (supportsResources) {
+    // 支持Resources，根据数据大小决定是否分包
+    if (dataSize <= maxChunkSize) {
+              console.log('✅ 支持Resources且数据较小，存储为完整文件');
+        return await storeResponseData(requestId, data, maxChunkSize);
+      } else {
+        console.log('📦 支持Resources且数据较大，使用分块存储');
+      return await storeResponseData(requestId, data, maxChunkSize);
+    }
+  } else {
+    // 不支持Resources，无论数据大小都不分包，使用智能摘要
+    if (dataSize <= maxChunkSize) {
+      return await forceStoreAsFull(requestId, data);
+    } else {
+      // 智能摘要处理流程
+      let summarizedData = data;
+      let iterations = 0;
+      const maxIterations = 5;
+      let lastSize = dataSize;
+      
+      while (iterations < maxIterations) {
+        // 生成智能摘要
+        const newSummary = generateSmartSummary(summarizedData, maxChunkSize);
+        const summaryStr = JSON.stringify(newSummary);
+        const summarySize = Buffer.byteLength(summaryStr, 'utf8');
+        
+        // 检查摘要是否有效（大小确实减小了）
+        if (summarySize >= lastSize * 0.8) {
+          // 如果摘要效果不佳，尝试更激进的策略
+          if (iterations === 0) {
+            summarizedData = generateAggressiveSummary(data, maxChunkSize);
+            const aggressiveStr = JSON.stringify(summarizedData);
+            const aggressiveSize = Buffer.byteLength(aggressiveStr, 'utf8');
+            
+            if (aggressiveSize <= maxChunkSize) {
+              break;
+            }
+          }
+          
+          // 如果仍然无效，跳出循环
+          if (iterations >= 2) {
+            summarizedData = {
+              __summary: true,
+              __dataType: 'emergency_minimal',
+              __notice: '数据过大，无法有效压缩，请使用工具获取原始数据',
+              __originalSize: dataSize,
+              __status: 'compression_failed',
+              __instructions: 'AI应通过get_monitoring_data工具获取数据进行分析',
+              __timestamp: new Date().toISOString()
+            };
+            break;
+          }
+        }
+        
+        // 更新数据和大小
+        summarizedData = newSummary;
+        lastSize = summarySize;
+        
+        // 检查是否达到目标大小
+        if (summarySize <= maxChunkSize) {
+          break;
+        }
+        
+        iterations++;
+      }
+      
+      // 最终验证和备用处理
+      const finalStr = JSON.stringify(summarizedData);
+      const finalSize = Buffer.byteLength(finalStr, 'utf8');
+      
+      if (finalSize > maxChunkSize) {
+        // 创建紧急最小摘要
+        const emergencyData = {
+          __summary: true,
+          __dataType: 'emergency_fallback',
+          __notice: '智能摘要失败，数据已存储，请通过工具访问',
+          __originalSize: dataSize,
+          __finalSize: finalSize,
+          __compressionAttempts: iterations,
+          __status: 'fallback_mode',
+          __accessInstructions: {
+            tool: 'get_monitoring_data',
+            requestId: requestId,
+            dataType: 'data',
+            note: 'AI必须使用此工具获取实际数据进行分析'
+          },
+          __timestamp: new Date().toISOString()
+        };
+        
+        // 验证紧急摘要大小
+        const emergencyStr = JSON.stringify(emergencyData);
+        const emergencySize = Buffer.byteLength(emergencyStr, 'utf8');
+        
+        if (emergencySize <= maxChunkSize) {
+          summarizedData = emergencyData;
+        } else {
+          // 最后的手段：存储原始数据，但记录警告
+          summarizedData = data;
+        }
+      }
+      
+      // 强制存储为full.json，绝不分包
+      return await forceStoreAsFull(requestId, summarizedData);
+    }
+  }
+}
 
 /**
  * 创建配置好的MCP服务器
@@ -71,9 +235,14 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
 
   // 构建ResourceLinks（使用monitoring-data协议）
   function buildResourceLinks(storageResult: any, requestId: string): string[] {
-    return storageResult.type === 'chunked' 
-      ? storageResult.resourceUris || []
-      : [storageResult.resourceUri || `monitoring-data://${requestId}/data`];
+    if (detectResourcesSupport()) {
+      return storageResult.type === 'chunked' 
+        ? storageResult.resourceUris || []
+        : [storageResult.resourceUri || `monitoring-data://${requestId}/data`];
+    } else {
+      // 不支持Resources时返回空数组
+      return [];
+    }
   }
 
   // 执行查询并存储数据的通用流程
@@ -95,8 +264,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     // 执行查询
     const result = await executeGrafanaQuery(queryConfig);
     
-    // 存储响应数据
-    const storageResult = await storeResponseData(requestId, result);
+    // 使用新的数据处理策略
+    const storageResult = await processDataWithStrategy(requestId, result);
     
     // 构建ResourceLinks
     const resourceLinks = buildResourceLinks(storageResult, requestId);
@@ -124,8 +293,10 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
   // 创建MCP服务器实例
   const server = new McpServer(SERVER_INFO);
   
+  // 只有在支持Resources时才注册资源
+  if (detectResourcesSupport()) {
     // 注册监控数据资源模板（使用monitoring-data协议）
-  server.registerResource(
+    server.registerResource(
     "monitoring-data",
     new ResourceTemplate("monitoring-data://{requestId}/{dataType}", { list: undefined }),
     {
@@ -176,6 +347,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       }
     }
   );
+  }
 
   // 健康检查工具
   server.registerTool(
@@ -245,27 +417,24 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
         const queryConfig = validateQueryConfig(queryName);
         const requestId = generateRequestId();
         
-        // 第一步：执行查询并存储数据
-        const { storageResult, resourceLinks } = await executeAndStoreQuery(
+        // 第一步：执行查询并存储数据  
+        const { result, storageResult, resourceLinks } = await executeAndStoreQuery(
           queryConfig,
           requestId,
           { queryName, prompt, sessionId }
         );
         
         // 第二步：等待数据完全写入本地存储
-        // 验证数据是否已经完全存储
         let dataVerified = false;
         let retryCount = 0;
         const maxRetries = 10;
         
         while (!dataVerified && retryCount < maxRetries) {
           try {
-            // 尝试读取存储的数据来验证
             await getResponseData(requestId);
             dataVerified = true;
           } catch (error) {
             retryCount++;
-            // 等待500ms后重试
             await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
@@ -274,24 +443,45 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           throw new Error(`数据存储验证失败，请求ID: ${requestId}`);
         }
         
-        // 第三步：生成数据概览（仅用于元信息）
-        // TODO: 暂时注释掉dataOverview，测试AI是否会直接通过ResourceLinks获取完整数据
-        // const dataOverview = generateDataOverview(result);
-        const dataOverview = {
-          type: 'raw_data_available',
-          hasData: true,
-          timestamp: new Date().toISOString(),
-          status: 'success',
-          message: '完整数据可通过ResourceLinks获取'
-        };
+        // 第三步：生成数据概览
+        const resourcesSupported = detectResourcesSupport();
+        let dataOverview;
         
-        // 第四步：构建基于Resources机制的分析指引
+        if (resourcesSupported) {
+          // 支持Resources时，提供简单概览
+          dataOverview = {
+            type: 'raw_data_available',
+            hasData: true,
+            timestamp: new Date().toISOString(),
+            status: 'success',
+            message: '完整数据可通过ResourceLinks获取'
+          };
+        } else {
+          // 不支持Resources时，生成详细数据概览
+          // 使用实际存储的数据（可能是摘要后的数据）
+          let actualStoredData = result;
+          try {
+            const storedData = await getResponseData(requestId);
+            if (storedData && storedData.data) {
+              actualStoredData = storedData;
+            }
+          } catch (error) {
+            console.log('获取存储数据失败，使用原始数据生成概览');
+          }
+          
+          dataOverview = generateDataOverview(actualStoredData);
+          dataOverview.message = '数据已智能处理，包含概览和摘要信息';
+          dataOverview.processingStrategy = 'smart_summary';
+        }
+        
+        // 第四步：构建分析指引（基于数据处理策略）
         const analysisGuidance = buildAnalysisGuidance(
           prompt,
           requestId,
           dataOverview,
-          resourceLinks,
-          queryConfig
+          storageResult,
+          queryConfig,
+          resourcesSupported
         );
         
         // 第五步：存储查询元信息（不存储分析指引本身）
@@ -314,10 +504,12 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           dataSize: storageResult.size,
           storageType: storageResult.type,
           resourceLinks,
-          message: analysisGuidance, // 这是给AI的分析指引，AI应该基于此访问ResourceLinks
-          analysisMode: 'resources-based', // 标记这是基于Resources机制的分析
+          message: analysisGuidance, // 这是给AI的分析指引
+          analysisMode: resourcesSupported ? 'resources-based' : 'tool-based', // 标记分析模式
           dataReady: true, // 标记数据已准备完成
-          analysisInstructions: "请按照message中的指引，通过resourceLinks获取实际数据并进行分析"
+          analysisInstructions: resourcesSupported 
+            ? "请按照message中的指引，通过resourceLinks获取实际数据并进行一次性完整分析"
+            : "请按照message中的指引，使用get_monitoring_data工具获取数据并进行一次性完整分析。数据已完整，无需重复执行analyze_query"
         });
         
       } catch (error: any) {
@@ -381,8 +573,7 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           }
           
           // 生成数据概览
-          // TODO: 暂时注释掉，让AI直接通过ResourceLinks获取数据
-          // const dataOverview = generateDataOverview(result);
+          // 聚合分析使用简化的数据概览
           const dataOverview = {
             type: 'raw_data_available',
             hasData: true,
@@ -417,16 +608,25 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
         };
         
         // 构建聚合分析指引
+        const supportsResources = detectResourcesSupport();
+        // 创建聚合存储结果
+        const aggregateStorageResult = {
+          type: 'aggregate',
+          resourceUris: allResourceLinks,
+          totalQueries: queryNames.length,
+          totalDataSize
+        };
         const aggregateAnalysisGuidance = buildAnalysisGuidance(
           prompt,
           aggregateRequestId,
           aggregateDataOverview,
-          allResourceLinks,
+          aggregateStorageResult,
           { 
             type: 'aggregate', 
             queries: queryNames,
             description: '多查询聚合分析'
-          }
+          },
+          supportsResources
         );
         
         // 存储聚合分析元信息
@@ -459,9 +659,11 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
           resourceLinks: allResourceLinks,
           message: aggregateAnalysisGuidance, // 这是给AI的分析指引
           type: 'aggregate_analysis',
-          analysisMode: 'resources-based', // 标记这是基于Resources机制的分析
+          analysisMode: supportsResources ? 'resources-based' : 'tool-based', // 标记分析模式
           dataReady: true, // 标记数据已准备完成
-          analysisInstructions: "请按照message中的指引，通过resourceLinks获取实际数据并进行聚合分析"
+          analysisInstructions: supportsResources
+            ? "请按照message中的指引，通过resourceLinks获取实际数据并进行一次性完整聚合分析"
+            : "请按照message中的指引，使用get_monitoring_data工具获取数据并进行一次性完整聚合分析。数据已完整，无需重复执行analyze_query"
         });
         
       } catch (error: any) {
@@ -696,19 +898,26 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     'get_monitoring_data',
     {
       title: '获取监控数据',
-      description: '当AI无法直接访问ResourceLinks时的数据获取工具',
+      description: '获取分析数据的主要工具。在不支持Resources时禁止使用chunk参数',
       inputSchema: {
         requestId: z.string().describe('请求ID'),
-        dataType: z.string().default('data').describe('数据类型：data/analysis/chunk-*')
+        dataType: z.string().default('data').describe('数据类型：data（完整数据）/analysis（分析结果）。禁止使用chunk-*')
       }
     },
     async ({ requestId, dataType }) => {
       try {
+        // 检查Resources支持状态
+        const supportsResources = detectResourcesSupport();
+        
         // 获取数据
         let data;
         if (dataType === 'analysis') {
           data = await getAnalysis(requestId);
         } else if (dataType?.startsWith('chunk-')) {
+          // 如果不支持Resources，禁止获取分块数据
+          if (!supportsResources) {
+            throw new Error('分块数据获取被禁用：当前配置不支持Resources，请使用dataType="data"获取完整数据');
+          }
           data = await getResponseData(requestId, dataType);
         } else {
           data = await getResponseData(requestId);

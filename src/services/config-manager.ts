@@ -410,6 +410,14 @@ export async function saveConfig(config: QueryConfig, configPath?: string): Prom
 }
 
 /**
+ * 获取最大块大小配置（字节）
+ */
+export function getMaxChunkSize(): number {
+  const maxChunkSizeKB = parseInt(process.env.MAX_CHUNK_SIZE || '500', 10);
+  return maxChunkSizeKB * 1024; // 转换为字节
+}
+
+/**
  * 获取配置文件路径
  */
 export function getConfigPath(): string {
