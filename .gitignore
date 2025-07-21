@@ -22,6 +22,8 @@ logs/
 *.swp
 *.swo
 
+ARCHITECTURE.md
+
 # OS files
 .DS_Store
 Thumbs.db

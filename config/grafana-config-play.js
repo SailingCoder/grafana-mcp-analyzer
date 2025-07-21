@@ -97,7 +97,8 @@ const config = {
 - 给出明确的交易建议和风险提示
 - 提供可操作的投资策略
 
-请提供详细的技术分析报告。`
+请提供详细的技术分析报告。`,
+promptMode: 'custom',
     },
     overall_cpu_utilization100: {
       curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=prometheus&requestId=SQR371' \

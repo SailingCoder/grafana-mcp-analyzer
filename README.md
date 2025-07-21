@@ -19,7 +19,7 @@
 
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
--   🗣️ **自然语言查询** - 轻松访问监控数据，AI 一键输出专业分析
+-   **自然语言查询** - 轻松访问监控数据，AI 一键输出专业分析
 -   **智能格式化** - 支持**大数据量**分析，高效解析各类数据
 -   **curl支持** - 直接使用浏览器 copy 的 curl 合成查询
 -   **聚合分析** - 单个查询或 Dashboard 级别综合分析
@@ -111,56 +111,59 @@ const config = {
 
 请提供专业的投资分析和建议。`
     },
+    overall_cpu_utilization: {
+      curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=prometheus&requestId=SQR371' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: zh-CN,zh;q=0.9' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: application/json' \
+  -b '_ga=GA1.2.387525048.1751712678; rl_page_init_referrer=RudderEncrypt%3AU2FsdGVkX191kw8iAnoyFkv6jbIl3EOkbSdK21uFLwGid2zCBcXWXVl4rK8kP9uB; rl_page_init_referring_domain=RudderEncrypt%3AU2FsdGVkX1%2FQpNd4Fbr7FgBG8YeyeoTAiBUO993bC9E%3D; _gid=GA1.2.354949503.1752935466; rl_group_id=RudderEncrypt%3AU2FsdGVkX1%2Fyd5jy%2Bq5XZfeqcDGhXMhz56ANft0NLCo%3D; rl_group_trait=RudderEncrypt%3AU2FsdGVkX1%2F9hmHjbWlb%2F%2B2RP0JlMRymkg9QBgUw3oE%3D; rl_anonymous_id=RudderEncrypt%3AU2FsdGVkX19JQD0l8hbD8ApQMSbVisxyXCEuam7wcYtcnfywOO67gQc7EjkFm0bW%2BNZjB%2BsmRZnHy5ccbyeoHQ%3D%3D; rl_user_id=RudderEncrypt%3AU2FsdGVkX18s9kRPf%2BwQSRIaYGd9O5kGPmZh%2FQhoq4LyI63CRJNoBrh7Cc06OuAO; rl_trait=RudderEncrypt%3AU2FsdGVkX1%2B%2FhZugE4qfWyjSTEFKcsYs0DwcOyfdazoJfVtGv4x0q%2BOFxbqHDD0r%2BLWcg%2F6CceMFQH3dJIa3C0WyF0hWoBLLwV%2BiQB4077KEHTtX%2BkJxjJ4X6czXwpsh%2FsV9e8l4ptVfz%2FgyJLh1qw%3D%3D; _gat=1; _ga_Y0HRZEVBCW=GS2.2.s1752935474$o2$g1$t1752935591$j38$l0$h0; rl_session=RudderEncrypt%3AU2FsdGVkX1%2BUhBGRm24hqUS5TRKZrN31aK8t518MW16GZKplO6iFClFnqmpYiglWbXqKgnDZz8o%2FaGxuQouIM%2BN0BBr8Nh3HY6chGRtVUEeRSRXAAQiiH30%2Bp6%2F57AoqhwV3k0jqvIikr69S9sDpCg%3D%3D' \
+  -H 'origin: https://play.grafana.org' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://play.grafana.org/d/cNMLIAFK/cpu-utilization-details-cores?var-interval=$__auto&orgId=1&from=now-3h&to=now&timezone=browser&var-host=faro-shop-control-plane&var-cpu=$__all&refresh=5s&editPanel=22&inspect=22&inspectTab=query' \
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' \
+  -H 'x-dashboard-title: CPU Utilization Details (Cores)' \
+  -H 'x-dashboard-uid: cNMLIAFK' \
+  -H 'x-datasource-uid: grafanacloud-prom' \
+  -H 'x-grafana-device-id: 2b0db28108a0a56f4a0dcf3d59537fe7' \
+  -H 'x-grafana-org-id: 1' \
+  -H 'x-panel-id: 22' \
+  -H 'x-panel-plugin-id: timeseries' \
+  -H 'x-panel-title: $host - Overall CPU Utilization' \
+  -H 'x-plugin-id: prometheus' \
+  --data-raw $'{"queries":[{"calculatedInterval":"2s","datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"datasourceErrors":{},"errors":{},"expr":"clamp_max((avg by (mode) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[1m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"{{mode}}","metric":"","refId":"A","step":300,"exemplar":false,"requestId":"22A","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778},{"datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"expr":"clamp_max(max by () (sum  by (cpu) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"Max Core Utilization","refId":"B","exemplar":false,"requestId":"22B","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778}],"from":"1752924823337","to":"1752935623337"}'`,
+      systemPrompt: `您是系统性能分析专家，专注于CPU使用率数据分析。
 
-    // 第二个查询 - 使用HTTP API格式（面板7的狗狗币数据）
-    'dogecoin_panel_7': {
-      url: 'api/ds/query',
-      method: 'POST',
-      params: {
-        ds_type: 'grafana-testdata-datasource',
-        requestId: 'SQR109'
+  **核心任务**：直接回答用户的问题："我的服务器现在怎么样？"
+
+  **必须回答的问题**：
+  当前CPU使用率是多少？（具体数值）
+
+  **输出格式**：
+  ## 服务器状态概览
+  **直接结论**：服务器CPU使用率 [具体数值]%，状态 [正常/偏高/异常]
+
+  ## 详细数据
+  - **当前使用率**：[数值]%
+  - **平均使用率**：[数值]%
+  - **峰值使用率**：[数值]%
+  - **主要使用模式**：[user/system/iowait等]
+
+  ## 风险评估
+  [基于数据的具体风险分析]
+
+  ## 行动建议
+  [具体的可执行建议]
+
+  **重要**：如果无法获取到实际数据，请明确说明"无法获取实际数据"，并解释可能的原因。不要基于假设进行分析！`
       },
-      headers: {
-        'accept': 'application/json, text/plain, */*',
-        'content-type': 'application/json',
-        'x-datasource-uid': '9cY0WtPMz',
-        'x-grafana-org-id': '1',
-        'x-panel-id': '7',
-        'x-panel-plugin-id': 'candlestick',
-        'x-plugin-id': 'grafana-testdata-datasource'
-      },
-      data: {
-        queries: [{
-          csvFileName: "ohlc_dogecoin.csv",
-          datasource: {
-            type: "grafana-testdata-datasource",
-            uid: "9cY0WtPMz"
-          },
-          refId: "A",
-          scenarioId: "csv_file",
-          datasourceId: 153,
-          intervalMs: 2000,
-          maxDataPoints: 1150
-        }],
-        from: "1626214410740",
-        to: "1626216378921"
-      },
-      systemPrompt: `您是金融市场技术分析专家，专注于加密货币市场分析。
-
-**分析重点**：
-1. 市场趋势和动量分析 - 识别主要趋势方向和动量变化
-2. 价格模式识别 - 识别头肩顶、双底、三角形等经典形态
-3. 成交量与价格关系 - 分析成交量对价格走势的支撑
-4. 市场情绪评估 - 基于技术指标评估市场情绪状态
-5. 短期和长期投资策略建议 - 提供不同时间周期的投资建议
-
-**输出要求**：
-- 基于实际数据进行分析，提供具体数值解读
-- 识别关键的价格模式和趋势变化
-- 给出明确的交易建议和风险提示
-- 提供可操作的投资策略
-
-请提供详细的技术分析报告。`
     }
   }
 };
@@ -216,81 +219,33 @@ module.exports = config;
 // AI助手会自动选择合适的工具
 👤 "分析CPU使用情况" → 🤖 调用 analyze_query
 👤 "聚合分析系统指标" → 🤖 调用 aggregate_analyze
-👤 "获取内存数据" → 🤖 调用 query_data  
-👤 "检查服务状态" → 🤖 调用 check_health
-👤 "有哪些监控查询" → 🤖 调用 list_queries
-👤 "聚合分析系统指标" → 🤖 调用 aggregate_analyze
 ```
 
 ## 高级配置
 
 <details>
-<summary>系统提示模式配置</summary>
+<summary>环境变量配置</summary>
 
-**新功能**：支持两种系统提示模式，让您根据需求选择合适的分析深度。
-
-### 两种模式对比
-
-| 模式 | 适用场景 |
-|------|----------|
-| `custom` | "我想要自定义" - 用户主导，简洁实用 |
-| `default` |  "默认就好" - 系统推荐，专业全面） |
-
-### 设计理念
-
-#### 为什么设计promptMode？
-1. **用户控制权**：让用户选择分析的详细程度
-2. **场景适配**：快速分析 vs 深度分析的不同需求  
-3. **避免干扰**：不强制用户接受过多信息
-
-### 实际效果对比
-
-**Custom模式** - 用户自定义：
-```
-您是CPU专家，请分析使用率趋势。（systemPrompt）
-
-## 分析目标
-分析CPU使用率趋势（prompt）
-
-## 数据信息
-- 请求ID: test-123
-- 数据类型: timeseries  
-- 数据状态: 有效
-- HTTP状态: 200
-- 采集时间: 2024-01-15T10:30:00Z
-
-## 数据资源
-**重要**：请通过以下ResourceLinks获取完整数据进行分析：
-
-## 分析要求
-请基于以上数据进行专业分析，重点关注数据趋势、异常模式和实用建议。
-```
-
-**Default模式** - 全面：
-- 包含您的systemPrompt + prompt + 内置专业系统提示
-- 包含数据类型专项指导（时序/表格/日志等）
-- 包含完整分析模板（执行摘要、数据概览、深度分析、业务洞察等）
-- 包含详细数据上下文（数据规模、统计信息等）
-
-### 配置示例
-
-```javascript
-// 用户自定义 - 简洁实用
-'cpu_analysis': {
-  curl: `...`,
-  systemPrompt: '您是CPU专家，请分析使用率趋势。',
-  promptMode: 'custom'
-},
-
-// 专业全面 - 系统推荐（默认）
-'comprehensive_analysis': {
-  curl: `...`,
-  systemPrompt: '您是系统性能专家。'
-  // 不指定promptMode = default模式
+```json
+{
+  "mcpServers": {
+    "grafana": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
+        "MAX_CHUNK_SIZE": "100",
+        "SESSION_TIMEOUT_HOURS": "24",
+        "CONFIG_MAX_AGE": "300",
+      }
+    }
+  }
 }
-```
 
-**向后兼容**：现有配置无需修改，自动使用专业全面的default模式。
+
+- MAX_CHUNK_SIZE： 最大数据块大小（KB，默认100）
+- SESSION_TIMEOUT_HOURS：会话超时（小时，默认24）
+- CONFIG_MAX_AGE：配置缓存时间（秒，默认300）
+```
 
 </details>
 
