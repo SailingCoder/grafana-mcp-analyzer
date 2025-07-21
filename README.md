@@ -240,11 +240,12 @@ module.exports = config;
   }
 }
 
+```
+
 
 - MAX_CHUNK_SIZE： 最大数据块大小（KB，默认100）
 - SESSION_TIMEOUT_HOURS：会话超时（小时，默认24）
 - CONFIG_MAX_AGE：配置缓存时间（秒，默认300）
-```
 
 </details>
 

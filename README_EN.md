@@ -238,11 +238,11 @@ module.exports = config;
     }
   }
 }
+```
 
 - MAX_CHUNK_SIZE: Maximum data chunk size (KB, default 100)
 - SESSION_TIMEOUT_HOURS: Session timeout (hours, default 24)
 - CONFIG_MAX_AGE: Configuration cache time (seconds, default 300)
-```
 
 </details>
 
