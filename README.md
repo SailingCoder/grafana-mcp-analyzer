@@ -29,7 +29,7 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 
 ## 🛠️ 快速开始
 
-### 步骤1：安装
+### 第一步：安装
 
 ```bash
 npm install -g grafana-mcp-analyzer
@@ -37,7 +37,7 @@ npm install -g grafana-mcp-analyzer
 
 > **环境要求**：Node.js 18+ | [安装指南](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
-### 步骤2：配置AI助手（以Cursor为例）
+### 第二步：配置AI助手（以Cursor为例）
 
 ```json
 {
@@ -52,11 +52,14 @@ npm install -g grafana-mcp-analyzer
 }
 ```
 
-注：`CONFIG_PATH`支持绝对路径、远程路径，具体详见下方高级配置。
+注：`CONFIG_PATH`支持绝对路径、远程路径，推荐使用远程路径快速体验。
 
-### 步骤3：编写配置文件 `grafana-config.js`
+### 第三步：编写配置文件
 
-步骤2 中`CONFIG_PATH`已经配置了远程路径，如果你只是想快速体验这个库，可以跳过这一步，然后直接执行步骤4；如果你想使用自己的数据源或参数，可以参考以下配置来自定义。
+如果你希望使用自己的数据源，可创建一个`CONFIG_PATH`路径下的`grafana-config-play.js`配置文件：
+
+<details>
+<summary>点击展开查看示例</summary>
 
 ```javascript
 /**
@@ -193,8 +196,9 @@ const config = {
 
 module.exports = config;
 ```
+</details>
 
-### 步骤4：开始使用
+### 第四步：开始使用！
 
 **完全重启Cursor**，然后体验智能分析：
 
@@ -230,30 +234,33 @@ module.exports = config;
 
 ## 高级配置
 
-<details>
-<summary>如何获取 Request 配置方式？</summary>
+以下内容适用于需要自定义数据源或进行更高级使用场景的用户。
 
-**1. HTTP API**（如dogecoin_panel_7）：
+<details>
+<summary>如何获取 Request 配置？</summary>
+
+### 方式一：HTTP API（如 `dogecoin_panel_7`）
 
 1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
 2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
 
-**2. curl**（推荐, 浏览器直接复制，如overall_cpu_utilization100）：
+### 方式二：curl（推荐，适用于所有面板，如`overall_cpu_utilization100`）：
 
 1.  在Grafana中执行查询
 2.  按F12打开开发者工具 → Network标签页
-3.  找到查询请求 → 右键 → Copy as cURL
+3.  找到查询请求 → 右键点击 → Copy as cURL
+4.  将复制的 curl 粘贴至配置文件中即可
 </details>
 
 <details>
 <summary>配置文件示例</summary>
 
-[基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
-[远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
+- [基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
+- [远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
 </details>
 
 <details>
-<summary>环境变量配置</summary>
+<summary>环境变量说明</summary>
 
 ```json
 {
@@ -273,48 +280,52 @@ module.exports = config;
 ```
 
 
-- MAX_CHUNK_SIZE： 最大数据块大小（KB，默认100）
-- SESSION_TIMEOUT_HOURS：会话超时（小时，默认24）
-- CONFIG_MAX_AGE：配置缓存时间（秒，默认300）
+|环境变量名 | 类型 | 默认值 | 说明 |
+| ----- | -- | --- | -- |
+| `CONFIG_PATH` | string | 必填 | 配置文件路径（本地或 HTTPS 远程地址） |
+| `MAX_CHUNK_SIZE` | number | `100` | 单块最大数据体积（KB），影响切片性能 |
+| `SESSION_TIMEOUT_HOURS` | number | `24` | 会话过期时间（小时） |
+| `CONFIG_MAX_AGE` | number | `300` | 远程配置文件缓存时间（秒），设为 `0` 则禁用 |
+
+缓存特性：
+
+- 智能缓存配置文件（默认缓存 5 分钟）
+- 网络失败时使用本地过期缓存
+- 启动自动清理缓存文件
+- 设置 CONFIG_MAX_AGE=0 可禁用缓存，每次请求都拉取最新配置
 
 </details>
 
 <details>
-<summary>配置支持：绝对路径、远程路径</summary>
+<summary>支持配置类型：本地绝对路径 / 远程路径</summary>
     
-**1. 远程路径**
+### 1. 远程路径
     
 支持通过HTTPS URL访问远程配置文件，适用于团队协作和多环境部署：
 
 ```json
 {
-  "mcpServers": {
-    "grafana": {
-      "command": "grafana-mcp-analyzer",
-      "env": {
-        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
-        "CONFIG_MAX_AGE": "600"
-      }
-    }
+  "env": {
+    "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
   }
 }
 ```
 
 支持的远程存储：
 
+*   GitHub Raw: `https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js`
 *   阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
 *   腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
 *   AWS S3: `https://bucket.s3.amazonaws.com/config.js`
-*   GitHub Raw: `https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js`
 
-注意，如下：
-❌ GitHub页面	https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js	返回HTML页面
-✅ GitHub Raw	https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js	返回原始文件
+注意：
+- ❌ 不支持 GitHub 网页路径，如 https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js,	返回的是 HTML 页面
+- ✅ 必须使用 GitHub Raw 格式获取原始 JS 文件，如 https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js
 
 
-**2. 绝对路径**
+### 2. 本地路径
     
-也支持配置配置本地绝对路径，快速配置分析：
+支持传入本地绝对路径，适用于快速测试分析：
     
 ```json
 {
@@ -328,21 +339,6 @@ module.exports = config;
   }
 }
 ```
-
-**环境变量说明**
-
-| 变量名              | 默认值   | 说明                     |
-| ---------------- | ----- | ---------------------- |
-| `CONFIG_PATH`    | 必填    | 配置文件路径（本地路径或HTTPS URL） |
-| `CONFIG_MAX_AGE` | `300` | 远程配置缓存时间（秒），设为0禁用缓存    |
-
-缓存特性：
-
-*   智能缓存：默认缓存5分钟，提升访问速度
-*   容错机制：网络失败时自动使用过期缓存
-*   自动清理：启动时自动清理过期缓存文件
-*   实时更新：设置CONFIG\_MAX\_AGE=0禁用缓存，每次获取最新配置
-
 </details>
 
 <details>
@@ -362,13 +358,15 @@ grafana-mcp-analyzer --help
 
 
 <details>
-<summary>环境变量配置</summary>
+<summary>访问权限环境变量（可选）/summary>
+
+如需调用受保护的 Grafana API，可通过以下方式设置：
 
 ```bash
 export GRAFANA_URL="https://your-grafana.com"
 export GRAFANA_TOKEN="your-api-token"
 ```
-
+你也可以在配置文件中使用 Headers 方式直接注入 token 访问。
 </details>
 
 ## 配置示例
