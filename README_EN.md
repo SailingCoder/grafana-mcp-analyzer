@@ -52,18 +52,23 @@ npm install -g grafana-mcp-analyzer
 }
 ```
 
-Note: `CONFIG_PATH` supports absolute paths and remote paths. See advanced configuration below for details.
+Note: `CONFIG_PATH` supports absolute paths and remote paths. Remote paths are recommended for quick experience.
 
-### Step 3: Create Configuration File `grafana-config.js`
+### Step 3: Create Configuration File
 
-The `CONFIG_PATH` in step 2 is already configured with a remote path. If you just want to quickly experience this library, you can skip this step and go directly to step 4. If you want to use your own data sources or parameters, you can refer to the following configuration for customization.
+If you need to connect to your own data, create a configuration file named `grafana-config-play.js` at the `CONFIG_PATH` location.
 
-The following is the default configuration pointed to by CONFIG_PATH in step 2 (from documentation example):
+> If you just want to quickly experience the example, you can skip this step and go directly to step 4.
+
+<details>
+<summary>Click to expand and view example</summary>
 
 ```javascript
 /**
  * Configuration file based on Grafana Play demo instance
  * Data source (Dogecoin OHLC data): https://play.grafana.org/d/candlesticksss/candlestick2?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc
+ * Configuration file content source: https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js
+ * Request configuration methods: Supports http api and curl
  */
 const config = {
   // Grafana server address
@@ -83,63 +88,87 @@ const config = {
   // Query definitions
   queries: {
     // First query - using curl format (Dogecoin data from panel 2)
-    'dogecoin_panel_2': {
-      curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=grafana-testdata-datasource&requestId=SQR108' \\
-        -X POST \\
-        -H 'accept: application/json, text/plain, */*' \\
-        -H 'content-type: application/json' \\
-        -H 'x-datasource-uid: 9cY0WtPMz' \\
-        -H 'x-grafana-org-id: 1' \\
-        -H 'x-panel-id: 2' \\
-        -H 'x-panel-plugin-id: candlestick' \\
-        -H 'x-plugin-id: grafana-testdata-datasource' \\
-        --data-raw '{"queries":[{"csvFileName":"ohlc_dogecoin.csv","datasource":{"type":"grafana-testdata-datasource","uid":"9cY0WtPMz"},"refId":"A","scenarioId":"csv_file","datasourceId":153,"intervalMs":2000,"maxDataPoints":1150}],"from":"1626214410740","to":"1626216378921"}'`,
-      systemPrompt: \`You are a Dogecoin data analysis expert, focusing on OHLC (Open, High, Low, Close) data analysis.
+    // dogecoin_panel_2 ....
+
+    // Second query - using HTTP API format (Dogecoin data from panel 7)
+    'dogecoin_panel_7': {
+      url: 'api/ds/query',
+      method: 'POST',
+      params: {
+        ds_type: 'grafana-testdata-datasource',
+        requestId: 'SQR109'
+      },
+      headers: {
+        'accept': 'application/json, text/plain, */*',
+        'content-type': 'application/json',
+        'x-datasource-uid': '9cY0WtPMz',
+        'x-grafana-org-id': '1',
+        'x-panel-id': '7',
+        'x-panel-plugin-id': 'candlestick',
+        'x-plugin-id': 'grafana-testdata-datasource'
+      },
+      data: {
+        queries: [{
+          csvFileName: "ohlc_dogecoin.csv",
+          datasource: {
+            type: "grafana-testdata-datasource",
+            uid: "9cY0WtPMz"
+          },
+          refId: "A",
+          scenarioId: "csv_file",
+          datasourceId: 153,
+          intervalMs: 2000,
+          maxDataPoints: 1150
+        }],
+        from: "1626214410740",
+        to: "1626216378921"
+      },
+      systemPrompt: `You are a financial market technical analysis expert, focusing on cryptocurrency market analysis.
 
 **Analysis Focus**:
-1. Price trends and volatility patterns - Identify main trend direction and change cycles
-2. Support and resistance level identification - Find key price levels
-3. Trading opportunity analysis - Identify entry and exit timing based on technical indicators
-4. Risk assessment and recommendations - Evaluate current market risk and investment advice
-5. Technical indicator analysis - Comprehensive analysis combining multiple technical indicators
+1. Market trend and momentum analysis - Identify main trend direction and momentum changes
+2. Price pattern recognition - Identify classic patterns like head and shoulders, double bottoms, triangles, etc.
+3. Volume and price relationship - Analyze volume support for price trends
+4. Market sentiment assessment - Evaluate market sentiment based on technical indicators
+5. Short-term and long-term investment strategy recommendations - Provide investment advice for different time periods
 
 **Output Requirements**:
 - Analyze based on actual data, provide specific numerical interpretations
-- Identify key price levels and trend changes
+- Identify key price patterns and trend changes
 - Give clear trading recommendations and risk warnings
 - Provide actionable investment strategies
 
-Please provide professional investment analysis and recommendations.\`
+Please provide a detailed technical analysis report.`
     },
-    overall_cpu_utilization: {
-      curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=prometheus&requestId=SQR371' \\
-  -H 'accept: application/json, text/plain, */*' \\
-  -H 'accept-language: zh-CN,zh;q=0.9' \\
-  -H 'cache-control: no-cache' \\
-  -H 'content-type: application/json' \\
-  -b '_ga=GA1.2.387525048.1751712678; rl_page_init_referrer=RudderEncrypt%3AU2FsdGVkX191kw8iAnoyFkv6jbIl3EOkbSdK21uFLwGid2zCBcXWXVl4rK8kP9uB; rl_page_init_referring_domain=RudderEncrypt%3AU2FsdGVkX1%2FQpNd4Fbr7FgBG8YeyeoTAiBUO993bC9E%3D; _gid=GA1.2.354949503.1752935466; rl_group_id=RudderEncrypt%3AU2FsdGVkX1%2Fyd5jy%2Bq5XZfeqcDGhXMhz56ANft0NLCo%3D; rl_group_trait=RudderEncrypt%3AU2FsdGVkX1%2F9hmHjbWlb%2F%2B2RP0JlMRymkg9QBgUw3oE%3D; rl_anonymous_id=RudderEncrypt%3AU2FsdGVkX19JQD0l8hbD8ApQMSbVisxyXCEuam7wcYtcnfywOO67gQc7EjkFm0bW%2BNZjB%2BsmRZnHy5ccbyeoHQ%3D%3D; rl_user_id=RudderEncrypt%3AU2FsdGVkX18s9kRPf%2BwQSRIaYGd9O5kGPmZh%2FQhoq4LyI63CRJNoBrh7Cc06OuAO; rl_trait=RudderEncrypt%3AU2FsdGVkX1%2B%2FhZugE4qfWyjSTEFKcsYs0DwcOyfdazoJfVtGv4x0q%2BOFxbqHDD0r%2BLWcg%2F6CceMFQH3dJIa3C0WyF0hWoBLLwV%2BiQB4077KEHTtX%2BkJxjJ4X6czXwpsh%2FsV9e8l4ptVfz%2FgyJLh1qw%3D%3D; _gat=1; _ga_Y0HRZEVBCW=GS2.2.s1752935474$o2$g1$t1752935591$j38$l0$h0; rl_session=RudderEncrypt%3AU2FsdGVkX1%2BUhBGRm24hqUS5TRKZrN31aK8t518MW16GZKplO6iFClFnqmpYiglWbXqKgnDZz8o%2FaGxuQouIM%2BN0BBr8Nh3HY6chGRtVUEeRSRXAAQiiH30%2Bp6%2F57AoqhwV3k0jqvIikr69S9sDpCg%3D%3D' \\
-  -H 'origin: https://play.grafana.org' \\
-  -H 'pragma: no-cache' \\
-  -H 'priority: u=1, i' \\
-  -H 'referer: https://play.grafana.org/d/cNMLIAFK/cpu-utilization-details-cores?var-interval=$__auto&orgId=1&from=now-3h&to=now&timezone=browser&var-host=faro-shop-control-plane&var-cpu=$__all&refresh=5s&editPanel=22&inspect=22&inspectTab=query' \\
-  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \\
-  -H 'sec-ch-ua-mobile: ?0' \\
-  -H 'sec-ch-ua-platform: "macOS"' \\
-  -H 'sec-fetch-dest: empty' \\
-  -H 'sec-fetch-mode: cors' \\
-  -H 'sec-fetch-site: same-origin' \\
-  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' \\
-  -H 'x-dashboard-title: CPU Utilization Details (Cores)' \\
-  -H 'x-dashboard-uid: cNMLIAFK' \\
-  -H 'x-datasource-uid: grafanacloud-prom' \\
-  -H 'x-grafana-device-id: 2b0db28108a0a56f4a0dcf3d59537fe7' \\
-  -H 'x-grafana-org-id: 1' \\
-  -H 'x-panel-id: 22' \\
-  -H 'x-panel-plugin-id: timeseries' \\
-  -H 'x-panel-title: $host - Overall CPU Utilization' \\
-  -H 'x-plugin-id: prometheus' \\
+    overall_cpu_utilization100: {
+      curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=prometheus&requestId=SQR371' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: zh-CN,zh;q=0.9' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: application/json' \
+  -b '_ga=GA1.2.387525048.1751712678; rl_page_init_referrer=RudderEncrypt%3AU2FsdGVkX191kw8iAnoyFkv6jbIl3EOkbSdK21uFLwGid2zCBcXWXVl4rK8kP9uB; rl_page_init_referring_domain=RudderEncrypt%3AU2FsdGVkX1%2FQpNd4Fbr7FgBG8YeyeoTAiBUO993bC9E%3D; _gid=GA1.2.354949503.1752935466; rl_group_id=RudderEncrypt%3AU2FsdGVkX1%2Fyd5jy%2Bq5XZfeqcDGhXMhz56ANft0NLCo%3D; rl_group_trait=RudderEncrypt%3AU2FsdGVkX1%2F9hmHjbWlb%2F%2B2RP0JlMRymkg9QBgUw3oE%3D; rl_anonymous_id=RudderEncrypt%3AU2FsdGVkX19JQD0l8hbD8ApQMSbVisxyXCEuam7wcYtcnfywOO67gQc7EjkFm0bW%2BNZjB%2BsmRZnHy5ccbyeoHQ%3D%3D; rl_user_id=RudderEncrypt%3AU2FsdGVkX18s9kRPf%2BwQSRIaYGd9O5kGPmZh%2FQhoq4LyI63CRJNoBrh7Cc06OuAO; rl_trait=RudderEncrypt%3AU2FsdGVkX1%2B%2FhZugE4qfWyjSTEFKcsYs0DwcOyfdazoJfVtGv4x0q%2BOFxbqHDD0r%2BLWcg%2F6CceMFQH3dJIa3C0WyF0hWoBLLwV%2BiQB4077KEHTtX%2BkJxjJ4X6czXwpsh%2FsV9e8l4ptVfz%2FgyJLh1qw%3D%3D; _gat=1; _ga_Y0HRZEVBCW=GS2.2.s1752935474$o2$g1$t1752935591$j38$l0$h0; rl_session=RudderEncrypt%3AU2FsdGVkX1%2BUhBGRm24hqUS5TRKZrN31aK8t518MW16GZKplO6iFClFnqmpYiglWbXqKgnDZz8o%2FaGxuQouIM%2BN0BBr8Nh3HY6chGRtVUEeRSRXAAQiiH30%2Bp6%2F57AoqhwV3k0jqvIikr69S9sDpCg%3D%3D' \
+  -H 'origin: https://play.grafana.org' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://play.grafana.org/d/cNMLIAFK/cpu-utilization-details-cores?var-interval=$__auto&orgId=1&from=now-3h&to=now&timezone=browser&var-host=faro-shop-control-plane&var-cpu=$__all&refresh=5s&editPanel=22&inspect=22&inspectTab=query' \
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' \
+  -H 'x-dashboard-title: CPU Utilization Details (Cores)' \
+  -H 'x-dashboard-uid: cNMLIAFK' \
+  -H 'x-datasource-uid: grafanacloud-prom' \
+  -H 'x-grafana-device-id: 2b0db28108a0a56f4a0dcf3d59537fe7' \
+  -H 'x-grafana-org-id: 1' \
+  -H 'x-panel-id: 22' \
+  -H 'x-panel-plugin-id: timeseries' \
+  -H 'x-panel-title: $host - Overall CPU Utilization' \
+  -H 'x-plugin-id: prometheus' \
   --data-raw $'{"queries":[{"calculatedInterval":"2s","datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"datasourceErrors":{},"errors":{},"expr":"clamp_max((avg by (mode) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[1m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"{{mode}}","metric":"","refId":"A","step":300,"exemplar":false,"requestId":"22A","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778},{"datasource":{"type":"prometheus","uid":"grafanacloud-prom"},"expr":"clamp_max(max by () (sum  by (cpu) ( (clamp_max(rate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) or (clamp_max(irate(node_cpu_seconds_total{instance=\\"faro-shop-control-plane\\",mode\u0021=\\"idle\\",mode\u0021=\\"iowait\\"}[5m]),1)) )),1)","format":"time_series","hide":false,"interval":"1m","intervalFactor":1,"legendFormat":"Max Core Utilization","refId":"B","exemplar":false,"requestId":"22B","utcOffsetSec":28800,"scopes":[],"adhocFilters":[],"datasourceId":171,"intervalMs":60000,"maxDataPoints":778}],"from":"1752924823337","to":"1752935623337"}'`,
-      systemPrompt: \`You are a system performance analysis expert, focusing on CPU utilization data analysis.
+      systemPrompt: `You are a system performance analysis expert, focusing on CPU utilization data analysis.
 
 **Core Task**: Directly answer the user's question: "How is my server doing right now?"
 
@@ -162,42 +191,28 @@ What is the current CPU utilization? (specific values)
 ## Action Recommendations
 [Specific actionable suggestions]
 
-**Important**: If unable to obtain actual data, please clearly state "Unable to obtain actual data" and explain possible reasons. Do not analyze based on assumptions!\`
+**Important**: If unable to obtain actual data, please clearly state "Unable to obtain actual data" and explain possible reasons. Do not analyze based on assumptions!`
     },
   }
 };
 
-module.exports = config; 
+module.exports = config;
 ```
+</details>
 
-**Configuration Tips**:
-
-**Browser Copy curl Command** (Recommended):
-
-1.  Execute query in Grafana
-2.  Press F12 to open developer tools → Network tab
-3.  Find query request → Right click → Copy as cURL
-
-**HTTP API Configuration**:
-
-1.  Get Data parameters: Enter chart → "Query Inspector" → "JSON" parse → Copy request body
-2.  Get URL and Headers Token: View request parameters through Network panel, manually construct HTTP configuration.
-
-> For configuration file examples, see: [Basic Configuration](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js) and [Remote Real Configuration](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
-
-### Step 4: Start Using
+### Step 4: Start Using!
 
 **Completely restart Cursor**, then experience intelligent analysis:
 
-> 👤 You: Analyze dogecoin_panel_2 data  
+> 👤 You: Analyze overall_cpu_utilization100 data\
 > 🤖 AI: Connecting to Grafana and analyzing...
 
-> 👤 You: Aggregate analysis of dogecoin_panel_2 and dogecoin_panel_7 data  
+> 👤 You: Aggregate analysis of dogecoin_panel_2 and dogecoin_panel_7 data\
 > 🤖 AI: Querying multiple indicators simultaneously for comprehensive correlation analysis...
 
 **Configuration Complete!**
 
-![Demo Screenshot](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
+![Demo Screenshot](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
 
 ## MCP Tool List
 
@@ -221,8 +236,33 @@ module.exports = config;
 
 ## Advanced Configuration
 
+The following content is for users who need to customize data sources or perform more advanced usage scenarios.
+
 <details>
-<summary>Environment Variable Configuration</summary>
+<summary>How to Get Request Configuration?</summary>
+
+### Method 1: HTTP API (like `dogecoin_panel_7`)
+
+1.  Get Data parameters: Enter chart → "Query Inspector" → "JSON" parse → Copy request body
+2.  Get URL and Headers Token: View request parameters through Network panel, manually construct HTTP configuration.
+
+### Method 2: curl (Recommended, applicable to all panels, like `overall_cpu_utilization100`):
+
+1.  Execute query in Grafana
+2.  Press F12 to open developer tools → Network tab
+3.  Find query request → Right click → Copy as cURL
+4.  Paste the copied curl into the configuration file
+</details>
+
+<details>
+<summary>Configuration File Examples</summary>
+
+- [Basic Configuration](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
+- [Remote Real Configuration](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
+</details>
+
+<details>
+<summary>Environment Variable Description</summary>
 
 ```json
 {
@@ -238,49 +278,56 @@ module.exports = config;
     }
   }
 }
+
 ```
 
-- MAX_CHUNK_SIZE: Maximum data chunk size (KB, default 100)
-- SESSION_TIMEOUT_HOURS: Session timeout (hours, default 24)
-- CONFIG_MAX_AGE: Configuration cache time (seconds, default 300)
+
+|Environment Variable | Type | Default | Description |
+| ----- | -- | --- | -- |
+| `CONFIG_PATH` | string | Required | Configuration file path (local or HTTPS remote address) |
+| `MAX_CHUNK_SIZE` | number | `100` | Maximum data chunk size (KB), affects slicing performance |
+| `SESSION_TIMEOUT_HOURS` | number | `24` | Session timeout (hours) |
+| `CONFIG_MAX_AGE` | number | `300` | Remote configuration file cache time (seconds), set to `0` to disable |
+
+Cache features:
+
+- Smart configuration file caching (default 5 minutes)
+- Use local expired cache when network fails
+- Automatic cache file cleanup on startup
+- Set CONFIG_MAX_AGE=0 to disable cache and fetch latest configuration every time
 
 </details>
 
 <details>
-<summary>Configuration Support: Absolute Paths, Remote Paths</summary>
+<summary>Supported Configuration Types: Local Absolute Path / Remote Path</summary>
     
-**1. Remote Paths**
+### 1. Remote Paths
     
 Support accessing remote configuration files via HTTPS URL, suitable for team collaboration and multi-environment deployment:
 
 ```json
 {
-  "mcpServers": {
-    "grafana": {
-      "command": "grafana-mcp-analyzer",
-      "env": {
-        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
-        "CONFIG_MAX_AGE": "600"
-      }
-    }
+  "env": {
+    "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
   }
 }
 ```
 
 Supported remote storage:
 
+*   GitHub Raw: `https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js`
 *   Alibaba Cloud OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
 *   Tencent Cloud COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
 *   AWS S3: `https://bucket.s3.amazonaws.com/config.js`
-*   GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
 
 Note:
-❌ GitHub Page	https://github.com/user/repo/blob/main/file.js	Returns HTML page
-✅ GitHub Raw	https://raw.githubusercontent.com/user/repo/main/file.js	Returns raw file
+- ❌ GitHub web page paths not supported, like https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js, returns HTML page
+- ✅ Must use GitHub Raw format to get raw JS file, like https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js
 
-**2. Absolute Paths**
+
+### 2. Local Paths
     
-Also supports configuring local absolute paths for quick configuration analysis:
+Support configuring local absolute paths for quick testing analysis:
     
 ```json
 {
@@ -294,21 +341,6 @@ Also supports configuring local absolute paths for quick configuration analysis:
   }
 }
 ```
-
-**Environment Variable Description**
-
-| Variable Name     | Default | Description                                    |
-| ---------------- | ------- | ---------------------------------------------- |
-| `CONFIG_PATH`    | Required| Configuration file path (local path or HTTPS URL) |
-| `CONFIG_MAX_AGE` | `300`   | Remote configuration cache time (seconds), set to 0 to disable cache |
-
-Cache features:
-
-*   Smart caching: Default 5-minute cache, improves access speed
-*   Fault tolerance: Automatically use expired cache when network fails
-*   Auto cleanup: Automatically clean expired cache files on startup
-*   Real-time updates: Set CONFIG_MAX_AGE=0 to disable cache and get latest configuration every time
-
 </details>
 
 <details>
@@ -326,14 +358,17 @@ grafana-mcp-analyzer --help
 
 </details>
 
+
 <details>
-<summary>Environment Variable Configuration</summary>
+<summary>Access Permission Environment Variables (Optional)</summary>
+
+If you need to call protected Grafana APIs, you can set:
 
 ```bash
 export GRAFANA_URL="https://your-grafana.com"
 export GRAFANA_TOKEN="your-api-token"
 ```
-
+You can also directly inject tokens via Headers in the configuration file for access.
 </details>
 
 ## Configuration Examples
@@ -374,7 +409,6 @@ Please use simple language and give specific actionable suggestions.`
 
 <details>
 <summary>Financial Risk Analysis</summary>
-
 **User Question**: "Is there risk in my trading system? How to prevent fraud?"
 
 ```javascript
@@ -591,12 +625,9 @@ database_performance: {
 
 </details>
 
----
-
 ## Recommended Articles
 
-- [grafana-mcp-analyzer: Lightweight AI analysis monitoring chart DevOps tool based on MCP!](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - CSDN technical blog in-depth analysis
-- [AI Intelligent Analysis Demo](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/analysis-results) - View real AI analysis results demo
+*   [grafana-mcp-analyzer: Lightweight AI analysis monitoring chart DevOps tool based on MCP!](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - CSDN technical blog in-depth analysis
 
 ## License
 
