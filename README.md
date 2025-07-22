@@ -56,7 +56,9 @@ npm install -g grafana-mcp-analyzer
 
 ### 第三步：编写配置文件
 
-如果你希望使用自己的数据源，可创建一个`CONFIG_PATH`路径下的`grafana-config-play.js`配置文件：
+如果你需要连接自己的数据，请在 `CONFIG_PATH` 路径下创建一个名为 `grafana-config-play.js` 的配置文件。
+
+> 如果你只想快速体验示例，可跳过此步骤，直接执行第四步。
 
 <details>
 <summary>点击展开查看示例</summary>
