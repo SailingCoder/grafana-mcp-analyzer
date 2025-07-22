@@ -210,7 +210,7 @@ module.exports = config;
 
 **配置完成！**
 
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/922ac00595694c5796556586b224d63f.png#pic_center)
+![在这里插入图片描述](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
 
 ## MCP工具清单
 
