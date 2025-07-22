@@ -623,6 +623,10 @@ database_performance: {
 
 </details>
 
+## 文章推荐
+
+*   [grafana-mcp-analyzer：基于 MCP 的轻量 AI 分析监控图表的运维神器！](https://blog.csdn.net/qq_37834631/article/details/148473620?spm=1001.2014.3001.5501) - CSDN技术博客深度解析
+
 ## 许可证
 
 MIT 开源协议。详见 [LICENSE](LICENSE) 文件。
