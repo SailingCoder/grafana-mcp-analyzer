@@ -65,7 +65,6 @@ npm install -g grafana-mcp-analyzer
  * 基于Grafana Play演示实例的配置文件
  * 数据源(狗狗币OHLC数据)：https://play.grafana.org/d/candlesticksss/candlestick2?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc
  * 以下配置文件内容来源：https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js
- * 配置方式：支持 HTTP API（dogecoin_panel_7）、curl（overall_cpu_utilization100）
  */
 const config = {
   // Grafana服务器地址
@@ -196,15 +195,15 @@ const config = {
 module.exports = config;
 ```
 
-**配置获取技巧**：
+**配置方式**：
 
-**浏览器复制curl命令**（推荐）：
+**1. curl**（推荐, 浏览器直接复制，如overall_cpu_utilization100）：
 
 1.  在Grafana中执行查询
 2.  按F12打开开发者工具 → Network标签页
 3.  找到查询请求 → 右键 → Copy as cURL
 
-**HTTP API配置：**
+**2. HTTP API**（如dogecoin_panel_7）：
 
 1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
 2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
