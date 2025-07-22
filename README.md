@@ -358,7 +358,7 @@ grafana-mcp-analyzer --help
 
 
 <details>
-<summary>访问权限环境变量（可选）/summary>
+<summary>访问权限环境变量（可选）</summary>
 
 如需调用受保护的 Grafana API，可通过以下方式设置：
 
