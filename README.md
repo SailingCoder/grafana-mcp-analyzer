@@ -58,13 +58,12 @@ npm install -g grafana-mcp-analyzer
 
 步骤2 中`CONFIG_PATH`已经配置了远程路径，如果你只是想快速体验这个库，可以跳过这一步，然后直接执行步骤4；如果你想使用自己的数据源或参数，可以参考以下配置来自定义。
 
-以下是步骤 2 中 CONFIG_PATH 指向的默认配置（来自文档示例）：
-
 ```javascript
 /**
  * 基于Grafana Play演示实例的配置文件
  * 数据源(狗狗币OHLC数据)：https://play.grafana.org/d/candlesticksss/candlestick2?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc
  * 以下配置文件内容来源：https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js
+ * Request 配置方式：支持 http api 和 curl
  */
 const config = {
   // Grafana服务器地址
@@ -195,21 +194,6 @@ const config = {
 module.exports = config;
 ```
 
-**配置方式**：
-
-**1. curl**（推荐, 浏览器直接复制，如overall_cpu_utilization100）：
-
-1.  在Grafana中执行查询
-2.  按F12打开开发者工具 → Network标签页
-3.  找到查询请求 → 右键 → Copy as cURL
-
-**2. HTTP API**（如dogecoin_panel_7）：
-
-1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
-2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
-
-> 配置文件示例，可见：[基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)和[远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
-
 ### 步骤4：开始使用
 
 **完全重启Cursor**，然后体验智能分析：
@@ -245,6 +229,28 @@ module.exports = config;
 ```
 
 ## 高级配置
+
+<details>
+<summary>如何获取 Request 配置方式？</summary>
+
+**1. HTTP API**（如dogecoin_panel_7）：
+
+1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
+2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
+
+**2. curl**（推荐, 浏览器直接复制，如overall_cpu_utilization100）：
+
+1.  在Grafana中执行查询
+2.  按F12打开开发者工具 → Network标签页
+3.  找到查询请求 → 右键 → Copy as cURL
+</details>
+
+<details>
+<summary>配置文件示例</summary>
+
+[基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
+[远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
+</details>
 
 <details>
 <summary>环境变量配置</summary>
@@ -299,11 +305,11 @@ module.exports = config;
 *   阿里云OSS: `https://bucket.oss-cn-hangzhou.aliyuncs.com/config.js`
 *   腾讯云COS: `https://bucket-123.cos.ap-shanghai.myqcloud.com/config.js`
 *   AWS S3: `https://bucket.s3.amazonaws.com/config.js`
-*   GitHub Raw: `https://raw.githubusercontent.com/user/repo/main/config.js`
+*   GitHub Raw: `https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js`
 
 注意，如下：
-❌ GitHub页面	https://github.com/user/repo/blob/main/file.js	返回HTML页面
-✅ GitHub Raw	https://raw.githubusercontent.com/user/repo/main/file.js	返回原始文件
+❌ GitHub页面	https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js	返回HTML页面
+✅ GitHub Raw	https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js	返回原始文件
 
 
 **2. 绝对路径**
