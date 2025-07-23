@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { createIntelligentChunks, validateChunks, generateChunkingGuidance, type ChunkingResult } from './chunk-manager.js';
 
 // 数据存储根目录
 const DATA_STORE_ROOT = process.env.DATA_STORE_ROOT || 
@@ -54,63 +55,89 @@ export async function getRequestMetadata(requestId: string) {
   }
 }
 
-// 存储响应数据
+// 存储响应数据 - 使用智能分块
 export async function storeResponseData(
   requestId: string,
-  data: any,
-  maxChunkSize = 500 * 1024 // 500KB - 降低阈值以支持更好的分块
+  data: any
 ) {
   const requestDir = path.join(DATA_STORE_ROOT, requestId);
   const dataDir = path.join(requestDir, 'data');
   await ensureDir(dataDir);
   
-  const dataStr = JSON.stringify(data, null, 2);
-  const dataSize = Buffer.byteLength(dataStr, 'utf8');
+  // 使用智能分块管理器
+  const chunkingResult: ChunkingResult = createIntelligentChunks(data);
+  const { chunks, metadata } = chunkingResult;
   
-  if (dataSize <= maxChunkSize) {
-    // 数据较小，直接存储为完整文件
+  // 验证分块结果
+  if (!validateChunks(chunks)) {
+    throw new Error('分块验证失败：存在超过大小限制的分块');
+  }
+  
+  if (chunks.length === 1) {
+    // 只有一块，存储为完整文件
     const fullPath = path.join(dataDir, 'full.json');
-    await fs.writeFile(fullPath, dataStr);
+    await fs.writeFile(fullPath, JSON.stringify(data, null, 2));
+    
     return { 
       type: 'full', 
-      size: dataSize,
+      size: metadata.totalSize,
       chunks: 1,
-      resourceUri: `monitoring-data://${requestId}/data`
+      resourceUri: `monitoring-data://${requestId}/data`,
+      chunkingInfo: {
+        dataType: metadata.dataType,
+        chunkCount: 1,
+        guidance: generateChunkingGuidance(chunks)
+      }
     };
   } else {
-    // 数据较大，分块存储
-    const chunkSize = maxChunkSize;
-    const totalChunks = Math.ceil(dataSize / chunkSize);
-    
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * chunkSize;
-      const end = Math.min(start + chunkSize, dataSize);
-      const chunk = dataStr.slice(start, end);
-      
-      const chunkPath = path.join(dataDir, `chunk-${i}.json`);
-      await fs.writeFile(chunkPath, chunk);
+    // 多块，存储每个分块
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const chunkPath = path.join(dataDir, `chunk-${i + 1}.json`);
+      await fs.writeFile(chunkPath, JSON.stringify(chunk, null, 2));
     }
+    
+    // 存储分块元数据
+    const metadataPath = path.join(dataDir, 'chunking-metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify({
+      totalChunks: chunks.length,
+      metadata,
+      guidance: generateChunkingGuidance(chunks)
+    }, null, 2));
     
     return { 
       type: 'chunked', 
-      totalChunks, 
-      size: dataSize,
-      resourceUris: Array.from({ length: totalChunks }, (_, i) => 
-        `monitoring-data://${requestId}/chunk-${i}`
-      )
-    };
-  }
+      totalChunks: chunks.length, 
+      size: metadata.totalSize,
+      resourceUris: Array.from({ length: chunks.length }, (_, i) => 
+        `monitoring-data://${requestId}/chunk-${i + 1}`
+      ),
+      chunkingInfo: {
+        dataType: metadata.dataType,
+        chunkCount: chunks.length,
+        guidance: generateChunkingGuidance(chunks)
+      }
+         };
+   }
 }
 
-// 获取响应数据
+// 获取响应数据 - 支持智能分块
 export async function getResponseData(requestId: string, chunkId?: string) {
   const dataDir = path.join(DATA_STORE_ROOT, requestId, 'data');
   
   if (chunkId) {
-    // 获取特定数据块
+    // 获取特定分块
     const chunkPath = path.join(dataDir, `${chunkId}.json`);
     try {
       const content = await fs.readFile(chunkPath, 'utf-8');
+      const chunk = JSON.parse(content);
+      
+      // 如果是智能分块格式，返回分块内容
+      if (chunk.index && chunk.content !== undefined) {
+        return chunk;
+      }
+      
+      // 如果是旧格式，直接返回内容
       return content;
     } catch (error) {
       throw new Error(`Data chunk not found: ${requestId}/${chunkId}`);
@@ -122,31 +149,46 @@ export async function getResponseData(requestId: string, chunkId?: string) {
       const content = await fs.readFile(fullPath, 'utf-8');
       return JSON.parse(content);
     } catch (error) {
-      // 如果没有完整数据，尝试组合分块数据
+      // 如果没有完整数据，尝试获取分块元数据
       try {
-        const files = await fs.readdir(dataDir);
-        const chunkFiles = files
-          .filter(f => f.startsWith('chunk-') && f.endsWith('.json'))
-          .sort((a, b) => {
-            const aNum = parseInt(a.match(/chunk-(\d+)\.json$/)?.[1] || '0');
-            const bNum = parseInt(b.match(/chunk-(\d+)\.json$/)?.[1] || '0');
-            return aNum - bNum;
-          });
+        const metadataPath = path.join(dataDir, 'chunking-metadata.json');
+        const metadataContent = await fs.readFile(metadataPath, 'utf-8');
+        const metadata = JSON.parse(metadataContent);
         
-        if (chunkFiles.length === 0) {
-          throw new Error(`No data found for request: ${requestId}`);
+        // 返回分块信息，让调用者知道需要分块读取
+        return {
+          type: 'chunked',
+          metadata,
+          message: '数据已分块存储，请使用chunk-1, chunk-2等参数获取具体分块'
+        };
+      } catch (metadataError) {
+        // 尝试旧格式的分块组合
+        try {
+          const files = await fs.readdir(dataDir);
+          const chunkFiles = files
+            .filter(f => f.startsWith('chunk-') && f.endsWith('.json'))
+            .sort((a, b) => {
+              const aNum = parseInt(a.match(/chunk-(\d+)\.json$/)?.[1] || '0');
+              const bNum = parseInt(b.match(/chunk-(\d+)\.json$/)?.[1] || '0');
+              return aNum - bNum;
+            });
+          
+          if (chunkFiles.length === 0) {
+            throw new Error(`No data found for request: ${requestId}`);
+          }
+          
+          // 尝试组合旧格式分块
+          let fullData = '';
+          for (const chunkFile of chunkFiles) {
+            const chunkPath = path.join(dataDir, chunkFile);
+            const chunkContent = await fs.readFile(chunkPath, 'utf-8');
+            fullData += chunkContent;
+          }
+          
+          return JSON.parse(fullData);
+        } catch (combineError) {
+          throw new Error(`Failed to get response data: ${requestId}`);
         }
-        
-        let fullData = '';
-        for (const chunkFile of chunkFiles) {
-          const chunkPath = path.join(dataDir, chunkFile);
-          const chunkContent = await fs.readFile(chunkPath, 'utf-8');
-          fullData += chunkContent;
-        }
-        
-        return JSON.parse(fullData);
-      } catch (combineError) {
-        throw new Error(`Failed to get response data: ${requestId}`);
       }
     }
   }

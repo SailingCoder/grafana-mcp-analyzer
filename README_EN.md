@@ -196,7 +196,7 @@ What is the current CPU utilization? (specific values)
   }
 };
 
-module.exports = config;
+module.exports = config; 
 ```
 </details>
 
@@ -307,7 +307,7 @@ Support accessing remote configuration files via HTTPS URL, suitable for team co
 
 ```json
 {
-  "env": {
+      "env": {
     "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
   }
 }

@@ -88,10 +88,10 @@ async function processDataWithStrategy(requestId: string, data: any) {
     // 支持Resources，根据数据大小决定是否分包
     if (dataSize <= maxChunkSize) {
               console.log('✅ 支持Resources且数据较小，存储为完整文件');
-        return await storeResponseData(requestId, data, maxChunkSize);
+        return await storeResponseData(requestId, data);
       } else {
         console.log('📦 支持Resources且数据较大，使用分块存储');
-      return await storeResponseData(requestId, data, maxChunkSize);
+      return await storeResponseData(requestId, data);
     }
   } else {
     // 不支持Resources，无论数据大小都不分包，使用智能摘要
@@ -893,47 +893,62 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     }
   );
 
-  // 获取监控数据工具（ResourceLinks替代方案）
+  // 获取监控数据工具（支持智能分块）
   server.registerTool(
     'get_monitoring_data',
     {
       title: '获取监控数据',
-      description: '获取分析数据的主要工具。在不支持Resources时禁止使用chunk参数',
+      description: '获取分析数据的主要工具。支持智能分块，每块最大50KB',
       inputSchema: {
         requestId: z.string().describe('请求ID'),
-        dataType: z.string().default('data').describe('数据类型：data（完整数据）/analysis（分析结果）。禁止使用chunk-*')
+        dataType: z.string().default('data').describe('数据类型：data（完整数据）/analysis（分析结果）/chunk-1,chunk-2等（分块数据）')
       }
     },
     async ({ requestId, dataType }) => {
       try {
-        // 检查Resources支持状态
-        const supportsResources = detectResourcesSupport();
-        
         // 获取数据
         let data;
         if (dataType === 'analysis') {
           data = await getAnalysis(requestId);
         } else if (dataType?.startsWith('chunk-')) {
-          // 如果不支持Resources，禁止获取分块数据
-          if (!supportsResources) {
-            throw new Error('分块数据获取被禁用：当前配置不支持Resources，请使用dataType="data"获取完整数据');
-          }
+          // 获取特定分块
           data = await getResponseData(requestId, dataType);
         } else {
+          // 获取完整数据或分块信息
           data = await getResponseData(requestId);
         }
         
         const dataSize = JSON.stringify(data).length;
         
-        return createResponse({
+        // 如果是分块数据，添加分块信息
+        let response: any = {
           success: true,
           requestId,
           dataType,
           data: data,
           dataSize,
-          message: '数据获取成功',
-          note: '这是通过工具获取的数据，与ResourceLinks包含相同内容'
-        });
+          message: '数据获取成功'
+        };
+        
+        // 如果是分块格式，添加分块指导信息
+        if (dataType?.startsWith('chunk-') && data.index) {
+          response.chunkInfo = {
+            index: data.index,
+            totalChunks: data.totalChunks,
+            type: data.type,
+            path: data.path,
+            size: data.size
+          };
+          response.message = `分块${data.index}/${data.totalChunks}获取成功`;
+        }
+        
+        // 如果是分块元数据，添加分块指导
+        if (data.type === 'chunked' && data.metadata) {
+          response.chunkingInfo = data.metadata;
+          response.message = '数据已分块存储，请使用chunk-1, chunk-2等参数获取具体分块';
+        }
+        
+        return createResponse(response);
         
       } catch (error: any) {
         console.error(`[Get Data Tool] 数据获取失败: ${error.message}`);
