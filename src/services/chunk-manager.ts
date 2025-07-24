@@ -1,425 +1,780 @@
-/**
- * 严格分块管理器
- * 实现结构感知的严格分块方案，默认50KB，支持环境变量配置
- */
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
-export interface Chunk {
+// 严格分块大小：完全通过环境变量配置
+// 支持的环境变量：
+// - MAX_CHUNK_SIZE: 分块大小（KB），默认50KB
+// - DEFAULT_CHUNK_SIZE: 默认分块大小（KB），默认50KB
+
+// 分块类型定义
+export interface DataChunk {
+  id: string;
   index: number;
   totalChunks: number;
-  type: string;
-  path: string[];
+  type: 'metadata' | 'data' | 'oversize';
+  contentType: string;
   content: any;
   size: number;
-  metadata?: any;
+  metadata?: {
+    startIndex?: number;
+    endIndex?: number;
+    timeRange?: { start: string; end: string };
+    dataType?: string;
+  };
 }
 
+// 分块结果
 export interface ChunkingResult {
-  chunks: Chunk[];
+  chunks: DataChunk[];
   metadata: {
     totalSize: number;
-    chunkCount: number;
+    totalChunks: number;
     dataType: string;
-    structure: any;
+    chunkingStrategy: string;
   };
 }
 
 /**
- * 获取最大分块大小，支持环境变量配置
+ * 获取最大分块大小，完全通过环境变量配置
  */
 export function getMaxChunkSize(): number {
-  const envSize = process.env.MAX_CHUNK_SIZE;
-  if (envSize) {
-    const parsedSize = Number(envSize);
+  // 首先尝试 MAX_CHUNK_SIZE
+  const maxChunkSize = process.env.MAX_CHUNK_SIZE;
+  if (maxChunkSize) {
+    const parsedSize = Number(maxChunkSize);
     if (!isNaN(parsedSize) && parsedSize > 0) {
-      return parsedSize;
+      return parsedSize * 1024; // 转换为字节
     }
   }
-  return 50 * 1024; // 默认50KB
-}
-
-/**
- * 检测Grafana数据类型
- */
-export function detectGrafanaDataType(data: any): string {
-  // 检查包装后的 ExtractedData 结构
-  if (data?.data?.results && typeof data.data.results === 'object') {
-    return 'grafana-query';
-  }
-  // 检查直接的查询结果结构
-  if (data?.results && (Array.isArray(data.results) || typeof data.results === 'object')) {
-    return 'grafana-query';
-  }
-  if (data?.series && Array.isArray(data.series)) {
-    return 'timeseries';
-  }
-  if (data?.tables && Array.isArray(data.tables)) {
-    return 'table';
-  }
-  // 检查Elasticsearch数据结构
-  if (data?.data?.responses || data?.responses) {
-    return 'elasticsearch';
-  }
-  // 检查其他可能的Elasticsearch结构
-  if (data?.hits || data?.aggregations || (data?.data && (data.data.hits || data.data.aggregations))) {
-    return 'elasticsearch';
-  }
-  // 检查嵌套的Elasticsearch结构（通过ExtractedData包装）
-  if (data?.type === 'elasticsearch' || (data?.data && Array.isArray(data.data.responses))) {
-    return 'elasticsearch';
-  }
-  if (Array.isArray(data)) {
-    return 'array';
-  }
-  if (typeof data === 'object' && data !== null) {
-    return 'object';
-  }
-  return 'generic';
-}
-
-/**
- * 计算数据大小
- */
-export function calculateDataSize(data: any): number {
-  return Buffer.byteLength(JSON.stringify(data), 'utf8');
-}
-
-/**
- * 创建分块
- */
-function createChunk(
-  content: any, 
-  path: string[], 
-  index: number, 
-  totalChunks: number, 
-  chunkType: string
-): Chunk {
-  const size = calculateDataSize(content);
-  return {
-    index,
-    totalChunks,
-    type: chunkType,
-    path,
-    content,
-    size
-  };
-}
-
-/**
- * 分割超长字符串
- */
-function splitLongString(data: string, path: string[], maxChunkSize: number): Chunk[] {
-  const chunks: Chunk[] = [];
-  const totalSize = Buffer.byteLength(data, 'utf8');
   
-  // 计算每个字符的平均字节数
-  const avgBytesPerChar = totalSize / data.length;
-  const charsPerChunk = Math.floor(maxChunkSize / avgBytesPerChar);
-  const chunkCount = Math.ceil(data.length / charsPerChunk);
+  // 然后尝试 DEFAULT_CHUNK_SIZE
+  const defaultChunkSize = process.env.DEFAULT_CHUNK_SIZE;
+  if (defaultChunkSize) {
+    const parsedSize = Number(defaultChunkSize);
+    if (!isNaN(parsedSize) && parsedSize > 0) {
+      return parsedSize * 1024; // 转换为字节
+    }
+  }
   
-  for (let i = 0; i < chunkCount; i++) {
-    const start = i * charsPerChunk;
-    const end = Math.min(start + charsPerChunk, data.length);
-    const chunkContent = data.substring(start, end);
+  // 最后使用硬编码默认值 50KB
+  return 50 * 1024;
+}
+
+/**
+ * 严格分块器 - 确保每个分块不超过配置的大小限制
+ */
+export class StrictChunker {
+  private maxChunkSize: number;
+
+  constructor(maxChunkSize?: number) {
+    this.maxChunkSize = maxChunkSize || getMaxChunkSize();
+  }
+
+  /**
+   * 检测数据类型
+   */
+  private detectDataType(data: any): string {
+    // Grafana查询结果
+    if (data?.data?.results && typeof data.data.results === 'object') {
+      return 'grafana-query';
+    }
     
-    // 验证分块大小
-    const chunkSize = Buffer.byteLength(chunkContent, 'utf8');
-    if (chunkSize > maxChunkSize) {
-      // 如果仍然超限，进一步缩小
-      const reducedCharsPerChunk = Math.floor(charsPerChunk * 0.8);
-      const newStart = i * reducedCharsPerChunk;
-      const newEnd = Math.min(newStart + reducedCharsPerChunk, data.length);
-      const newChunkContent = data.substring(newStart, newEnd);
+    // Elasticsearch数据
+    if (data?.responses || data?.hits || data?.aggregations) {
+      return 'elasticsearch';
+    }
+    
+    // 时间序列数据
+    if (data?.series && Array.isArray(data.series)) {
+      return 'timeseries';
+    }
+    
+    // 表格数据
+    if (data?.tables && Array.isArray(data.tables)) {
+      return 'tables';
+    }
+    
+    // 数组数据
+    if (Array.isArray(data)) {
+      return 'array';
+    }
+    
+    // 对象数据
+    if (typeof data === 'object' && data !== null) {
+      return 'object';
+    }
+    
+    return 'unknown';
+  }
+
+  /**
+   * 计算JSON大小
+   */
+  private calculateSize(obj: any): number {
+    return Buffer.byteLength(JSON.stringify(obj), 'utf8');
+  }
+
+  /**
+   * 检查是否在大小限制内
+   */
+  private isWithinLimit(obj: any): boolean {
+    return this.calculateSize(obj) <= this.maxChunkSize;
+  }
+
+  /**
+   * 分块Elasticsearch数据
+   */
+  private chunkElasticsearchData(data: any): DataChunk[] {
+    const chunks: DataChunk[] = [];
+    let chunkIndex = 1;
+
+    // 1. 元数据分块
+    const metadata = this.extractESMetadata(data);
+    if (this.isWithinLimit(metadata)) {
+      chunks.push({
+        id: 'metadata',
+        index: chunkIndex++,
+        totalChunks: 0, // 稍后更新
+        type: 'metadata',
+        contentType: 'elasticsearch-metadata',
+        content: metadata,
+        size: this.calculateSize(metadata)
+      });
+    }
+
+    // 2. 处理responses
+    const responses = data.responses || [data];
+    
+    for (let responseIndex = 0; responseIndex < responses.length; responseIndex++) {
+      const response = responses[responseIndex];
       
-      chunks.push(createChunk(
-        newChunkContent,
-        path,
-        i + 1,
-        chunkCount,
-        'string_chunk'
-      ));
-    } else {
-      chunks.push(createChunk(
-        chunkContent,
-        path,
-        i + 1,
-        chunkCount,
-        'string_chunk'
-      ));
-    }
-  }
-  
-  return chunks;
-}
-
-/**
- * 分割数组数据 - 更精确的大小控制
- */
-function chunkArrayData(
-  data: any[], 
-  path: string[], 
-  maxChunkSize: number
-): Chunk[] {
-  const chunks: Chunk[] = [];
-  let currentChunk: any[] = [];
-  let chunkIndex = 1;
-  
-  for (const item of data) {
-    const itemSize = calculateDataSize(item);
-    
-    // 如果单个元素超过最大分块大小
-    if (itemSize > maxChunkSize) {
-      // 先保存当前块
-      if (currentChunk.length > 0) {
-        chunks.push(createChunk(
-          currentChunk,
-          path,
+      // 处理hits数据
+      if (response.hits?.hits && Array.isArray(response.hits.hits)) {
+        const hitChunks = this.chunkArray(
+          response.hits.hits,
+          `hits-${responseIndex}`,
           chunkIndex,
-          0, // 临时值，后面更新
-          'array'
-        ));
-        chunkIndex++;
-        currentChunk = [];
+          'elasticsearch-hits'
+        );
+        chunks.push(...hitChunks);
+        chunkIndex += hitChunks.length;
       }
       
-      // 递归处理超大元素
-      const subChunks = chunkData(item, [...path, 'oversize_item'], maxChunkSize);
-      chunks.push(...subChunks);
-      continue;
+      // 处理aggregations数据
+      if (response.aggregations) {
+        const aggChunks = this.chunkAggregations(
+          response.aggregations,
+          `aggregations-${responseIndex}`,
+          chunkIndex
+        );
+        chunks.push(...aggChunks);
+        chunkIndex += aggChunks.length;
+      }
     }
-    
-    // 创建临时块来测试大小
-    const testChunk = [...currentChunk, item];
-    const testSize = calculateDataSize(testChunk);
-    
-    // 如果添加当前元素会超过限制
-    if (testSize > maxChunkSize && currentChunk.length > 0) {
-      chunks.push(createChunk(
-        currentChunk,
-        path,
+
+    // 更新总块数
+    chunks.forEach(chunk => {
+      chunk.totalChunks = chunks.length;
+    });
+
+    return chunks;
+  }
+
+  /**
+   * 分块Grafana查询数据
+   */
+  private chunkGrafanaQueryData(data: any): DataChunk[] {
+    const chunks: DataChunk[] = [];
+    let chunkIndex = 1;
+
+    const results = data?.data?.results || data?.results || {};
+    const resultKeys = Object.keys(results);
+
+    // 1. 元数据分块
+    const metadata = {
+      queryCount: resultKeys.length,
+      queryNames: resultKeys,
+      timestamp: new Date().toISOString()
+    };
+
+    if (this.isWithinLimit(metadata)) {
+      chunks.push({
+        id: 'metadata',
+        index: chunkIndex++,
+        totalChunks: 0,
+        type: 'metadata',
+        contentType: 'grafana-metadata',
+        content: metadata,
+        size: this.calculateSize(metadata)
+      });
+    }
+
+    // 2. 处理每个查询结果
+    for (const resultKey of resultKeys) {
+      const result = results[resultKey];
+      const frames = result?.frames || [];
+
+      for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
+        const frame = frames[frameIndex];
+        const frameChunks = this.chunkFrame(
+          frame,
+          `${resultKey}-frame-${frameIndex}`,
+          chunkIndex
+        );
+        chunks.push(...frameChunks);
+        chunkIndex += frameChunks.length;
+      }
+    }
+
+    // 更新总块数
+    chunks.forEach(chunk => {
+      chunk.totalChunks = chunks.length;
+    });
+
+    return chunks;
+  }
+
+  /**
+   * 分块Frame数据
+   */
+  private chunkFrame(frame: any, baseId: string, startIndex: number): DataChunk[] {
+    const chunks: DataChunk[] = [];
+    let chunkIndex = startIndex;
+
+    const fields = frame?.schema?.fields || frame?.fields || [];
+    const frameData = frame?.data || {};
+    const dataValues = frameData.values || [];
+
+    // 1. Frame元数据
+    const frameMetadata = {
+      name: frame?.schema?.name || frame?.name || 'unknown',
+      fieldCount: fields.length,
+      fieldNames: fields.map((f: any) => f.name),
+      meta: frame?.meta
+    };
+
+    if (this.isWithinLimit(frameMetadata)) {
+      chunks.push({
+        id: `${baseId}-metadata`,
+        index: chunkIndex++,
+        totalChunks: 0,
+        type: 'metadata' as const,
+        contentType: 'frame-metadata',
+        content: frameMetadata,
+        size: this.calculateSize(frameMetadata)
+      });
+    }
+
+    // 2. 分块字段数据
+    for (let fieldIndex = 0; fieldIndex < fields.length; fieldIndex++) {
+      const field = fields[fieldIndex];
+      const fieldValues = dataValues[fieldIndex] || [];
+
+      const fieldChunks = this.chunkArray(
+        fieldValues,
+        `${baseId}-field-${fieldIndex}`,
         chunkIndex,
-        0, // 临时值，后面更新
-        'array'
-      ));
-      chunkIndex++;
-      currentChunk = [];
-    }
-    
-    currentChunk.push(item);
-  }
-  
-  // 保存最后一个块
-  if (currentChunk.length > 0) {
-    chunks.push(createChunk(
-      currentChunk,
-      path,
-      chunkIndex,
-      0, // 临时值，后面更新
-      'array'
-    ));
-  }
-  
-  // 更新总块数
-  const totalChunks = chunks.length;
-  chunks.forEach(chunk => {
-    chunk.totalChunks = totalChunks;
-  });
-  
-  return chunks;
-}
-
-/**
- * 分割对象数据
- */
-function chunkObjectData(
-  data: any, 
-  path: string[], 
-  maxChunkSize: number
-): Chunk[] {
-  const chunks: Chunk[] = [];
-  const entries = Object.entries(data);
-  
-  // 检查是否有大数组字段需要优先分块
-  const largeArrayFields: Array<[string, any[]]> = [];
-  const smallFields: Array<[string, any]> = [];
-  
-  for (const [key, value] of entries) {
-    if (Array.isArray(value)) {
-      const arraySize = calculateDataSize(value);
-      if (arraySize > maxChunkSize) {
-        largeArrayFields.push([key, value]);
-      } else {
-        smallFields.push([key, value]);
-      }
-    } else {
-      smallFields.push([key, value]);
-    }
-  }
-  
-  // 处理大数组字段
-  for (const [key, value] of largeArrayFields) {
-    const arrayChunks = chunkArrayData(value, [...path, key], maxChunkSize);
-    chunks.push(...arrayChunks);
-  }
-  
-  // 处理小字段，尝试合并到一个块
-  if (smallFields.length > 0) {
-    const smallObject: any = {};
-    let totalSize = 0;
-    
-    for (const [key, value] of smallFields) {
-      const fieldSize = calculateDataSize({ [key]: value });
-      if (totalSize + fieldSize <= maxChunkSize) {
-        smallObject[key] = value;
-        totalSize += fieldSize;
-      } else {
-        // 当前字段放不下，先保存当前对象
-        if (Object.keys(smallObject).length > 0) {
-          chunks.push(createChunk(
-            smallObject,
-            path,
-            chunks.length + 1,
-            0, // 临时值
-            'object'
-          ));
+        'field-data',
+        {
+          fieldName: field.name,
+          fieldType: field.type,
+          fieldIndex: fieldIndex
         }
-        
-        // 递归处理当前字段
-        const fieldChunks = chunkData(value, [...path, key], maxChunkSize);
-        chunks.push(...fieldChunks);
-        
-        // 重置
-        Object.keys(smallObject).forEach(k => delete smallObject[k]);
-        totalSize = 0;
+      );
+      chunks.push(...fieldChunks);
+      chunkIndex += fieldChunks.length;
+    }
+
+    return chunks;
+  }
+
+  /**
+   * 分块聚合数据
+   */
+  private chunkAggregations(aggregations: any, baseId: string, startIndex: number): DataChunk[] {
+    const chunks: DataChunk[] = [];
+    let chunkIndex = startIndex;
+
+    for (const [aggName, aggData] of Object.entries(aggregations)) {
+      if (aggData && typeof aggData === 'object' && 'buckets' in aggData) {
+        const buckets = (aggData as any).buckets;
+        if (Array.isArray(buckets)) {
+          const bucketChunks = this.chunkArray(
+            buckets,
+            `${baseId}-${aggName}`,
+            chunkIndex,
+            'aggregation-buckets',
+            {
+              aggregationName: aggName,
+              aggregationType: 'bucket'
+            }
+          );
+          chunks.push(...bucketChunks);
+          chunkIndex += bucketChunks.length;
+        }
+      } else {
+        // 非bucket聚合（如stats、value等）
+        const aggContent = { [aggName]: aggData };
+        if (this.isWithinLimit(aggContent)) {
+          chunks.push({
+            id: `${baseId}-${aggName}`,
+            index: chunkIndex++,
+            totalChunks: 0,
+            type: 'data',
+            contentType: 'aggregation-stats',
+            content: aggContent,
+            size: this.calculateSize(aggContent)
+          });
+        }
       }
     }
+
+    return chunks;
+  }
+
+  /**
+   * 分块数组数据
+   */
+  private chunkArray(
+    array: any[],
+    baseId: string,
+    startIndex: number,
+    contentType: string,
+    metadata?: any
+  ): DataChunk[] {
+    const chunks: DataChunk[] = [];
+    let chunkIndex = startIndex;
+    let buffer: any[] = [];
+
+    for (let i = 0; i < array.length; i++) {
+      const item = array[i];
+      
+      // 检查单个项目是否超过限制
+      const itemSize = this.calculateSize(item);
+      if (itemSize > this.maxChunkSize) {
+        // 单个项目过大，需要特殊处理
+        const oversizedChunk = this.handleOversizedItem(item, `${baseId}-item-${i}`, chunkIndex);
+        chunks.push(oversizedChunk);
+        chunkIndex++;
+        continue;
+      }
+
+      // 尝试添加项目到当前缓冲区
+      const testBuffer = [...buffer, item];
+      const testChunk = {
+        id: `${baseId}-chunk-${chunks.length + 1}`,
+        index: chunkIndex,
+        totalChunks: 0,
+        type: 'data' as const,
+        contentType,
+        content: testBuffer,
+        size: 0,
+        metadata: {
+          ...metadata,
+          startIndex: i - testBuffer.length + 1,
+          endIndex: i
+        }
+      };
+      
+      const testChunkSize = this.calculateSize(testChunk);
+
+      // 如果添加后超过限制，创建新块
+      if (testChunkSize > this.maxChunkSize && buffer.length > 0) {
+        const finalChunk = {
+          id: `${baseId}-chunk-${chunks.length + 1}`,
+          index: chunkIndex++,
+          totalChunks: 0,
+          type: 'data' as const,
+          contentType,
+          content: buffer,
+          size: this.calculateSize({
+            id: `${baseId}-chunk-${chunks.length + 1}`,
+            index: chunkIndex - 1,
+            totalChunks: 0,
+            type: 'data' as const,
+            contentType,
+            content: buffer,
+            size: 0,
+            metadata: {
+              ...metadata,
+              startIndex: i - buffer.length,
+              endIndex: i - 1
+            }
+          }),
+          metadata: {
+            ...metadata,
+            startIndex: i - buffer.length,
+            endIndex: i - 1
+          }
+        };
+        
+        chunks.push(finalChunk);
+        buffer = [item]; // 开始新的缓冲区
+      } else {
+        buffer = testBuffer; // 添加到当前缓冲区
+      }
+    }
+
+    // 添加最后一个块
+    if (buffer.length > 0) {
+      const finalChunk = {
+        id: `${baseId}-chunk-${chunks.length + 1}`,
+        index: chunkIndex++,
+        totalChunks: 0,
+        type: 'data' as const,
+        contentType,
+        content: buffer,
+        size: this.calculateSize({
+          id: `${baseId}-chunk-${chunks.length + 1}`,
+          index: chunkIndex - 1,
+          totalChunks: 0,
+          type: 'data' as const,
+          contentType,
+          content: buffer,
+          size: 0,
+          metadata: {
+            ...metadata,
+            startIndex: array.length - buffer.length,
+            endIndex: array.length - 1
+          }
+        }),
+        metadata: {
+          ...metadata,
+          startIndex: array.length - buffer.length,
+          endIndex: array.length - 1
+        }
+      };
+      
+      chunks.push(finalChunk);
+    }
+
+    return chunks;
+  }
+
+  /**
+   * 处理过大的单个项目
+   */
+  private handleOversizedItem(item: any, itemId: string, index: number): DataChunk {
+    // 尝试提取关键信息
+    const summary = this.extractItemSummary(item);
     
-    // 保存剩余的小字段
-    if (Object.keys(smallObject).length > 0) {
-      chunks.push(createChunk(
-        smallObject,
-        path,
-        chunks.length + 1,
-        0, // 临时值
-        'object'
-      ));
-    }
+    return {
+      id: itemId,
+      index,
+      totalChunks: 0,
+      type: 'oversize',
+      contentType: 'oversized-item',
+      content: {
+        originalSize: this.calculateSize(item),
+        summary,
+        note: '项目过大，已提取关键信息'
+      },
+      size: this.calculateSize(summary)
+    };
   }
-  
-  // 更新总块数
-  const totalChunks = chunks.length;
-  chunks.forEach(chunk => {
-    chunk.totalChunks = totalChunks;
-  });
-  
-  return chunks;
-}
 
-/**
- * 主分块函数
- */
-export function chunkData(data: any, path: string[] = [], maxChunkSize?: number): Chunk[] {
-  const chunkSize = maxChunkSize || getMaxChunkSize();
-  
-  // 基本类型处理
-  if (typeof data === 'string') {
-    const size = Buffer.byteLength(data, 'utf8');
-    if (size <= chunkSize) {
-      return [createChunk(data, path, 1, 1, 'string')];
+  /**
+   * 提取项目摘要
+   */
+  private extractItemSummary(item: any): any {
+    if (typeof item === 'object' && item !== null) {
+      const keys = Object.keys(item);
+      const summary: any = {};
+      
+      // 保留关键字段
+      const priorityKeys = ['key', 'key_as_string', 'doc_count', 'value', 'timestamp', 'name'];
+      
+      for (const key of priorityKeys) {
+        if (key in item) {
+          summary[key] = item[key];
+        }
+      }
+      
+      // 如果关键字段太少，添加一些其他字段
+      if (Object.keys(summary).length < 3) {
+        for (const key of keys.slice(0, 5)) {
+          if (!(key in summary)) {
+            summary[key] = item[key];
+          }
+        }
+      }
+      
+      return summary;
+    }
+    
+    return item;
+  }
+
+  /**
+   * 提取ES元数据
+   */
+  private extractESMetadata(data: any): any {
+    const responses = data.responses || [data];
+    const firstResponse = responses[0];
+    
+    return {
+      responseCount: responses.length,
+      totalHits: firstResponse?.hits?.total?.value || firstResponse?.hits?.total || 0,
+      maxScore: firstResponse?.hits?.max_score,
+      took: firstResponse?.took,
+      timedOut: firstResponse?.timed_out,
+      aggregationCount: firstResponse?.aggregations ? Object.keys(firstResponse.aggregations).length : 0,
+      aggregationNames: firstResponse?.aggregations ? Object.keys(firstResponse.aggregations) : [],
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * 主分块函数
+   */
+  public chunk(data: any): ChunkingResult {
+    const dataType = this.detectDataType(data);
+    let chunks: DataChunk[] = [];
+
+    switch (dataType) {
+      case 'elasticsearch':
+        chunks = this.chunkElasticsearchData(data);
+        break;
+      case 'grafana-query':
+        chunks = this.chunkGrafanaQueryData(data);
+        break;
+      case 'timeseries':
+        chunks = this.chunkArray(data.series || [], 'timeseries', 1, 'timeseries-data');
+        break;
+      case 'tables':
+        chunks = this.chunkTableData(data);
+        break;
+      case 'array':
+        chunks = this.chunkArray(data, 'array', 1, 'array-data');
+        break;
+      default:
+        chunks = this.chunkGenericData(data);
+        break;
+    }
+
+    // 更新所有块的总块数
+    chunks.forEach(chunk => {
+      chunk.totalChunks = chunks.length;
+    });
+
+    return {
+      chunks,
+      metadata: {
+        totalSize: this.calculateSize(data),
+        totalChunks: chunks.length,
+        dataType,
+        chunkingStrategy: 'strict-chunking'
+      }
+    };
+  }
+
+  /**
+   * 分块表格数据
+   */
+  private chunkTableData(data: any): DataChunk[] {
+    const chunks: DataChunk[] = [];
+    let chunkIndex = 1;
+
+    const tables = data.tables || [];
+    
+    for (let tableIndex = 0; tableIndex < tables.length; tableIndex++) {
+      const table = tables[tableIndex];
+      const rows = table.rows || [];
+      const columns = table.columns || [];
+
+      // 表格元数据
+      const tableMetadata = {
+        tableIndex,
+        rowCount: rows.length,
+        columnCount: columns.length,
+        columns: columns.map((col: any) => col.text || col.name)
+      };
+
+      if (this.isWithinLimit(tableMetadata)) {
+        chunks.push({
+          id: `table-${tableIndex}-metadata`,
+          index: chunkIndex++,
+          totalChunks: 0,
+          type: 'metadata',
+          contentType: 'table-metadata',
+          content: tableMetadata,
+          size: this.calculateSize(tableMetadata)
+        });
+      }
+
+      // 分块行数据
+      const rowChunks = this.chunkArray(
+        rows,
+        `table-${tableIndex}-rows`,
+        chunkIndex,
+        'table-rows'
+      );
+      chunks.push(...rowChunks);
+      chunkIndex += rowChunks.length;
+    }
+
+    return chunks;
+  }
+
+  /**
+   * 分块通用数据
+   */
+  private chunkGenericData(data: any): DataChunk[] {
+    const chunks: DataChunk[] = [];
+    let chunkIndex = 1;
+
+    if (typeof data === 'object' && data !== null) {
+      const entries = Object.entries(data);
+      let buffer: any = {};
+      let bufferSize = 0;
+
+      for (const [key, value] of entries) {
+        const fieldSize = this.calculateSize({ [key]: value });
+
+        if (fieldSize > this.maxChunkSize) {
+          // 单个字段过大
+          chunks.push({
+            id: `generic-oversized-${key}`,
+            index: chunkIndex++,
+            totalChunks: 0,
+            type: 'oversize',
+            contentType: 'oversized-field',
+            content: {
+              fieldName: key,
+              fieldType: typeof value,
+              summary: this.extractItemSummary(value)
+            },
+            size: this.calculateSize({ fieldName: key, summary: this.extractItemSummary(value) })
+          });
+          continue;
+        }
+
+        if (bufferSize + fieldSize > this.maxChunkSize && Object.keys(buffer).length > 0) {
+          chunks.push({
+            id: `generic-chunk-${chunks.length + 1}`,
+            index: chunkIndex++,
+            totalChunks: 0,
+            type: 'data',
+            contentType: 'generic-object',
+            content: buffer,
+            size: bufferSize
+          });
+          buffer = {};
+          bufferSize = 0;
+        }
+
+        buffer[key] = value;
+        bufferSize += fieldSize;
+      }
+
+      if (Object.keys(buffer).length > 0) {
+        chunks.push({
+          id: `generic-chunk-${chunks.length + 1}`,
+          index: chunkIndex++,
+          totalChunks: 0,
+          type: 'data',
+          contentType: 'generic-object',
+          content: buffer,
+          size: bufferSize
+        });
+      }
     } else {
-      return splitLongString(data, path, chunkSize);
+      // 基本类型
+      const content = { value: data };
+      chunks.push({
+        id: 'generic-single',
+        index: 1,
+        totalChunks: 1,
+        type: 'data',
+        contentType: 'generic-single',
+        content,
+        size: this.calculateSize(content)
+      });
     }
+
+    return chunks;
   }
-  
-  if (typeof data === 'number' || typeof data === 'boolean' || data === null) {
-    return [createChunk(data, path, 1, 1, typeof data)];
-  }
-  
-  // 数组处理
-  if (Array.isArray(data)) {
-    return chunkArrayData(data, path, chunkSize);
-  }
-  
-  // 对象处理
-  if (typeof data === 'object' && data !== null) {
-    return chunkObjectData(data, path, chunkSize);
-  }
-  
-  // 其他类型
-  return [createChunk(data, path, 1, 1, typeof data)];
 }
 
 /**
- * 智能分块主函数
+ * 创建严格分块器实例
  */
-export function createIntelligentChunks(data: any): ChunkingResult {
-  const maxChunkSize = getMaxChunkSize();
-  const dataType = detectGrafanaDataType(data);
-  
-  // 创建元数据块
-  const metadata = {
-    dataType,
-    maxChunkSize,
-    totalSize: calculateDataSize(data),
-    timestamp: new Date().toISOString(),
-    structure: extractDataStructure(data)
-  };
-  
-  // 生成分块
-  const chunks = chunkData(data, [], maxChunkSize);
-  
-  // 添加元数据到第一个块
-  if (chunks.length > 0) {
-    chunks[0].metadata = metadata;
-  }
-  
-  return {
-    chunks,
-    metadata: {
-      totalSize: metadata.totalSize,
-      chunkCount: chunks.length,
-      dataType,
-      structure: metadata.structure
-    }
-  };
+export function createStrictChunker(maxChunkSize?: number): StrictChunker {
+  return new StrictChunker(maxChunkSize);
 }
 
 /**
- * 提取数据结构信息
+ * 分块数据并保存到文件
  */
-function extractDataStructure(data: any): any {
-  if (Array.isArray(data)) {
-    return {
-      type: 'array',
-      length: data.length,
-      sample: data.slice(0, 3)
-    };
-  }
+export async function chunkAndSave(
+  data: any,
+  requestId: string,
+  maxChunkSize?: number
+): Promise<ChunkingResult> {
+  const chunker = createStrictChunker(maxChunkSize);
+  const result = chunker.chunk(data);
+
+  // 使用与data-store.ts相同的路径
+  const DATA_STORE_ROOT = process.env.DATA_STORE_ROOT || 
+    path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store');
+  const requestDir = path.join(DATA_STORE_ROOT, requestId);
+  const dataDir = path.join(requestDir, 'data');
   
-  if (typeof data === 'object' && data !== null) {
-    const keys = Object.keys(data);
-    return {
-      type: 'object',
-      keyCount: keys.length,
-      keys: keys.slice(0, 10), // 只显示前10个键
-      sample: Object.fromEntries(
-        Object.entries(data).slice(0, 3).map(([k, v]) => [
-          k, 
-          Array.isArray(v) ? `array(${v.length})` : typeof v
-        ])
-      )
-    };
+  // 确保目录存在
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
   }
+
+  // 保存分块元数据
+  const metadataPath = path.join(dataDir, 'chunking-metadata.json');
+  await fs.promises.writeFile(metadataPath, JSON.stringify({
+    totalChunks: result.chunks.length,
+    metadata: result.metadata,
+    guidance: generateChunkingGuidance(result.chunks),
+    chunkFiles: result.chunks.map((_, index) => `chunk-${index + 1}.json`)
+  }, null, 2));
+
+  // 保存每个分块
+  for (let i = 0; i < result.chunks.length; i++) {
+    const chunk = result.chunks[i];
+    const chunkPath = path.join(dataDir, `chunk-${i + 1}.json`);
+    await fs.promises.writeFile(chunkPath, JSON.stringify(chunk, null, 2));
+  }
+
+  return result;
+}
+
+/**
+ * 从文件加载分块
+ */
+export async function loadChunks(requestId: string): Promise<ChunkingResult> {
+  const DATA_STORE_ROOT = process.env.DATA_STORE_ROOT || 
+    path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store');
+  const requestDir = path.join(DATA_STORE_ROOT, requestId);
+  const dataDir = path.join(requestDir, 'data');
   
-  return {
-    type: typeof data,
-    value: String(data).substring(0, 100)
-  };
+  // 加载元数据
+  const metadataPath = path.join(dataDir, 'chunking-metadata.json');
+  const metadata = JSON.parse(await fs.promises.readFile(metadataPath, 'utf8'));
+
+  // 加载所有分块
+  const chunks: DataChunk[] = [];
+  const files = fs.readdirSync(dataDir).filter(f => f.startsWith('chunk-') && f.endsWith('.json'));
+  
+  for (const file of files.sort()) {
+    const chunkPath = path.join(dataDir, file);
+    const chunk = JSON.parse(await fs.promises.readFile(chunkPath, 'utf8'));
+    chunks.push(chunk);
+  }
+
+  return { chunks, metadata };
 }
 
 /**
  * 验证分块结果
  */
-export function validateChunks(chunks: Chunk[], maxChunkSize?: number): boolean {
+export function validateChunks(chunks: DataChunk[], maxChunkSize?: number): boolean {
   const chunkSize = maxChunkSize || getMaxChunkSize();
   
   for (const chunk of chunks) {
@@ -435,7 +790,7 @@ export function validateChunks(chunks: Chunk[], maxChunkSize?: number): boolean 
 /**
  * 生成分块分析指导
  */
-export function generateChunkingGuidance(chunks: Chunk[]): string {
+export function generateChunkingGuidance(chunks: DataChunk[]): string {
   if (chunks.length === 0) {
     return '没有数据需要分块';
   }
@@ -447,7 +802,7 @@ export function generateChunkingGuidance(chunks: Chunk[]): string {
 ## 数据分块信息
 - **数据类型**: ${dataType}
 - **总块数**: ${chunks.length}
-- **总大小**: ${Math.round(metadata?.totalSize / 1024)}KB
+- **总大小**: ${Math.round((metadata as any)?.totalSize / 1024)}KB
 - **分块大小**: ${Math.round(getMaxChunkSize() / 1024)}KB
 
 ## 分析指导
@@ -458,7 +813,7 @@ export function generateChunkingGuidance(chunks: Chunk[]): string {
 
 ## 分块详情
 ${chunks.map(chunk => 
-  `- 块${chunk.index}: ${chunk.type} (${Math.round(chunk.size / 1024)}KB) ${chunk.path.length > 0 ? `[${chunk.path.join('.')}]` : ''}`
+  `- 块${chunk.index}: ${chunk.type} (${Math.round(chunk.size / 1024)}KB) ${chunk.contentType}`
 ).join('\n')}
 
 **重要**: 请按顺序读取所有分块，确保分析完整性。

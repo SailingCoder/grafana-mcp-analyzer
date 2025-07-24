@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { createIntelligentChunks, validateChunks, generateChunkingGuidance, type ChunkingResult } from './chunk-manager.js';
+import { createStrictChunker, validateChunks, generateChunkingGuidance, getMaxChunkSize, type ChunkingResult } from './chunk-manager.js';
 
 // 数据存储根目录
 const DATA_STORE_ROOT = process.env.DATA_STORE_ROOT || 
@@ -64,8 +64,9 @@ export async function storeResponseData(
   const dataDir = path.join(requestDir, 'data');
   await ensureDir(dataDir);
   
-  // 使用智能分块管理器
-  const chunkingResult: ChunkingResult = createIntelligentChunks(data);
+  // 使用严格分块管理器
+  const chunker = createStrictChunker();
+  const chunkingResult: ChunkingResult = chunker.chunk(data);
   const { chunks, metadata } = chunkingResult;
   
   // 验证分块结果
@@ -97,28 +98,28 @@ export async function storeResponseData(
       await fs.writeFile(chunkPath, JSON.stringify(chunk, null, 2));
     }
     
-    // 存储分块元数据
+    // 存储分块元数据 - 确保总是创建这个文件
     const metadataPath = path.join(dataDir, 'chunking-metadata.json');
     await fs.writeFile(metadataPath, JSON.stringify({
       totalChunks: chunks.length,
       metadata,
-      guidance: generateChunkingGuidance(chunks)
+      guidance: generateChunkingGuidance(chunks),
+      chunkFiles: chunks.map((_, index) => `chunk-${index + 1}.json`)
     }, null, 2));
     
     return { 
       type: 'chunked', 
-      totalChunks: chunks.length, 
+      chunks: chunks.length,
       size: metadata.totalSize,
-      resourceUris: Array.from({ length: chunks.length }, (_, i) => 
-        `monitoring-data://${requestId}/chunk-${i + 1}`
-      ),
+      chunkingStrategy: `strict-${Math.round(getMaxChunkSize() / 1024)}kb`,
+      resourceUri: `monitoring-data://${requestId}/chunks`,
       chunkingInfo: {
         dataType: metadata.dataType,
         chunkCount: chunks.length,
         guidance: generateChunkingGuidance(chunks)
       }
-         };
-   }
+    };
+  }
 }
 
 // 获取响应数据 - 支持智能分块

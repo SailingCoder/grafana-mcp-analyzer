@@ -3,12 +3,11 @@ import { z } from 'zod';
 import path from 'path';
 import os from 'os';
 import { executeQuery, extractData, checkHealth } from '../datasources/grafana-client.js';
-import { buildAnalysisGuidance, generateSmartSummary, generateDataOverview, generateAggressiveSummary } from '../services/monitoring-analyzer.js';
-import { getMaxChunkSize } from '../services/config-manager.js';
+import { buildAnalysisGuidance, generateDataOverview } from '../services/monitoring-analyzer.js';
+import { chunkAndSave, loadChunks, getMaxChunkSize } from '../services/chunk-manager.js';
 import { 
   generateRequestId,
   storeRequestMetadata,
-  storeResponseData,
   getResponseData,
   safeStoreAnalysis,
   getAnalysis,
@@ -74,121 +73,46 @@ async function forceStoreAsFull(requestId: string, data: any) {
 }
 
 /**
- * 根据数据大小和Resources支持情况决定处理策略
+ * 严格分块策略 - 确保每个分块不超过配置的大小限制
  */
-async function processDataWithStrategy(requestId: string, data: any) {
-  const maxChunkSize = getMaxChunkSize();
+async function processDataWithStrictChunking(requestId: string, data: any) {
   const dataStr = JSON.stringify(data);
   const dataSize = Buffer.byteLength(dataStr, 'utf8');
-  const supportsResources = detectResourcesSupport();
+  const maxChunkSize = getMaxChunkSize();
   
-  console.error(`📊 数据大小: ${Math.round(dataSize / 1024)}KB, 阈值: ${Math.round(maxChunkSize / 1024)}KB, Resources支持: ${supportsResources}`);
+  console.error(`📊 数据大小: ${Math.round(dataSize / 1024)}KB, 使用严格${Math.round(maxChunkSize / 1024)}KB分块策略`);
   
-  if (supportsResources) {
-    // 支持Resources，根据数据大小决定是否分包
-    if (dataSize <= maxChunkSize) {
-              console.log('✅ 支持Resources且数据较小，存储为完整文件');
-        return await storeResponseData(requestId, data);
-      } else {
-        console.log('📦 支持Resources且数据较大，使用分块存储');
-      return await storeResponseData(requestId, data);
-    }
-  } else {
-    // 不支持Resources，无论数据大小都不分包，使用智能摘要
-    if (dataSize <= maxChunkSize) {
-      return await forceStoreAsFull(requestId, data);
-    } else {
-      // 智能摘要处理流程
-      let summarizedData = data;
-      let iterations = 0;
-      const maxIterations = 5;
-      let lastSize = dataSize;
-      
-      while (iterations < maxIterations) {
-        // 生成智能摘要
-        const newSummary = generateSmartSummary(summarizedData, maxChunkSize);
-        const summaryStr = JSON.stringify(newSummary);
-        const summarySize = Buffer.byteLength(summaryStr, 'utf8');
-        
-        // 检查摘要是否有效（大小确实减小了）
-        if (summarySize >= lastSize * 0.8) {
-          // 如果摘要效果不佳，尝试更激进的策略
-          if (iterations === 0) {
-            summarizedData = generateAggressiveSummary(data, maxChunkSize);
-            const aggressiveStr = JSON.stringify(summarizedData);
-            const aggressiveSize = Buffer.byteLength(aggressiveStr, 'utf8');
-            
-            if (aggressiveSize <= maxChunkSize) {
-              break;
-            }
-          }
-          
-          // 如果仍然无效，跳出循环
-          if (iterations >= 2) {
-            summarizedData = {
-              __summary: true,
-              __dataType: 'emergency_minimal',
-              __notice: '数据过大，无法有效压缩，请使用工具获取原始数据',
-              __originalSize: dataSize,
-              __status: 'compression_failed',
-              __instructions: 'AI应通过get_monitoring_data工具获取数据进行分析',
-              __timestamp: new Date().toISOString()
-            };
-            break;
-          }
-        }
-        
-        // 更新数据和大小
-        summarizedData = newSummary;
-        lastSize = summarySize;
-        
-        // 检查是否达到目标大小
-        if (summarySize <= maxChunkSize) {
-          break;
-        }
-        
-        iterations++;
-      }
-      
-      // 最终验证和备用处理
-      const finalStr = JSON.stringify(summarizedData);
-      const finalSize = Buffer.byteLength(finalStr, 'utf8');
-      
-      if (finalSize > maxChunkSize) {
-        // 创建紧急最小摘要
-        const emergencyData = {
-          __summary: true,
-          __dataType: 'emergency_fallback',
-          __notice: '智能摘要失败，数据已存储，请通过工具访问',
-          __originalSize: dataSize,
-          __finalSize: finalSize,
-          __compressionAttempts: iterations,
-          __status: 'fallback_mode',
-          __accessInstructions: {
-            tool: 'get_monitoring_data',
-            requestId: requestId,
-            dataType: 'data',
-            note: 'AI必须使用此工具获取实际数据进行分析'
-          },
-          __timestamp: new Date().toISOString()
-        };
-        
-        // 验证紧急摘要大小
-        const emergencyStr = JSON.stringify(emergencyData);
-        const emergencySize = Buffer.byteLength(emergencyStr, 'utf8');
-        
-        if (emergencySize <= maxChunkSize) {
-          summarizedData = emergencyData;
-        } else {
-          // 最后的手段：存储原始数据，但记录警告
-          summarizedData = data;
-        }
-      }
-      
-      // 强制存储为full.json，绝不分包
-      return await forceStoreAsFull(requestId, summarizedData);
-    }
+  // 如果数据小于配置的大小，直接存储
+  if (dataSize <= maxChunkSize) {
+    console.log(`✅ 数据较小，直接存储`);
+    return await forceStoreAsFull(requestId, data);
   }
+  
+  // 使用严格分块器
+  console.log(`📦 数据较大，使用严格${Math.round(maxChunkSize / 1024)}KB分块`);
+  const chunkingResult = await chunkAndSave(data, requestId, maxChunkSize);
+  
+  return {
+    type: 'chunked',
+    size: dataSize,
+    chunks: chunkingResult.chunks.length,
+    chunkingStrategy: `strict-${Math.round(maxChunkSize / 1024)}kb`,
+    metadata: chunkingResult.metadata,
+    resourceUri: `monitoring-data://${requestId}/chunks`
+  };
+}
+
+/**
+ * 根据数据大小决定处理策略
+ */
+async function processDataWithStrategy(requestId: string, data: any) {
+  const dataStr = JSON.stringify(data);
+  const dataSize = Buffer.byteLength(dataStr, 'utf8');
+  
+  console.error(`📊 数据大小: ${Math.round(dataSize / 1024)}KB, 使用严格分块策略`);
+  
+  // 统一使用严格分块策略
+  return await processDataWithStrictChunking(requestId, data);
 }
 
 /**
@@ -198,11 +122,15 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
   const SERVER_INFO = {
     name: 'grafana-mcp-analyzer',
     version: packageJson.version,
-    description: `Grafana MCP分析器 - 监控数据查询和分析工具
+    description: `🚫 重要警告：禁止使用curl或其他外部方法获取数据！
 
-    核心功能：预定义查询、数据存储、AI分析指引、会话管理
-    数据处理：支持任意大小数据，提供完整数据分析 
-    使用方式：list_queries查看可用查询，analyze_query进行分析`
+Grafana MCP分析器 - 监控数据查询和分析工具
+
+核心功能：预定义查询、数据存储、AI分析指引、会话管理
+数据处理：支持任意大小数据，提供完整数据分析 
+使用方式：list_queries查看可用查询，analyze_query进行分析
+
+⚠️ 必须使用提供的MCP工具，任何其他方法都会导致错误！`
   } as const;
 
   // 工具函数
@@ -405,9 +333,9 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     'analyze_query',
     {
       title: '查询分析',
-      description: '分析单个查询的数据，集成查询、存储和分析功能',
+      description: '🚫 禁止使用curl！这是获取和分析Grafana数据的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。任何其他方法都会导致错误。',
       inputSchema: {
-      queryName: z.string().describe('查询名称'),
+      queryName: z.string().describe('查询名称（🚫 禁止使用curl，必须使用此工具）'),
       prompt: z.string().describe('分析需求描述'),
       sessionId: z.string().optional().describe('会话ID')
       }
@@ -523,9 +451,9 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     'aggregate_analyze',
     {
       title: '聚合分析',
-      description: '聚合分析多个查询的数据，将数据合并后进行统一分析',
+      description: '🚫 禁止使用curl！这是聚合分析多个Grafana查询的唯一正确方式！此工具会自动执行多个查询、分块存储数据并提供聚合分析指引。任何其他方法都会导致错误。',
       inputSchema: {
-      queryNames: z.array(z.string()).describe('查询名称列表'),
+      queryNames: z.array(z.string()).describe('查询名称列表（🚫 禁止使用curl，必须使用此工具）'),
       prompt: z.string().describe('聚合分析需求描述'),
       sessionId: z.string().optional().describe('会话ID')
       }
@@ -893,59 +821,91 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
     }
   );
 
-  // 获取监控数据工具（支持智能分块）
+  // 获取监控数据工具（支持严格分块）
   server.registerTool(
     'get_monitoring_data',
     {
       title: '获取监控数据',
-      description: '获取分析数据的主要工具。支持智能分块，每块最大50KB',
+      description: `🚫 禁止使用curl！这是获取已存储Grafana数据的唯一正确方式！支持严格${Math.round(getMaxChunkSize() / 1024)}KB分块。必须先使用analyze_query工具存储数据。**必须按顺序获取所有分块，不能跳过任何分块！**`,
       inputSchema: {
-        requestId: z.string().describe('请求ID'),
-        dataType: z.string().default('data').describe('数据类型：data（完整数据）/analysis（分析结果）/chunk-1,chunk-2等（分块数据）')
+        requestId: z.string().describe('请求ID（必须先使用analyze_query工具获取）'),
+        dataType: z.string().default('data').describe('数据类型：metadata（分块元数据）/chunk-1,chunk-2等（分块数据，必须按顺序获取所有分块）')
       }
     },
     async ({ requestId, dataType }) => {
       try {
-        // 获取数据
         let data;
-        if (dataType === 'analysis') {
-          data = await getAnalysis(requestId);
-        } else if (dataType?.startsWith('chunk-')) {
-          // 获取特定分块
-          data = await getResponseData(requestId, dataType);
-        } else {
-          // 获取完整数据或分块信息
-          data = await getResponseData(requestId);
-        }
-        
-        const dataSize = JSON.stringify(data).length;
-        
-        // 如果是分块数据，添加分块信息
         let response: any = {
           success: true,
           requestId,
           dataType,
-          data: data,
-          dataSize,
           message: '数据获取成功'
         };
-        
-        // 如果是分块格式，添加分块指导信息
-        if (dataType?.startsWith('chunk-') && data.index) {
-          response.chunkInfo = {
-            index: data.index,
-            totalChunks: data.totalChunks,
-            type: data.type,
-            path: data.path,
-            size: data.size
-          };
-          response.message = `分块${data.index}/${data.totalChunks}获取成功`;
-        }
-        
-        // 如果是分块元数据，添加分块指导
-        if (data.type === 'chunked' && data.metadata) {
-          response.chunkingInfo = data.metadata;
-          response.message = '数据已分块存储，请使用chunk-1, chunk-2等参数获取具体分块';
+
+        if (dataType === 'analysis') {
+          // 获取分析结果
+          data = await getAnalysis(requestId);
+          response.data = data;
+          response.dataSize = JSON.stringify(data).length;
+        } else if (dataType?.startsWith('chunk-')) {
+          // 获取特定分块
+          try {
+            const chunkingResult = await loadChunks(requestId);
+            const chunkIndex = parseInt(dataType.replace('chunk-', ''));
+            const chunk = chunkingResult.chunks.find(c => c.index === chunkIndex);
+            
+            if (chunk) {
+              data = chunk;
+              response.data = chunk;
+              response.dataSize = chunk.size;
+              response.chunkInfo = {
+                index: chunk.index,
+                totalChunks: chunk.totalChunks,
+                type: chunk.type,
+                contentType: chunk.contentType,
+                size: chunk.size
+              };
+              // 如果不是最后一个分块，强制要求继续获取
+              if (chunk.index < chunk.totalChunks) {
+                response.message = `分块${chunk.index}/${chunk.totalChunks}获取成功。**必须继续获取下一个分块（chunk-${chunk.index + 1}）！还有${chunk.totalChunks - chunk.index}个分块未获取，分析不完整！**`;
+                response.warning = `⚠️ 警告：您只获取了${chunk.index}/${chunk.totalChunks}个分块，数据不完整！必须获取所有分块才能进行准确分析！`;
+              } else {
+                response.message = `分块${chunk.index}/${chunk.totalChunks}获取成功。**所有分块已获取完成，现在可以进行完整分析了！**`;
+                response.complete = true;
+              }
+            } else {
+              throw new Error(`分块${chunkIndex}不存在`);
+            }
+          } catch (error) {
+            // 如果分块不存在，尝试获取完整数据
+            data = await getResponseData(requestId);
+            response.data = data;
+            response.dataSize = JSON.stringify(data).length;
+            response.message = '分块不存在，已返回完整数据';
+          }
+        } else {
+          // 获取完整数据或分块信息
+          try {
+            // 首先尝试加载分块信息
+            const chunkingResult = await loadChunks(requestId);
+            response.chunkingInfo = {
+              totalChunks: chunkingResult.chunks.length,
+              metadata: chunkingResult.metadata,
+              chunkingStrategy: `strict-${Math.round(getMaxChunkSize() / 1024)}kb`
+            };
+            response.message = `数据已分块存储，共${chunkingResult.chunks.length}个分块。**必须按顺序获取所有分块（chunk-1到chunk-${chunkingResult.chunks.length}），不能跳过任何分块！**`;
+            
+            // 返回第一个分块作为示例
+            if (chunkingResult.chunks.length > 0) {
+              response.sampleChunk = chunkingResult.chunks[0];
+            }
+          } catch (error) {
+            // 如果没有分块，获取完整数据
+            data = await getResponseData(requestId);
+            response.data = data;
+            response.dataSize = JSON.stringify(data).length;
+            response.message = '数据获取成功（完整数据）';
+          }
         }
         
         return createResponse(response);
@@ -956,6 +916,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
       }
     }
   );
+
+
 
   return server;
 } 
