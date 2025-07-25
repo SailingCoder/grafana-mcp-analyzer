@@ -37,10 +37,13 @@ export interface CacheIndex {
 
 /**
  * 生成缓存ID
+ * 确保不同查询名称生成不同的缓存ID，即使配置相似
  */
 function generateCacheId(queryName: string, queryConfig: any): string {
+  // 将查询名称作为缓存ID的一部分，确保不同查询名称生成不同的缓存
   const configHash = JSON.stringify(queryConfig).replace(/[^a-zA-Z0-9]/g, '');
-  return `cache-${queryName}-${configHash.substring(0, 8)}`;
+  const queryNameHash = queryName.replace(/[^a-zA-Z0-9]/g, '');
+  return `cache-${queryNameHash}-${configHash.substring(0, 8)}`;
 }
 
 /**
