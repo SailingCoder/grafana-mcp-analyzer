@@ -76,8 +76,9 @@ export class StrictChunker {
    * 检测数据类型
    */
   private detectDataType(data: any): string {
-    // Grafana查询结果
-    if (data?.data?.results && typeof data.data.results === 'object') {
+    // Grafana查询结果 - 支持两种格式
+    if ((data?.data?.results && typeof data.data.results === 'object') || 
+        (data?.results && typeof data.results === 'object')) {
       return 'grafana-query';
     }
     
@@ -189,6 +190,7 @@ export class StrictChunker {
     const chunks: DataChunk[] = [];
     let chunkIndex = 1;
 
+    // 支持两种格式：data.data.results 和 data.results
     const results = data?.data?.results || data?.results || {};
     const resultKeys = Object.keys(results);
 
