@@ -67,21 +67,23 @@ async function forceStoreAsFull(requestId: string, data: any) {
  * 严格分块策略 - 确保每个分块不超过配置的大小限制
  */
 async function processDataWithStrictChunking(requestId: string, data: any) {
-  const dataStr = JSON.stringify(data);
+  // 如果是ExtractedData对象，提取实际的data字段
+  const actualData = data.data || data;
+  const dataStr = JSON.stringify(actualData);
   const dataSize = Buffer.byteLength(dataStr, 'utf8');
   const maxChunkSize = getMaxChunkSize();
   
   console.error(`📊 数据大小: ${Math.round(dataSize / 1024)}KB, 使用严格${Math.round(maxChunkSize / 1024)}KB分块策略`);
   
   // 如果数据小于配置的大小，直接存储
-    if (dataSize <= maxChunkSize) {
+  if (dataSize <= maxChunkSize) {
     console.log(`✅ 数据较小，直接存储`);
-      return await forceStoreAsFull(requestId, data);
+    return await forceStoreAsFull(requestId, actualData);
   }
   
   // 使用严格分块器
   console.log(`📦 数据较大，使用严格${Math.round(maxChunkSize / 1024)}KB分块`);
-  const chunkingResult = await chunkAndSave(data, requestId, maxChunkSize);
+  const chunkingResult = await chunkAndSave(actualData, requestId, maxChunkSize);
   
   return {
     type: 'chunked',
@@ -789,7 +791,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           'chunk_workflow',
       {
         title: '分块数据工作流',
-        description: `🎯 **推荐使用此工具！** 这是管理分块数据获取工作流的自动化方式！此工具会自动管理分块获取流程，确保数据完整性。必须先使用analyze_query工具存储数据。**请优先使用此工具自动获取所有分块，按顺序处理，直到complete为止！** 支持自动恢复和连续执行，AI可以自动连续调用next动作直到完成。**重要：获取完所有分块后，必须立即进行完整分析并输出详细报告！**`,
+        description: `🚨 **必须使用此工具！** 这是管理分块数据获取工作流的自动化方式！此工具会自动管理分块获取流程，确保数据完整性。必须先使用analyze_query工具存储数据。**🚨 重要：必须连续调用next动作直到获取所有分块！不能中途停止！** 支持自动恢复和连续执行，AI必须自动连续调用next动作直到完成。**🚨 警告：获取完所有分块后，必须立即进行完整分析并输出详细报告！**`,
       inputSchema: {
         requestId: z.string().describe('请求ID（必须先使用analyze_query工具获取）'),
         action: z.enum(['start', 'next', 'status', 'complete']).describe('工作流动作：start(开始)/next(下一个分块)/status(状态)/complete(完成)')
@@ -877,7 +879,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
                   status: 'completed',
                   retrievedChunks: workflowState.retrievedChunks
                 },
-                instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${totalChunks}个分块数据进行完整分析。请立即开始分析并输出详细报告！**重要：请严格按照用户的具体分析需求执行，不要偏离用户的要求！**`,
+                instruction: `🚨 **必须立即分析！** 所有数据已获取完成！现在必须基于获取到的${totalChunks}个分块数据进行完整分析。请立即开始分析并输出详细报告！**🚨 重要：不能停止，必须立即开始分析！请严格按照用户的具体分析需求执行，不要偏离用户的要求！**`,
                 analysisRequired: true,
                 dataReady: true,
                 totalChunksRetrieved: totalChunks,
@@ -944,7 +946,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
               },
               instruction: currentChunk < totalChunks 
                 ? (isChunked 
-                  ? `请继续调用此工具执行'next'动作获取下一个分块。**系统会自动继续执行，无需手动干预。** 还有${totalChunks - currentChunk}个分块需要获取。`
+                  ? `🚨 **必须继续执行！** 请立即调用此工具执行'next'动作获取下一个分块。还有${totalChunks - currentChunk}个分块需要获取。**重要：不能停止，必须获取所有分块！**`
                   : `请调用此工具执行'complete'动作完成工作流。`)
                 : `请调用此工具执行'complete'动作完成工作流。`,
               autoContinue: currentChunk < totalChunks && isChunked,
@@ -952,7 +954,9 @@ Grafana MCP分析器 - 监控数据查询和分析工具
               remainingChunks: totalChunks - currentChunk,
               progress: `${currentChunk}/${totalChunks}`,
               dataSource: requestId.split('-')[2] || 'unknown', // 从requestId提取查询标识
-              warning: "⚠️ 这是特定查询的数据分块，不能与其他查询数据混淆！"
+              warning: "⚠️ 这是特定查询的数据分块，不能与其他查询数据混淆！",
+              forceContinue: currentChunk < totalChunks && isChunked,
+              criticalMessage: currentChunk < totalChunks ? `🚨 警告：还有${totalChunks - currentChunk}个分块未获取！必须继续执行！` : null
             });
 
           case 'status':
@@ -985,7 +989,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
                 status: 'completed',
                 retrievedChunks: workflowState.retrievedChunks
               },
-              instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${workflowState.retrievedChunks.length}个分块数据进行完整分析。请立即开始分析并输出详细报告！**重要：请严格按照用户的具体分析需求执行，不要偏离用户的要求！**`,
+              instruction: `🚨 **必须立即分析！** 所有数据已获取完成！现在必须基于获取到的${workflowState.retrievedChunks.length}个分块数据进行完整分析。请立即开始分析并输出详细报告！**🚨 重要：不能停止，必须立即开始分析！请严格按照用户的具体分析需求执行，不要偏离用户的要求！**`,
               analysisRequired: true,
               dataReady: true,
               totalChunksRetrieved: workflowState.retrievedChunks.length,
