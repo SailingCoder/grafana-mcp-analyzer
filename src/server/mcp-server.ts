@@ -379,7 +379,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           'analyze_query',
       {
         title: '查询分析',
-        description: '🚫 禁止使用curl！这是获取和分析单个Grafana查询的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。**🎯 推荐使用chunk_workflow工具自动获取所有分块，按顺序处理，直到complete为止！** **重要：每个查询都需要独立的数据获取流程，不能使用其他查询的数据！如果用户要求分析dogecoin_panel_7，就必须分析dogecoin_panel_7的数据，不能使用dogecoin_panel_2的数据！** **💡 提示：如果已有数据，请优先使用analyze_existing_data工具进行深入分析！**',
+        description: '🚫 禁止使用curl！这是获取和分析单个Grafana查询的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。**🎯 推荐使用chunk_workflow工具自动获取所有分块，按顺序处理，直到complete为止！** **重要：每个查询都需要独立的数据获取流程，不能使用其他查询的数据！** **💡 提示：如果已有数据，请优先使用analyze_existing_data工具进行深入分析！**',
       inputSchema: {
       queryName: z.string().describe('查询名称（🚫 禁止使用curl，必须使用此工具）'),
       prompt: z.string().describe('分析需求描述'),
@@ -524,7 +524,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     'analyze_existing_data',
     {
       title: '已有数据分析',
-      description: '🎯 **推荐使用此工具！** 当用户基于已有数据进行深入分析时使用此工具。此工具不会重新获取数据，而是基于已获取的数据进行深入分析。适用于用户说"这个..."、"那个..."、"再详细分析..."等基于上下文的分析需求。**⚠️ 重要：必须使用正确的queryName，不能使用其他查询的数据！如果用户要求分析dogecoin_panel_7，就必须使用dogecoin_panel_7的缓存，不能使用dogecoin_panel_2的缓存！调用此工具后，请直接基于返回的分析指引进行分析，不要再次调用任何工具！**',
+      description: '🎯 **推荐使用此工具！** 当用户基于已有数据进行深入分析时使用此工具。此工具不会重新获取数据，而是基于已获取的数据进行深入分析。适用于用户说"这个..."、"那个..."、"再详细分析..."等基于上下文的分析需求。**⚠️ 重要：必须使用正确的queryName，不能使用其他查询的数据！调用此工具后，请直接基于返回的分析指引进行分析，不要再次调用任何工具！**',
               inputSchema: {
           queryName: z.string().describe('⚠️ 查询名称（必须是已获取数据的查询，不能使用其他查询的数据！）'),
           analysisRequest: z.string().describe('具体的分析需求（如：支撑位和阻力位、价格趋势、成交量分析等）'),
