@@ -379,7 +379,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           'analyze_query',
       {
         title: '查询分析',
-        description: '🚫 禁止使用curl！这是获取和分析单个Grafana查询的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。**🎯 推荐使用chunk_workflow工具自动获取所有分块，按顺序处理，直到complete为止！** **重要：每个查询都需要独立的数据获取流程，不能使用其他查询的数据！**',
+        description: '🚫 禁止使用curl！这是获取和分析单个Grafana查询的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。**🎯 推荐使用chunk_workflow工具自动获取所有分块，按顺序处理，直到complete为止！** **重要：每个查询都需要独立的数据获取流程，不能使用其他查询的数据！** **💡 提示：如果已有数据，请优先使用analyze_existing_data工具进行深入分析！**',
       inputSchema: {
       queryName: z.string().describe('查询名称（🚫 禁止使用curl，必须使用此工具）'),
       prompt: z.string().describe('分析需求描述'),
@@ -513,6 +513,88 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           }
         });
         
+      } catch (error: any) {
+        return createErrorResponse(error);
+      }
+    }
+  );
+
+  // 基于已有数据的分析工具
+  server.registerTool(
+    'analyze_existing_data',
+    {
+      title: '已有数据分析',
+      description: '🎯 **推荐使用此工具！** 当用户基于已有数据进行深入分析时使用此工具。此工具不会重新获取数据，而是基于已获取的数据进行深入分析。适用于用户说"这个..."、"那个..."、"再详细分析..."等基于上下文的分析需求。**重要：调用此工具后，请直接基于返回的分析指引进行分析，不要再次调用任何工具！**',
+      inputSchema: {
+        queryName: z.string().describe('查询名称（必须是已获取数据的查询）'),
+        analysisRequest: z.string().describe('具体的分析需求（如：支撑位和阻力位、价格趋势、成交量分析等）'),
+        sessionId: z.string().optional().describe('会话ID')
+      }
+    },
+    async ({ queryName, analysisRequest }) => {
+      try {
+        // 检查是否有该查询的缓存数据
+        const queryConfig = validateQueryConfig(queryName);
+        const cachedEntry = await findValidCache(queryName, queryConfig);
+        
+        if (!cachedEntry) {
+          return createErrorResponse(`未找到查询 '${queryName}' 的缓存数据。请先使用 analyze_query 工具获取数据。`);
+        }
+
+        // 获取缓存的数据
+        const requestId = cachedEntry.requestId;
+        const result = await getResponseData(requestId);
+        
+        // 生成分析指引
+        const dataOverview = {
+          type: 'cached_data',
+          hasData: true,
+          timestamp: new Date().toISOString(),
+          status: 'success',
+          message: '使用缓存数据进行深入分析',
+          dataType: result.type || 'unknown',
+          recordCount: result.recordCount || 0,
+          totalSize: cachedEntry.dataSize,
+          chunks: cachedEntry.chunks
+        };
+
+        const analysisGuidance = buildAnalysisGuidance(
+          analysisRequest,
+          requestId,
+          dataOverview,
+          {
+            type: cachedEntry.metadata.storageType,
+            size: cachedEntry.dataSize,
+            chunks: cachedEntry.chunks
+          },
+          queryConfig,
+          detectResourcesSupport()
+        );
+
+        return createResponse({
+          success: true,
+          requestId,
+          queryName,
+          dataSize: cachedEntry.dataSize,
+          storageType: cachedEntry.metadata.storageType,
+          message: analysisGuidance,
+          analysisMode: 'existing_data_analysis',
+          dataReady: true,
+          analysisInstructions: `🎯 基于已有缓存数据进行深入分析！请直接基于message中的分析指引进行详细分析，无需再次调用工具。`,
+          querySpecific: true,
+          dataSource: queryName,
+          warning: `⚠️ 这是基于查询 '${queryName}' 已有数据的深入分析，请严格按照用户的具体分析需求执行！`,
+          cacheInfo: {
+            hit: true,
+            cacheId: cachedEntry.id,
+            accessCount: cachedEntry.accessCount + 1,
+            created: cachedEntry.created,
+            message: `🎯 使用缓存数据进行深入分析 (已访问${cachedEntry.accessCount + 1}次)`
+          },
+          userRequest: analysisRequest,
+          contextAware: true
+        });
+
       } catch (error: any) {
         return createErrorResponse(error);
       }
@@ -661,13 +743,23 @@ Grafana MCP分析器 - 监控数据查询和分析工具
       const workflowDir = path.join(dataStoreRoot, requestId);
       const fs = await import('fs/promises');
       await fs.mkdir(workflowDir, { recursive: true });
+      
+      // 添加时间戳和版本信息
+      const stateWithMetadata = {
+        ...state,
+        lastUpdated: new Date().toISOString(),
+        version: '1.0'
+      };
+      
       await fs.writeFile(
         path.join(workflowDir, 'workflow-state.json'),
-        JSON.stringify(state, null, 2)
+        JSON.stringify(stateWithMetadata, null, 2)
       );
+      
+      console.log(`[Workflow] 状态已保存: ${requestId} - 步骤${state.currentStep}/${state.totalChunks}`);
     } catch (error) {
       console.error(`[Workflow] 保存状态失败: ${error}`);
-            }
+    }
   }
   
   async function loadWorkflowState(requestId: string) {
@@ -759,11 +851,13 @@ Grafana MCP分析器 - 监控数据查询和分析工具
               }
 
             const currentChunk = workflowState.currentStep;
+            
+            // 检查是否已经获取完所有分块
             if (currentChunk > totalChunks) {
               workflowState.status = 'completed';
               await saveWorkflowState(requestId, workflowState);
         
-        return createResponse({
+              return createResponse({
                 success: true,
                 requestId,
                 message: `✅ 工作流完成！已获取所有${totalChunks}个分块。`,
@@ -773,7 +867,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
                   status: 'completed',
                   retrievedChunks: workflowState.retrievedChunks
                 },
-                instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${totalChunks}个分块数据进行完整分析。请立即开始分析并输出详细报告！`,
+                instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${totalChunks}个分块数据进行完整分析。请立即开始分析并输出详细报告！**重要：请严格按照用户的具体分析需求执行，不要偏离用户的要求！**`,
                 analysisRequired: true,
                 dataReady: true,
                 totalChunksRetrieved: totalChunks,
@@ -785,7 +879,33 @@ Grafana MCP分析器 - 监控数据查询和分析工具
             // 获取当前分块
             const chunk = chunkingResult.chunks.find(c => c.index === currentChunk);
             if (!chunk) {
-              return createErrorResponse(`分块${currentChunk}不存在`);
+              // 尝试恢复：检查是否有其他分块可以获取
+              const availableChunks = chunkingResult.chunks.map(c => c.index).sort((a, b) => a - b);
+              const nextAvailableChunk = availableChunks.find(index => index >= currentChunk);
+              
+              if (nextAvailableChunk) {
+                // 自动跳到下一个可用分块
+                workflowState.currentStep = nextAvailableChunk;
+                await saveWorkflowState(requestId, workflowState);
+                
+                return createResponse({
+                  success: true,
+                  requestId,
+                  message: `🔄 自动恢复：分块${currentChunk}不存在，自动跳转到分块${nextAvailableChunk}`,
+                  workflow: {
+                    step: nextAvailableChunk,
+                    totalSteps: totalChunks + 1,
+                    status: 'recovered',
+                    retrievedChunks: workflowState.retrievedChunks
+                  },
+                  instruction: `请继续调用此工具执行'next'动作获取分块${nextAvailableChunk}。`,
+                  autoContinue: true,
+                  nextStep: 'next',
+                  recovery: true
+                });
+              } else {
+                return createErrorResponse(`分块${currentChunk}不存在，且没有可用的后续分块`);
+              }
             }
 
             workflowState.retrievedChunks.push(currentChunk);
@@ -814,11 +934,13 @@ Grafana MCP分析器 - 监控数据查询和分析工具
               },
               instruction: currentChunk < totalChunks 
                 ? (isChunked 
-                  ? `请继续调用此工具执行'next'动作获取下一个分块。系统会自动继续执行，无需手动干预。`
+                  ? `请继续调用此工具执行'next'动作获取下一个分块。**系统会自动继续执行，无需手动干预。** 还有${totalChunks - currentChunk}个分块需要获取。`
                   : `请调用此工具执行'complete'动作完成工作流。`)
                 : `请调用此工具执行'complete'动作完成工作流。`,
               autoContinue: currentChunk < totalChunks && isChunked,
               nextStep: currentChunk < totalChunks ? 'next' : 'complete',
+              remainingChunks: totalChunks - currentChunk,
+              progress: `${currentChunk}/${totalChunks}`,
               dataSource: requestId.split('-')[2] || 'unknown', // 从requestId提取查询标识
               warning: "⚠️ 这是特定查询的数据分块，不能与其他查询数据混淆！"
             });
@@ -853,7 +975,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
                 status: 'completed',
                 retrievedChunks: workflowState.retrievedChunks
               },
-              instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${workflowState.retrievedChunks.length}个分块数据进行完整分析。请立即开始分析并输出详细报告！`,
+              instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${workflowState.retrievedChunks.length}个分块数据进行完整分析。请立即开始分析并输出详细报告！**重要：请严格按照用户的具体分析需求执行，不要偏离用户的要求！**`,
               analysisRequired: true,
               dataReady: true,
               totalChunksRetrieved: workflowState.retrievedChunks.length,

@@ -344,7 +344,9 @@ ${storageResult?.type === 'chunked' ? `- **分块数量**: ${storageResult.chunk
 ${storageResult?.type === 'chunked' ? `- **分块策略**: ${storageResult.chunkingStrategy}` : ''}
 
 ## 分析任务
-${prompt}
+**用户具体需求**: ${prompt}
+
+**重要提醒**: 请严格按照用户的具体分析需求执行，不要偏离用户的要求！如果用户要求分析特定内容（如支撑位和阻力位、技术指标等），请重点关注这些内容并提供详细分析。
 
 请基于以上指导，对数据进行专业、深入的分析，并提供有价值的业务洞察和建议。`;
 }
