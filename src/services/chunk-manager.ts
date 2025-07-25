@@ -1,4 +1,5 @@
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
@@ -754,21 +755,53 @@ export async function loadChunks(requestId: string): Promise<ChunkingResult> {
   const requestDir = path.join(DATA_STORE_ROOT, requestId);
   const dataDir = path.join(requestDir, 'data');
   
-  // 加载元数据
+  // 检查是否存在分块元数据文件
   const metadataPath = path.join(dataDir, 'chunking-metadata.json');
-  const metadata = JSON.parse(await fs.promises.readFile(metadataPath, 'utf8'));
-
-  // 加载所有分块
-  const chunks: DataChunk[] = [];
-  const files = fs.readdirSync(dataDir).filter(f => f.startsWith('chunk-') && f.endsWith('.json'));
   
-  for (const file of files.sort()) {
-    const chunkPath = path.join(dataDir, file);
-    const chunk = JSON.parse(await fs.promises.readFile(chunkPath, 'utf8'));
-    chunks.push(chunk);
-  }
+  try {
+    // 尝试加载分块元数据
+    const metadata = JSON.parse(await fsPromises.readFile(metadataPath, 'utf8'));
 
-  return { chunks, metadata };
+    // 加载所有分块
+    const chunks: DataChunk[] = [];
+    const files = fs.readdirSync(dataDir).filter(f => f.startsWith('chunk-') && f.endsWith('.json'));
+    
+    for (const file of files.sort()) {
+      const chunkPath = path.join(dataDir, file);
+      const chunk = JSON.parse(await fsPromises.readFile(chunkPath, 'utf8'));
+      chunks.push(chunk);
+    }
+
+    return { chunks, metadata };
+  } catch (error) {
+    // 如果没有分块元数据，检查是否有完整数据文件
+    const fullDataPath = path.join(dataDir, 'full.json');
+    try {
+      const fullData = JSON.parse(await fsPromises.readFile(fullDataPath, 'utf8'));
+      
+      // 创建虚拟分块结果
+      const chunks: DataChunk[] = [{
+        id: 'full-data',
+        index: 1,
+        totalChunks: 1,
+        type: 'data',
+        contentType: 'full-data',
+        content: fullData,
+        size: JSON.stringify(fullData).length
+      }];
+      
+      const metadata = {
+        totalSize: JSON.stringify(fullData).length,
+        totalChunks: 1,
+        dataType: 'full-data',
+        chunkingStrategy: 'full'
+      };
+      
+      return { chunks, metadata };
+    } catch (fullDataError) {
+      throw new Error(`无法找到请求ID ${requestId} 的分块或完整数据`);
+    }
+  }
 }
 
 /**

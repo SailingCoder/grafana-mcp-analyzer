@@ -296,31 +296,33 @@ function buildFullAnalysisGuidance(
   let resourceInstructions = '';
   if (supportsResources && storageResult?.type === 'chunked') {
     resourceInstructions = `
-## ⚠️ 重要：数据访问说明
-数据已按${Math.round(storageResult.chunkingStrategy.split('-')[1])}KB分块存储，**必须使用以下方式获取数据，不要使用curl或其他方法**：
+## 🎯 自动化数据获取工作流
+数据已按${Math.round(storageResult.chunkingStrategy.split('-')[1])}KB分块存储，**请优先使用自动化工作流获取数据**：
 
-1. **获取分块元数据**：
-   - 使用 \`get_monitoring_data\` 工具，设置 \`dataType\` 为 \`metadata\`
-   - 这将返回所有分块的概览信息
+### 🚀 推荐：自动化工作流（最简单）
+**请优先使用 \`chunk_workflow\` 工具自动获取所有分块，按顺序处理，直到complete为止。**
 
-2. **获取具体分块**：
-   - 使用 \`get_monitoring_data\` 工具，设置 \`dataType\` 为 \`chunk-N\`（N为分块编号）
-   - 例如：\`chunk-1\`, \`chunk-2\`, \`chunk-3\` 等
-   - **必须按顺序获取所有分块，不能跳过任何分块！**
+**工作流步骤**：
+1. 使用 \`chunk_workflow\` 工具执行 \`start\` 动作启动工作流（或直接执行 \`next\` 动作自动启动）
+2. **自动连续执行**：重复执行 \`next\` 动作获取每个分块，直到所有分块获取完成
+3. 执行 \`complete\` 动作完成工作流
+4. 基于完整数据进行最终分析
 
-3. **分块分析策略**：
-   - 先获取元数据了解整体结构
-   - **必须按顺序获取并分析每个分块（1到${storageResult.chunks}）**
-   - 在最终报告中整合所有分块的分析结果
-   - 重点关注跨分块的数据模式和趋势
+**智能恢复**：如果工作流中断，直接执行 \`next\` 动作即可自动恢复并继续执行。
+**自动连续**：AI可以自动连续调用 \`next\` 动作，无需等待用户确认。
 
-4. **数据完整性要求**：
-   - 总共有 ${storageResult.chunks} 个分块
-   - 每个分块大小不超过${Math.round(storageResult.chunkingStrategy.split('-')[1])}KB
-   - **必须获取所有${storageResult.chunks}个分块，不能遗漏任何分块！**
-   - **跳过任何分块都会导致分析不完整！**
+### 📋 备选：手动获取方式
+- 使用 \`chunk_workflow\` 工具，执行 \`next\` 动作获取分块
+- 例如：\`chunk-1\`, \`chunk-2\`, \`chunk-3\` 等
+- **必须按顺序获取所有分块，不能跳过任何分块！**
 
-**重要提醒**：这是唯一正确的数据获取方式，不要尝试使用curl或其他外部方法！`;
+### 📊 数据完整性要求
+- 总共有 ${storageResult.chunks} 个分块
+- 每个分块大小不超过${Math.round(storageResult.chunkingStrategy.split('-')[1])}KB
+- **必须获取所有${storageResult.chunks}个分块，不能遗漏任何分块！**
+- **跳过任何分块都会导致分析不完整！**
+
+**🚫 重要提醒**：这是唯一正确的数据获取方式，不要尝试使用curl或其他外部方法！`;
   }
   
   const analysisTemplate = generateAnalysisTemplate(prompt, false);

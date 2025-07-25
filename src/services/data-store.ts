@@ -150,45 +150,46 @@ export async function getResponseData(requestId: string, chunkId?: string) {
       const content = await fs.readFile(fullPath, 'utf-8');
       return JSON.parse(content);
     } catch (error) {
-      // 如果没有完整数据，尝试获取分块元数据
-      try {
-        const metadataPath = path.join(dataDir, 'chunking-metadata.json');
-        const metadataContent = await fs.readFile(metadataPath, 'utf-8');
-        const metadata = JSON.parse(metadataContent);
-        
-        // 返回分块信息，让调用者知道需要分块读取
-        return {
-          type: 'chunked',
-          metadata,
-          message: '数据已分块存储，请使用chunk-1, chunk-2等参数获取具体分块'
-        };
-      } catch (metadataError) {
-        // 尝试旧格式的分块组合
+        // 如果没有完整数据，尝试获取分块元数据
         try {
-          const files = await fs.readdir(dataDir);
-          const chunkFiles = files
-            .filter(f => f.startsWith('chunk-') && f.endsWith('.json'))
-            .sort((a, b) => {
-              const aNum = parseInt(a.match(/chunk-(\d+)\.json$/)?.[1] || '0');
-              const bNum = parseInt(b.match(/chunk-(\d+)\.json$/)?.[1] || '0');
-              return aNum - bNum;
-            });
+          const metadataPath = path.join(dataDir, 'chunking-metadata.json');
+          const metadataContent = await fs.readFile(metadataPath, 'utf-8');
+          const metadata = JSON.parse(metadataContent);
           
-          if (chunkFiles.length === 0) {
-            throw new Error(`No data found for request: ${requestId}`);
-          }
-          
+          // 返回分块信息，让调用者知道需要分块读取
+          return {
+            type: 'chunked',
+            metadata,
+            message: '数据已分块存储，请使用chunk-1, chunk-2等参数获取具体分块'
+          };
+        } catch (metadataError) {
+          // 如果既没有完整数据也没有分块元数据，尝试旧格式
+        // 尝试旧格式的分块组合
+      try {
+        const files = await fs.readdir(dataDir);
+        const chunkFiles = files
+          .filter(f => f.startsWith('chunk-') && f.endsWith('.json'))
+          .sort((a, b) => {
+            const aNum = parseInt(a.match(/chunk-(\d+)\.json$/)?.[1] || '0');
+            const bNum = parseInt(b.match(/chunk-(\d+)\.json$/)?.[1] || '0');
+            return aNum - bNum;
+          });
+        
+        if (chunkFiles.length === 0) {
+          throw new Error(`No data found for request: ${requestId}`);
+        }
+        
           // 尝试组合旧格式分块
-          let fullData = '';
-          for (const chunkFile of chunkFiles) {
-            const chunkPath = path.join(dataDir, chunkFile);
-            const chunkContent = await fs.readFile(chunkPath, 'utf-8');
-            fullData += chunkContent;
-          }
-          
-          return JSON.parse(fullData);
-        } catch (combineError) {
-          throw new Error(`Failed to get response data: ${requestId}`);
+        let fullData = '';
+        for (const chunkFile of chunkFiles) {
+          const chunkPath = path.join(dataDir, chunkFile);
+          const chunkContent = await fs.readFile(chunkPath, 'utf-8');
+          fullData += chunkContent;
+        }
+        
+        return JSON.parse(fullData);
+      } catch (combineError) {
+        throw new Error(`Failed to get response data: ${requestId}`);
         }
       }
     }

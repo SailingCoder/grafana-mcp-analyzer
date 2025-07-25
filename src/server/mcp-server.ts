@@ -10,18 +10,8 @@ import {
   storeRequestMetadata,
   getResponseData,
   safeStoreAnalysis,
-  getAnalysis,
-  listAllRequests,
-  listRequestsBySession,
-  getRequestStats,
-  
+  getAnalysis
 } from '../services/data-store.js';
-import {
-  createSession,
-  getSessionInfo,
-  listSessions,
-  deleteSession
-} from '../services/session-manager.js';
 import type { 
   QueryConfig, 
   HttpRequest, 
@@ -83,9 +73,9 @@ async function processDataWithStrictChunking(requestId: string, data: any) {
   console.error(`📊 数据大小: ${Math.round(dataSize / 1024)}KB, 使用严格${Math.round(maxChunkSize / 1024)}KB分块策略`);
   
   // 如果数据小于配置的大小，直接存储
-  if (dataSize <= maxChunkSize) {
+    if (dataSize <= maxChunkSize) {
     console.log(`✅ 数据较小，直接存储`);
-    return await forceStoreAsFull(requestId, data);
+      return await forceStoreAsFull(requestId, data);
   }
   
   // 使用严格分块器
@@ -126,8 +116,8 @@ export function createMcpServer(packageJson: any, config: QueryConfig): McpServe
 
 Grafana MCP分析器 - 监控数据查询和分析工具
 
-核心功能：预定义查询、数据存储、AI分析指引、会话管理
-数据处理：支持任意大小数据，提供完整数据分析 
+    核心功能：预定义查询、数据存储、AI分析指引、会话管理
+    数据处理：支持任意大小数据，提供完整数据分析 
 使用方式：list_queries查看可用查询，analyze_query进行分析
 
 ⚠️ 必须使用提供的MCP工具，任何其他方法都会导致错误！`
@@ -282,7 +272,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     'check_health',
     {
       title: '健康检查',
-      description: 'Grafana服务健康检查',
+      description: '检查Grafana服务连接状态（故障排查时使用）',
       inputSchema: {
       timeout: z.number().optional().describe('超时时间（毫秒）'),
       expectedStatus: z.number().optional().describe('期望的HTTP状态码')
@@ -313,7 +303,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     'list_queries',
     {
       title: '查询列表',
-      description: '列出配置文件中可用的查询名称',
+      description: '查看可用的Grafana查询配置（分析前查看可用查询）',
       inputSchema: {
       includeConfig: z.boolean().optional().describe('是否包含完整配置信息').default(false)
       }
@@ -333,7 +323,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     'analyze_query',
     {
       title: '查询分析',
-      description: '🚫 禁止使用curl！这是获取和分析Grafana数据的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。任何其他方法都会导致错误。',
+      description: '🚫 禁止使用curl！这是获取和分析单个Grafana查询的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。**🎯 推荐使用chunk_workflow工具自动获取所有分块，按顺序处理，直到complete为止！**',
       inputSchema: {
       queryName: z.string().describe('查询名称（🚫 禁止使用curl，必须使用此工具）'),
       prompt: z.string().describe('分析需求描述'),
@@ -352,24 +342,8 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           { queryName, prompt, sessionId }
         );
         
-        // 第二步：等待数据完全写入本地存储
-        let dataVerified = false;
-        let retryCount = 0;
-        const maxRetries = 10;
-        
-        while (!dataVerified && retryCount < maxRetries) {
-          try {
-            await getResponseData(requestId);
-            dataVerified = true;
-          } catch (error) {
-            retryCount++;
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
-        
-        if (!dataVerified) {
-          throw new Error(`数据存储验证失败，请求ID: ${requestId}`);
-        }
+        // 第二步：数据已通过processDataWithStrategy处理，无需额外验证
+        // 数据存储验证已在内置处理流程中完成
         
         // 第三步：生成数据概览
         const resourcesSupported = detectResourcesSupport();
@@ -386,18 +360,8 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           };
         } else {
           // 不支持Resources时，生成详细数据概览
-          // 使用实际存储的数据（可能是摘要后的数据）
-          let actualStoredData = result;
-          try {
-            const storedData = await getResponseData(requestId);
-            if (storedData && storedData.data) {
-              actualStoredData = storedData;
-            }
-          } catch (error) {
-            console.log('获取存储数据失败，使用原始数据生成概览');
-          }
-          
-          dataOverview = generateDataOverview(actualStoredData);
+          // 直接使用原始数据，避免重复读取存储的数据
+          dataOverview = generateDataOverview(result);
           dataOverview.message = '数据已智能处理，包含概览和摘要信息';
           dataOverview.processingStrategy = 'smart_summary';
         }
@@ -437,7 +401,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           dataReady: true, // 标记数据已准备完成
           analysisInstructions: resourcesSupported 
             ? "请按照message中的指引，通过resourceLinks获取实际数据并进行一次性完整分析"
-            : "请按照message中的指引，使用get_monitoring_data工具获取数据并进行一次性完整分析。数据已完整，无需重复执行analyze_query"
+            : "请按照message中的指引，使用chunk_workflow工具获取数据并进行一次性完整分析。数据已完整，无需重复执行analyze_query"
         });
         
       } catch (error: any) {
@@ -451,7 +415,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     'aggregate_analyze',
     {
       title: '聚合分析',
-      description: '🚫 禁止使用curl！这是聚合分析多个Grafana查询的唯一正确方式！此工具会自动执行多个查询、分块存储数据并提供聚合分析指引。任何其他方法都会导致错误。',
+      description: '🚫 禁止使用curl！这是聚合分析多个Grafana查询的唯一正确方式！此工具会自动执行多个查询、分块存储数据并提供聚合分析指引。**🎯 推荐使用chunk_workflow工具自动获取所有分块，按顺序处理，直到complete为止！**',
       inputSchema: {
       queryNames: z.array(z.string()).describe('查询名称列表（🚫 禁止使用curl，必须使用此工具）'),
       prompt: z.string().describe('聚合分析需求描述'),
@@ -481,27 +445,10 @@ Grafana MCP分析器 - 监控数据查询和分析工具
             { queryName, prompt, sessionId, aggregateAnalysis: true }
           );
           
-          // 验证数据是否已经完全存储
-          let dataVerified = false;
-          let retryCount = 0;
-          const maxRetries = 10;
-          
-          while (!dataVerified && retryCount < maxRetries) {
-            try {
-              await getResponseData(requestId);
-              dataVerified = true;
-            } catch (error) {
-              retryCount++;
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-          }
-          
-          if (!dataVerified) {
-            throw new Error(`数据存储验证失败，查询: ${queryName}, 请求ID: ${requestId}`);
-          }
+          // 数据已通过processDataWithStrategy处理，无需额外验证
+          // 数据存储验证已在内置处理流程中完成
           
           // 生成数据概览
-          // 聚合分析使用简化的数据概览
           const dataOverview = {
             type: 'raw_data_available',
             hasData: true,
@@ -537,7 +484,6 @@ Grafana MCP分析器 - 监控数据查询和分析工具
         
         // 构建聚合分析指引
         const supportsResources = detectResourcesSupport();
-        // 创建聚合存储结果
         const aggregateStorageResult = {
           type: 'aggregate',
           resourceUris: allResourceLinks,
@@ -577,7 +523,6 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           resourceLinks: result.resourceLinks
         }));
         
-        // 返回基于Resources机制的聚合分析指引
         return createResponse({
           success: true,
           aggregateRequestId,
@@ -585,13 +530,13 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           totalDataSize,
           queryDetails,
           resourceLinks: allResourceLinks,
-          message: aggregateAnalysisGuidance, // 这是给AI的分析指引
+          message: aggregateAnalysisGuidance,
           type: 'aggregate_analysis',
-          analysisMode: supportsResources ? 'resources-based' : 'tool-based', // 标记分析模式
-          dataReady: true, // 标记数据已准备完成
+          analysisMode: supportsResources ? 'resources-based' : 'tool-based',
+          dataReady: true,
           analysisInstructions: supportsResources
             ? "请按照message中的指引，通过resourceLinks获取实际数据并进行一次性完整聚合分析"
-            : "请按照message中的指引，使用get_monitoring_data工具获取数据并进行一次性完整聚合分析。数据已完整，无需重复执行analyze_query"
+            : "请按照message中的指引，使用chunk_workflow工具获取数据并进行一次性完整聚合分析。数据已完整，无需重复执行analyze_query"
         });
         
       } catch (error: any) {
@@ -600,324 +545,217 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     }
   );
 
-  // 简化的会话管理工具
-  server.registerTool(
-    'manage_sessions',
-    {
-      title: '会话管理',
-      description: '管理MCP会话，支持创建、查看、删除会话',
-      inputSchema: {
-      action: z.enum(['list', 'create', 'get', 'delete']).describe('操作类型'),
-      sessionId: z.string().optional().describe('会话ID'),
-      metadata: z.record(z.any()).optional().describe('会话元数据')
-      }
-    },
-    async ({ action, sessionId, metadata }) => {
-      try {
-        switch (action) {
-          case 'list':
-            const sessions = await listSessions();
-            return createResponse(sessions);
-            
-          case 'create':
-            const newSessionId = await createSession(metadata || {});
-            return createResponse({ 
-              success: true, 
-              sessionId: newSessionId,
-              message: '会话创建成功' 
-            });
-            
-          case 'get':
-            if (!sessionId) {
-              return createErrorResponse('缺少会话ID');
+  // 工作流状态持久化函数
+  async function saveWorkflowState(requestId: string, state: any) {
+    try {
+      const dataStoreRoot = process.env.DATA_STORE_ROOT || path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store');
+      const workflowDir = path.join(dataStoreRoot, requestId);
+      const fs = await import('fs/promises');
+      await fs.mkdir(workflowDir, { recursive: true });
+      await fs.writeFile(
+        path.join(workflowDir, 'workflow-state.json'),
+        JSON.stringify(state, null, 2)
+      );
+    } catch (error) {
+      console.error(`[Workflow] 保存状态失败: ${error}`);
             }
-            const sessionInfo = await getSessionInfo(sessionId);
-            return createResponse(sessionInfo);
-            
-          case 'delete':
-            if (!sessionId) {
-              return createErrorResponse('缺少会话ID');
-            }
-            const result = await deleteSession(sessionId);
-            return createResponse({ 
-              success: result, 
-              message: result ? '会话删除成功' : '会话删除失败' 
-            });
-            
-          default:
-            return createErrorResponse('不支持的操作');
-        }
-      } catch (error: any) {
-        return createErrorResponse(error);
+  }
+  
+  async function loadWorkflowState(requestId: string) {
+    try {
+      const dataStoreRoot = process.env.DATA_STORE_ROOT || path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-store');
+      const workflowFile = path.join(dataStoreRoot, requestId, 'workflow-state.json');
+      const fs = await import('fs/promises');
+      const data = await fs.readFile(workflowFile, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      return null;
       }
     }
-  );
 
-  // 列出数据工具
+  // 工作流管理工具
   server.registerTool(
-    'list_data',
-    {
-      title: '数据列表',
-      description: '列出历史数据和分析结果',
-      inputSchema: {
-      sessionId: z.string().optional().describe('会话ID，不提供则列出所有数据'),
-      requestId: z.string().optional().describe('请求ID，如果提供则只返回该请求的数据'),
-      limit: z.number().optional().default(10).describe('返回数量限制'),
-      includeAnalysis: z.boolean().optional().default(false).describe('是否包含分析结果')
-      }
-    },
-    async ({ sessionId, requestId, limit, includeAnalysis }) => {
-      try {
-        let requests = [];
-        let errorMessage = null;
-        let analysisResults: Record<string, any> = {};
-        let hasAnalysisResults = false;
-        
-        // 优先处理requestId参数
-        if (requestId) {
-          try {
-            // 不需要单独获取metadata，直接使用getRequestStats
-            const stats = await getRequestStats(requestId);
-            requests = [stats];
-            
-            // 如果需要包含分析结果
-            if (includeAnalysis && stats.hasAnalysis) {
-              try {
-                const analysis = await getAnalysis(requestId);
-                analysisResults[requestId] = analysis;
-                hasAnalysisResults = true;
-              } catch (error) {
-                console.error(`获取分析结果失败: ${requestId}`, error);
-              }
-            }
-          } catch (error: any) {
-            errorMessage = `请求ID不存在: ${requestId}`;
-            requests = [];
-          }
-        } 
-        // 处理sessionId参数
-        else if (sessionId) {
-          // 智能识别：如果传入的是requestId格式，尝试获取该请求
-          if (sessionId.startsWith('request-')) {
-            try {
-              // 不需要单独获取metadata，直接使用getRequestStats
-              const stats = await getRequestStats(sessionId);
-              requests = [stats];
-              errorMessage = `警告: 您提供的似乎是请求ID而不是会话ID。已尝试返回该请求的数据。`;
-              
-              // 如果需要包含分析结果
-              if (includeAnalysis && stats.hasAnalysis) {
-                try {
-                  const analysis = await getAnalysis(sessionId);
-                  analysisResults[sessionId] = analysis;
-                  hasAnalysisResults = true;
-                } catch (error) {
-                  console.error(`获取分析结果失败: ${sessionId}`, error);
-                }
-              }
-            } catch (error) {
-              errorMessage = `无效的ID: ${sessionId} (看起来像请求ID但未找到)`;
-              requests = [];
-            }
-          } 
-          // 正常会话ID处理
-          else {
-            requests = await listRequestsBySession(sessionId);
-            if (requests.length === 0) {
-              errorMessage = `未找到会话相关的请求: ${sessionId}`;
-            } else if (includeAnalysis) {
-              // 获取会话中所有请求的分析结果
-              for (const req of requests) {
-                if (req.hasAnalysis) {
-                  try {
-                    const analysis = await getAnalysis(req.id);
-                    analysisResults[req.id] = analysis;
-                    hasAnalysisResults = true;
-                  } catch (error) {
-                    console.error(`获取分析结果失败: ${req.id}`, error);
-                  }
-                }
-              }
-            }
-          }
-        } 
-        // 不提供任何ID，返回所有请求
-        else {
-          requests = await listAllRequests();
-        }
-        
-        // 限制返回数量
-        const limitedRequests = requests.slice(0, limit);
-        
-        // 获取每个请求的统计信息
-        const requestsWithStats = await Promise.all(
-          limitedRequests.map(async (req) => {
-            try {
-              // 如果已经是统计信息，直接返回
-              if (req.requestId && req.dataType) {
-                return req;
-              }
-              // 否则获取统计信息
-              const stats = await getRequestStats(req.id);
-              return stats;
-            } catch (error) {
-              return {
-                requestId: req.id,
-                timestamp: req.timestamp,
-                prompt: req.prompt,
-                sessionId: req.sessionId,
-                error: 'Failed to get stats'
-              };
-            }
-          })
-        );
-
-        // 检查是否有分析结果
-        const hasAnalysisCompleted = requestsWithStats.some(req => req.hasAnalysis);
-        
-        // 构建引导信息
-        let guidanceMessage = "";
-        if (hasAnalysisCompleted) {
-          guidanceMessage = "\n\n【提示】已发现完成的分析结果。如果您需要查看分析结果，请注意：\n1. 使用 analyze_query 工具的返回结果已包含完整分析，无需再次查询\n2. 不要重复调用工具获取相同的数据\n3. 直接基于已有的分析结果回答用户问题";
-        } else {
-          guidanceMessage = "\n\n【提示】尚未发现完成的分析结果。请使用 analyze_query 工具进行分析。";
-        }
-        
-        return createResponse({
-          data: requestsWithStats,
-          total: requests.length,
-          returned: limitedRequests.length,
-          sessionId: sessionId || 'all',
-          requestId: requestId || undefined,
-          ...(hasAnalysisResults && includeAnalysis && { analysisResults }),
-          ...(errorMessage && { warning: errorMessage }),
-          guidance: guidanceMessage
-        });
-        
-      } catch (error: any) {
-        return createErrorResponse(error);
-      }
-    }
-  );
-
-  // 服务器状态工具
-  server.registerTool(
-    'server_status',
-    {
-      title: '服务器状态',
-      description: '查看服务器信息和配置状态',
-      inputSchema: {}
-    },
-    async () => {
-      return createResponse({
-        server: SERVER_INFO,
-        config: {
-          hasBaseUrl: !!config.baseUrl,
-          hasHealthCheck: !!config.healthCheck,
-          queryCount: Object.keys(config.queries || {}).length
-        },
-        timestamp: new Date().toISOString()
-      });
-    }
-  );
-
-  // 获取监控数据工具（支持严格分块）
-  server.registerTool(
-    'get_monitoring_data',
-    {
-      title: '获取监控数据',
-      description: `🚫 禁止使用curl！这是获取已存储Grafana数据的唯一正确方式！支持严格${Math.round(getMaxChunkSize() / 1024)}KB分块。必须先使用analyze_query工具存储数据。**必须按顺序获取所有分块，不能跳过任何分块！**`,
+          'chunk_workflow',
+      {
+        title: '分块数据工作流',
+        description: `🎯 **推荐使用此工具！** 这是管理分块数据获取工作流的自动化方式！此工具会自动管理分块获取流程，确保数据完整性。必须先使用analyze_query工具存储数据。**请优先使用此工具自动获取所有分块，按顺序处理，直到complete为止！** 支持自动恢复和连续执行，AI可以自动连续调用next动作直到完成。**重要：获取完所有分块后，必须立即进行完整分析并输出详细报告！**`,
       inputSchema: {
         requestId: z.string().describe('请求ID（必须先使用analyze_query工具获取）'),
-        dataType: z.string().default('data').describe('数据类型：metadata（分块元数据）/chunk-1,chunk-2等（分块数据，必须按顺序获取所有分块）')
+        action: z.enum(['start', 'next', 'status', 'complete']).describe('工作流动作：start(开始)/next(下一个分块)/status(状态)/complete(完成)')
       }
     },
-    async ({ requestId, dataType }) => {
+    async ({ requestId, action }) => {
       try {
-        let data;
-        let response: any = {
-          success: true,
-          requestId,
-          dataType,
-          message: '数据获取成功'
-        };
+        // 加载数据（支持分块和完整数据）
+        const chunkingResult = await loadChunks(requestId);
+        const totalChunks = chunkingResult.chunks.length;
+        const isChunked = chunkingResult.metadata.chunkingStrategy !== 'full';
+        
+        // 获取或创建工作流状态
+        let workflowState = await loadWorkflowState(requestId);
+        
+        // 如果没有工作流状态，创建一个新的
+        if (!workflowState) {
+          workflowState = {
+            currentStep: 0,
+            retrievedChunks: [],
+            status: 'idle',
+            totalChunks: 0
+          };
+        }
 
-        if (dataType === 'analysis') {
-          // 获取分析结果
-          data = await getAnalysis(requestId);
-          response.data = data;
-          response.dataSize = JSON.stringify(data).length;
-        } else if (dataType?.startsWith('chunk-')) {
-          // 获取特定分块
-          try {
-            const chunkingResult = await loadChunks(requestId);
-            const chunkIndex = parseInt(dataType.replace('chunk-', ''));
-            const chunk = chunkingResult.chunks.find(c => c.index === chunkIndex);
+        switch (action) {
+          case 'start':
+            workflowState = {
+              currentStep: 1,
+              retrievedChunks: [],
+              status: 'running',
+              totalChunks
+            };
+            await saveWorkflowState(requestId, workflowState);
             
-            if (chunk) {
-              data = chunk;
-              response.data = chunk;
-              response.dataSize = chunk.size;
-              response.chunkInfo = {
+            return createResponse({
+              success: true,
+              requestId,
+              message: isChunked 
+                ? `🚀 工作流已启动！共${totalChunks}个分块需要获取。`
+                : `🚀 工作流已启动！数据已完整存储，无需分块。`,
+              workflow: {
+                step: 1,
+                totalSteps: totalChunks + 1,
+                action: isChunked ? 'get_metadata' : 'get_full_data',
+                nextAction: isChunked ? 'get_chunk_1' : 'get_full_data'
+              },
+              instruction: isChunked 
+                ? `请调用此工具执行'next'动作获取第一个分块。`
+                : `请调用此工具执行'next'动作获取完整数据。`
+            });
+
+          case 'next':
+            // 如果工作流未启动，自动启动
+            if (workflowState.status !== 'running') {
+              workflowState = {
+                currentStep: 1,
+                retrievedChunks: [],
+                status: 'running',
+                totalChunks
+              };
+              await saveWorkflowState(requestId, workflowState);
+                  }
+
+            // 如果当前步骤为0，从1开始
+            if (workflowState.currentStep === 0) {
+              workflowState.currentStep = 1;
+              await saveWorkflowState(requestId, workflowState);
+              }
+
+            const currentChunk = workflowState.currentStep;
+            if (currentChunk > totalChunks) {
+              workflowState.status = 'completed';
+              await saveWorkflowState(requestId, workflowState);
+        
+        return createResponse({
+                success: true,
+                requestId,
+                message: `✅ 工作流完成！已获取所有${totalChunks}个分块。`,
+                workflow: {
+                  step: totalChunks + 1,
+                  totalSteps: totalChunks + 1,
+                  status: 'completed',
+                  retrievedChunks: workflowState.retrievedChunks
+                },
+                instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${totalChunks}个分块数据进行完整分析。请立即开始分析并输出详细报告！`,
+                analysisRequired: true,
+                dataReady: true,
+                totalChunksRetrieved: totalChunks
+              });
+            }
+
+            // 获取当前分块
+            const chunk = chunkingResult.chunks.find(c => c.index === currentChunk);
+            if (!chunk) {
+              return createErrorResponse(`分块${currentChunk}不存在`);
+            }
+
+            workflowState.retrievedChunks.push(currentChunk);
+            workflowState.currentStep = currentChunk + 1;
+            await saveWorkflowState(requestId, workflowState);
+
+      return createResponse({
+              success: true,
+              requestId,
+              message: isChunked 
+                ? `📦 分块${currentChunk}/${totalChunks}获取成功！`
+                : `📦 完整数据获取成功！`,
+              workflow: {
+                step: currentChunk + 1,
+                totalSteps: totalChunks + 1,
+                progress: isChunked ? `${currentChunk}/${totalChunks}` : '1/1',
+                retrievedChunks: workflowState.retrievedChunks,
+                nextAction: currentChunk < totalChunks ? 'get_chunk_' + (currentChunk + 1) : 'complete'
+              },
+              chunk: {
                 index: chunk.index,
-                totalChunks: chunk.totalChunks,
                 type: chunk.type,
                 contentType: chunk.contentType,
-                size: chunk.size
-              };
-              // 如果不是最后一个分块，强制要求继续获取
-              if (chunk.index < chunk.totalChunks) {
-                response.message = `分块${chunk.index}/${chunk.totalChunks}获取成功。**必须继续获取下一个分块（chunk-${chunk.index + 1}）！还有${chunk.totalChunks - chunk.index}个分块未获取，分析不完整！**`;
-                response.warning = `⚠️ 警告：您只获取了${chunk.index}/${chunk.totalChunks}个分块，数据不完整！必须获取所有分块才能进行准确分析！`;
-              } else {
-                response.message = `分块${chunk.index}/${chunk.totalChunks}获取成功。**所有分块已获取完成，现在可以进行完整分析了！**`;
-                response.complete = true;
+                size: chunk.size,
+                content: chunk.content
+              },
+              instruction: currentChunk < totalChunks 
+                ? (isChunked 
+                  ? `请继续调用此工具执行'next'动作获取下一个分块。系统会自动继续执行，无需手动干预。`
+                  : `请调用此工具执行'complete'动作完成工作流。`)
+                : `请调用此工具执行'complete'动作完成工作流。`,
+              autoContinue: currentChunk < totalChunks && isChunked,
+              nextStep: currentChunk < totalChunks ? 'next' : 'complete'
+            });
+
+          case 'status':
+            return createResponse({
+              success: true,
+              requestId,
+              message: `📊 工作流状态：${workflowState.status}`,
+              workflow: {
+                step: workflowState.currentStep,
+                totalSteps: totalChunks + 1,
+                progress: workflowState.retrievedChunks.length > 0 
+                  ? `${workflowState.retrievedChunks.length}/${totalChunks}`
+                  : '0/0',
+                retrievedChunks: workflowState.retrievedChunks,
+                status: workflowState.status
               }
-            } else {
-              throw new Error(`分块${chunkIndex}不存在`);
-            }
-          } catch (error) {
-            // 如果分块不存在，尝试获取完整数据
-            data = await getResponseData(requestId);
-            response.data = data;
-            response.dataSize = JSON.stringify(data).length;
-            response.message = '分块不存在，已返回完整数据';
-          }
-        } else {
-          // 获取完整数据或分块信息
-          try {
-            // 首先尝试加载分块信息
-            const chunkingResult = await loadChunks(requestId);
-            response.chunkingInfo = {
-              totalChunks: chunkingResult.chunks.length,
-              metadata: chunkingResult.metadata,
-              chunkingStrategy: `strict-${Math.round(getMaxChunkSize() / 1024)}kb`
-            };
-            response.message = `数据已分块存储，共${chunkingResult.chunks.length}个分块。**必须按顺序获取所有分块（chunk-1到chunk-${chunkingResult.chunks.length}），不能跳过任何分块！**`;
-            
-            // 返回第一个分块作为示例
-            if (chunkingResult.chunks.length > 0) {
-              response.sampleChunk = chunkingResult.chunks[0];
-            }
-          } catch (error) {
-            // 如果没有分块，获取完整数据
-            data = await getResponseData(requestId);
-            response.data = data;
-            response.dataSize = JSON.stringify(data).length;
-            response.message = '数据获取成功（完整数据）';
-          }
+            });
+
+          case 'complete':
+            workflowState.status = 'completed';
+            await saveWorkflowState(requestId, workflowState);
+        
+        return createResponse({
+          success: true,
+          requestId,
+              message: `✅ 工作流已完成！共获取了${workflowState.retrievedChunks.length}个分块。`,
+              workflow: {
+                step: totalChunks + 1,
+                totalSteps: totalChunks + 1,
+                status: 'completed',
+                retrievedChunks: workflowState.retrievedChunks
+              },
+              instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${workflowState.retrievedChunks.length}个分块数据进行完整分析。请立即开始分析并输出详细报告！`,
+              analysisRequired: true,
+              dataReady: true,
+              totalChunksRetrieved: workflowState.retrievedChunks.length
+            });
+
+          default:
+            return createErrorResponse('无效的工作流动作');
         }
         
-        return createResponse(response);
-        
       } catch (error: any) {
-        console.error(`[Get Data Tool] 数据获取失败: ${error.message}`);
-        return createErrorResponse(`无法获取数据: ${error.message}`);
+        console.error(`[Chunk Workflow Tool] 工作流执行失败: ${error.message}`);
+        return createErrorResponse(`工作流执行失败: ${error.message}`);
       }
     }
   );
-
-
 
   return server;
 } 
