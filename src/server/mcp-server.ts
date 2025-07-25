@@ -12,6 +12,7 @@ import {
   safeStoreAnalysis,
   getAnalysis
 } from '../services/data-store.js';
+import { findValidCache, createCache, listCache, getCacheStats, cleanupExpiredCache } from '../services/data-cache-manager.js';
 import type { 
   QueryConfig, 
   HttpRequest, 
@@ -267,6 +268,61 @@ Grafana MCP分析器 - 监控数据查询和分析工具
   );
   }
 
+  // 缓存管理工具
+  server.registerTool(
+    'manage_cache',
+    {
+      title: '缓存管理',
+      description: '管理数据缓存，支持查看缓存状态、清理过期缓存等操作',
+      inputSchema: {
+        action: z.enum(['list', 'stats', 'cleanup', 'clear']).describe('操作类型：list(列出缓存)/stats(统计信息)/cleanup(清理过期)/clear(清空所有)'),
+        limit: z.number().optional().describe('列出缓存时的数量限制').default(10)
+      }
+    },
+    async ({ action, limit }) => {
+      try {
+        switch (action) {
+          case 'list':
+            const cacheList = await listCache(limit);
+            return createResponse({
+              action: 'list',
+              caches: cacheList,
+              count: cacheList.length,
+              message: `找到 ${cacheList.length} 个有效缓存`
+            });
+            
+          case 'stats':
+            const stats = await getCacheStats();
+            return createResponse({
+              action: 'stats',
+              stats,
+              message: `缓存统计：${stats.validEntries}/${stats.totalEntries} 个有效条目，总大小 ${Math.round(stats.totalSize / 1024)}KB，平均访问次数 ${stats.averageAccessCount}`
+            });
+            
+          case 'cleanup':
+            const cleanedCount = await cleanupExpiredCache();
+            return createResponse({
+              action: 'cleanup',
+              cleanedCount,
+              message: `清理了 ${cleanedCount} 个过期缓存`
+            });
+            
+          case 'clear':
+            // 这里可以实现清空所有缓存的逻辑
+            return createResponse({
+              action: 'clear',
+              message: '清空缓存功能待实现'
+            });
+            
+          default:
+            return createErrorResponse('无效的操作类型');
+        }
+      } catch (error: any) {
+        return createErrorResponse(error);
+      }
+    }
+  );
+
   // 健康检查工具
   server.registerTool(
     'check_health',
@@ -320,10 +376,10 @@ Grafana MCP分析器 - 监控数据查询和分析工具
 
   // 查询分析工具
   server.registerTool(
-    'analyze_query',
-    {
-      title: '查询分析',
-      description: '🚫 禁止使用curl！这是获取和分析单个Grafana查询的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。**🎯 推荐使用chunk_workflow工具自动获取所有分块，按顺序处理，直到complete为止！**',
+          'analyze_query',
+      {
+        title: '查询分析',
+        description: '🚫 禁止使用curl！这是获取和分析单个Grafana查询的唯一正确方式！此工具会自动执行查询、分块存储数据并提供分析指引。**🎯 推荐使用chunk_workflow工具自动获取所有分块，按顺序处理，直到complete为止！** **重要：每个查询都需要独立的数据获取流程，不能使用其他查询的数据！**',
       inputSchema: {
       queryName: z.string().describe('查询名称（🚫 禁止使用curl，必须使用此工具）'),
       prompt: z.string().describe('分析需求描述'),
@@ -333,14 +389,54 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     async ({ queryName, prompt, sessionId }) => {
       try {
         const queryConfig = validateQueryConfig(queryName);
-        const requestId = generateRequestId();
         
-        // 第一步：执行查询并存储数据  
-        const { result, storageResult, resourceLinks } = await executeAndStoreQuery(
-          queryConfig,
-          requestId,
-          { queryName, prompt, sessionId }
-        );
+        // 第一步：检查是否有有效缓存
+        const cachedEntry = await findValidCache(queryName, queryConfig);
+        let requestId: string;
+        let result: ExtractedData;
+        let storageResult: any;
+        let resourceLinks: string[];
+        let cacheHit = false;
+        
+        if (cachedEntry) {
+          // 使用缓存数据
+          console.log(`🎯 找到有效缓存: ${cachedEntry.id} (访问次数: ${cachedEntry.accessCount})`);
+          requestId = cachedEntry.requestId;
+          result = await getResponseData(requestId);
+          storageResult = {
+            type: cachedEntry.metadata.storageType,
+            size: cachedEntry.dataSize,
+            chunks: cachedEntry.chunks
+          };
+          resourceLinks = [`monitoring-data://${requestId}/data`];
+          cacheHit = true;
+        } else {
+          // 执行新查询
+          requestId = generateRequestId();
+          const queryResult = await executeAndStoreQuery(
+            queryConfig,
+            requestId,
+            { queryName, prompt, sessionId }
+          );
+          result = queryResult.result;
+          storageResult = queryResult.storageResult;
+          resourceLinks = queryResult.resourceLinks;
+          
+          // 创建缓存条目
+          await createCache(
+            queryName,
+            queryConfig,
+            requestId,
+            storageResult.size,
+            storageResult.chunks || 1,
+            {
+              prompt,
+              sessionId,
+              dataType: result.type || 'unknown',
+              storageType: storageResult.type
+            }
+          );
+        }
         
         // 第二步：数据已通过processDataWithStrategy处理，无需额外验证
         // 数据存储验证已在内置处理流程中完成
@@ -401,7 +497,20 @@ Grafana MCP分析器 - 监控数据查询和分析工具
           dataReady: true, // 标记数据已准备完成
           analysisInstructions: resourcesSupported 
             ? "请按照message中的指引，通过resourceLinks获取实际数据并进行一次性完整分析"
-            : "请按照message中的指引，使用chunk_workflow工具获取数据并进行一次性完整分析。数据已完整，无需重复执行analyze_query"
+            : "请按照message中的指引，使用chunk_workflow工具获取数据并进行一次性完整分析。数据已完整，无需重复执行analyze_query",
+          querySpecific: true, // 标记这是特定查询的数据
+          dataSource: queryName, // 明确数据来源
+          warning: "⚠️ 这是查询'" + queryName + "'的专用数据，不能用于其他查询的分析！",
+          cacheInfo: cacheHit ? {
+            hit: true,
+            cacheId: cachedEntry!.id,
+            accessCount: cachedEntry!.accessCount,
+            created: cachedEntry!.created,
+            message: `🎯 使用缓存数据 (已访问${cachedEntry!.accessCount}次，创建于${new Date(cachedEntry!.created).toLocaleString()})`
+          } : {
+            hit: false,
+            message: "🆕 执行新查询并创建缓存"
+          }
         });
         
       } catch (error: any) {
@@ -667,7 +776,9 @@ Grafana MCP分析器 - 监控数据查询和分析工具
                 instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${totalChunks}个分块数据进行完整分析。请立即开始分析并输出详细报告！`,
                 analysisRequired: true,
                 dataReady: true,
-                totalChunksRetrieved: totalChunks
+                totalChunksRetrieved: totalChunks,
+                dataSource: requestId.split('-')[2] || 'unknown',
+                warning: "⚠️ 这是特定查询的完整数据，分析时必须基于此查询的数据特征！"
               });
             }
 
@@ -707,7 +818,9 @@ Grafana MCP分析器 - 监控数据查询和分析工具
                   : `请调用此工具执行'complete'动作完成工作流。`)
                 : `请调用此工具执行'complete'动作完成工作流。`,
               autoContinue: currentChunk < totalChunks && isChunked,
-              nextStep: currentChunk < totalChunks ? 'next' : 'complete'
+              nextStep: currentChunk < totalChunks ? 'next' : 'complete',
+              dataSource: requestId.split('-')[2] || 'unknown', // 从requestId提取查询标识
+              warning: "⚠️ 这是特定查询的数据分块，不能与其他查询数据混淆！"
             });
 
           case 'status':
@@ -743,7 +856,9 @@ Grafana MCP分析器 - 监控数据查询和分析工具
               instruction: `🎯 所有数据已获取完成！现在必须基于获取到的${workflowState.retrievedChunks.length}个分块数据进行完整分析。请立即开始分析并输出详细报告！`,
               analysisRequired: true,
               dataReady: true,
-              totalChunksRetrieved: workflowState.retrievedChunks.length
+              totalChunksRetrieved: workflowState.retrievedChunks.length,
+              dataSource: requestId.split('-')[2] || 'unknown',
+              warning: "⚠️ 这是特定查询的完整数据，分析时必须基于此查询的数据特征！"
             });
 
           default:
