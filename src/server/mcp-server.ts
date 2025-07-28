@@ -1065,7 +1065,5 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     }
   );
 
-
-
   return server;
 } 
