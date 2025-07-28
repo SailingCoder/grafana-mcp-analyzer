@@ -20,7 +20,6 @@
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
 -   **自然语言查询** - 轻松访问监控数据，AI 一键输出专业分析
--   **智能格式化** - 支持**大数据量**分析，高效解析各类数据
 -   **curl支持** - 直接使用浏览器 copy 的 curl 合成查询
 -   **聚合分析** - 单个查询或 Dashboard 级别综合分析
 -   **异常检测** - AI 主动报告性能问题，提前警报
@@ -235,6 +234,7 @@ module.exports = config;
 👤 "分析CPU使用情况" → 🤖 调用 analyze_query
 👤 "聚合分析系统指标" → 🤖 调用 aggregate_analyze
 ```
+> 受限于现阶段 AI 模型的上下文处理能力，建议数据大小控制在 300 KB 以内，分析效果最佳。
 
 ## 高级配置
 
