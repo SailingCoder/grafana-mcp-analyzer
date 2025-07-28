@@ -22,6 +22,10 @@ logs/
 *.swp
 *.swo
 
+# Config files
+config/grafana-config-demo.js
+
+# Architecture files
 ARCHITECTURE.md
 
 # OS files
