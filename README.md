@@ -227,7 +227,9 @@ module.exports = config;
 
 ### 第四步：开始使用！
 
-**完全重启Cursor**，然后体验智能分析：
+**重启Cursor中的MCP Grafana服务**，然后开始体验智能分析！
+
+> ⚠️ **重要提醒**：修改 `mcp.json` 或 `grafana-config-play.js` 配置文件后，必须重启Cursor中的MCP Grafana服务才能生效。
 
 1、金融数据分析场景
 
