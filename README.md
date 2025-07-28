@@ -22,7 +22,6 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 -   **自然语言查询** - 轻松访问监控数据，AI 一键输出专业分析
 -   **curl支持** - 直接使用浏览器 copy 的 curl 合成查询
 -   **聚合分析** - 单个查询或 Dashboard 级别综合分析
--   **异常检测** - AI 主动报告性能问题，提前警报
 -   **全数据源支持** - Prometheus、MySQL、ES 等通通支持
 -   **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 -   **多轮对话支持** - 支持复杂的多轮对话分析，能够基于上下文进行深入分析，避免数据混淆
@@ -66,7 +65,6 @@ npm install -g grafana-mcp-analyzer
 ```javascript
 /**
  * 基于Grafana Play演示实例的配置文件
- * 数据源(狗狗币OHLC数据)：https://play.grafana.org/d/candlesticksss/candlestick2?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc
  * 以下配置文件内容来源：https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js
  * Request 配置方式：支持 http api 和 curl
  */
@@ -89,7 +87,7 @@ const config = {
   queries: {
     // Price Only, Hollow Candles
     // 使用HTTP API格式
-    // 地址：https://play.grafana.org/d/candlestick/candlestick?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc&viewPanel=panel-7
+    // 数据源：https://play.grafana.org/d/candlestick/candlestick?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc&viewPanel=panel-7
     candlestick_priceOnly_hollowCandles: {
       url: 'api/ds/query',
       method: 'POST',
@@ -166,7 +164,7 @@ const config = {
     },
     // faro-shop-control-plane - Overall CPU Utilization
     // 使用 cUrl 格式
-    // 地址：https://play.grafana.org/d/cNMLIAFK/cpu-utilization-details-cores?var-interval=$__auto&orgId=1&from=now-3h&to=now&timezone=browser&var-host=faro-shop-control-plane&var-cpu=$__all&viewPanel=panel-22
+    // 数据源：https://play.grafana.org/d/cNMLIAFK/cpu-utilization-details-cores?var-interval=$__auto&orgId=1&from=now-3h&to=now&timezone=browser&var-host=faro-shop-control-plane&var-cpu=$__all&viewPanel=panel-22
     overall_cpu_utilization: {
       curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=prometheus&requestId=SQR112' \
   -H 'accept: application/json, text/plain, */*' \
@@ -235,7 +233,7 @@ module.exports = config;
 
 ```text
 👤 您：分析candlestick_priceOnly_hollowCandles的数据
-🤖 AI：AI获取K线图数据，并按照你配置的systemPrompt内容进行分析
+🤖 AI：获取并提供分析报告
 
 👤 您：现在分析一下这个K线数据的趋势
 🤖 AI：AI基于已获取的OHLC数据进行分析
@@ -255,8 +253,8 @@ module.exports = config;
 
 2、系统CPU性能分析场景
 ```
-👤 您：分析overall_cpu_utilization的历史趋势
-🤖 AI：AI获取CPU使用率历史数据，并按照你配置的systemPrompt内容进行分析
+👤 您：分析overall_cpu_utilization的数据
+🤖 AI：提供CPU分析报告
 
 👤 您：CPU使用率的变化趋势如何？
 🤖 AI：AI识别CPU使用率变化趋势
@@ -274,6 +272,8 @@ module.exports = config;
 **配置完成！**
 
 ![在这里插入图片描述](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
+
+**重要限制说明**：受限于AI模型的上下文处理能力，建议数据大小控制在300KB以内，分析效果最佳。对于大数据量，系统会自动分块处理。
 
 ## MCP工具清单
 
@@ -295,7 +295,6 @@ module.exports = config;
 👤 "分析CPU使用情况" → 🤖 调用 analyze_query
 👤 "聚合分析系统指标" → 🤖 调用 aggregate_analyze
 ```
-> 受限于现阶段 AI 模型的上下文处理能力，建议数据大小控制在 300 KB 以内，分析效果最佳。
 
 ## 高级配置
 
