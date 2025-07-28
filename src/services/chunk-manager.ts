@@ -194,39 +194,48 @@ export class StrictChunker {
     const results = data?.data?.results || data?.results || {};
     const resultKeys = Object.keys(results);
 
-    // 1. 元数据分块
+    // 1. 合并元数据到第一个分块
     const metadata = {
       queryCount: resultKeys.length,
       queryNames: resultKeys,
       timestamp: new Date().toISOString()
     };
 
-    if (this.isWithinLimit(metadata)) {
-      chunks.push({
-        id: 'metadata',
-        index: chunkIndex++,
-        totalChunks: 0,
-        type: 'metadata',
-        contentType: 'grafana-metadata',
-        content: metadata,
-        size: this.calculateSize(metadata)
-      });
-    }
-
-    // 2. 处理每个查询结果
+    // 2. 处理每个查询结果，优化分块策略
     for (const resultKey of resultKeys) {
       const result = results[resultKey];
       const frames = result?.frames || [];
 
       for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
         const frame = frames[frameIndex];
-        const frameChunks = this.chunkFrame(
-          frame,
-          `${resultKey}-frame-${frameIndex}`,
-          chunkIndex
-        );
-        chunks.push(...frameChunks);
-        chunkIndex += frameChunks.length;
+        
+        // 检查整个frame是否可以作为一个分块
+        const frameSize = this.calculateSize(frame);
+        if (frameSize <= this.maxChunkSize) {
+          // 整个frame可以作为一个分块
+          chunks.push({
+            id: `${resultKey}-frame-${frameIndex}`,
+            index: chunkIndex++,
+            totalChunks: 0,
+            type: 'data',
+            contentType: 'frame-data',
+            content: {
+              metadata: metadata,
+              frame: frame
+            },
+            size: frameSize
+          });
+        } else {
+          // frame太大，需要分块，但优化分块策略
+          const frameChunks = this.chunkFrameOptimized(
+            frame,
+            `${resultKey}-frame-${frameIndex}`,
+            chunkIndex,
+            metadata
+          );
+          chunks.push(...frameChunks);
+          chunkIndex += frameChunks.length;
+        }
       }
     }
 
@@ -239,58 +248,86 @@ export class StrictChunker {
   }
 
   /**
-   * 分块Frame数据
+   * 优化的Frame分块方法 - 减少分块数量
    */
-  private chunkFrame(frame: any, baseId: string, startIndex: number): DataChunk[] {
+  private chunkFrameOptimized(frame: any, baseId: string, startIndex: number, metadata: any): DataChunk[] {
     const chunks: DataChunk[] = [];
     let chunkIndex = startIndex;
 
     const fields = frame?.schema?.fields || frame?.fields || [];
     const frameData = frame?.data || {};
-    const dataValues = frameData.values || [];
 
-    // 1. Frame元数据
+    // 1. 合并frame元数据到第一个分块
     const frameMetadata = {
       name: frame?.schema?.name || frame?.name || 'unknown',
       fieldCount: fields.length,
       fieldNames: fields.map((f: any) => f.name),
-      meta: frame?.meta
+      meta: frame?.meta,
+      queryMetadata: metadata
     };
 
-    if (this.isWithinLimit(frameMetadata)) {
+    // 2. 尝试将整个frame作为一个分块
+    const fullFrameData = {
+      metadata: frameMetadata,
+      data: frameData
+    };
+
+    const fullFrameSize = this.calculateSize(fullFrameData);
+    if (fullFrameSize <= this.maxChunkSize) {
       chunks.push({
-        id: `${baseId}-metadata`,
+        id: `${baseId}-full`,
         index: chunkIndex++,
         totalChunks: 0,
-        type: 'metadata' as const,
-        contentType: 'frame-metadata',
-        content: frameMetadata,
-        size: this.calculateSize(frameMetadata)
+        type: 'data',
+        contentType: 'frame-full',
+        content: fullFrameData,
+        size: fullFrameSize
       });
-    }
-
-    // 2. 分块字段数据
-    for (let fieldIndex = 0; fieldIndex < fields.length; fieldIndex++) {
-      const field = fields[fieldIndex];
-      const fieldValues = dataValues[fieldIndex] || [];
-
-      const fieldChunks = this.chunkArray(
-        fieldValues,
-        `${baseId}-field-${fieldIndex}`,
+    } else {
+      // 3. 如果整个frame太大，按行分块而不是按字段分块
+      const rows = this.extractRowsFromFrame(frame);
+      const rowChunks = this.chunkArray(
+        rows,
+        `${baseId}-rows`,
         chunkIndex,
-        'field-data',
+        'frame-rows',
         {
-          fieldName: field.name,
-          fieldType: field.type,
-          fieldIndex: fieldIndex
+          metadata: frameMetadata,
+          fieldNames: fields.map((f: any) => f.name)
         }
       );
-      chunks.push(...fieldChunks);
-      chunkIndex += fieldChunks.length;
+      chunks.push(...rowChunks);
+      chunkIndex += rowChunks.length;
     }
 
     return chunks;
   }
+
+  /**
+   * 从frame中提取行数据
+   */
+  private extractRowsFromFrame(frame: any): any[] {
+    const fields = frame?.schema?.fields || frame?.fields || [];
+    const frameData = frame?.data || {};
+    const dataValues = frameData.values || [];
+
+    if (dataValues.length === 0) return [];
+
+    const rows = [];
+    const rowCount = dataValues[0].length;
+
+    for (let i = 0; i < rowCount; i++) {
+      const row: any = {};
+      fields.forEach((field: any, fieldIndex: number) => {
+        row[field.name] = dataValues[fieldIndex]?.[i];
+      });
+      rows.push(row);
+    }
+
+    return rows;
+  }
+
+
 
   /**
    * 分块聚合数据
