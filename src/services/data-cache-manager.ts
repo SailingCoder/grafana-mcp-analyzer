@@ -7,9 +7,50 @@ const BASE_STORAGE_DIR = path.join(os.homedir(), '.grafana-mcp-analyzer', 'data-
 const CACHE_DIR = path.join(BASE_STORAGE_DIR, 'cache');
 const CACHE_INDEX_FILE = path.join(CACHE_DIR, 'cache-index.json');
 
-// 确保目录存在
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
+/**
+ * 确保缓存目录和索引文件存在
+ */
+function ensureCacheSystem(): void {
+  try {
+    // 确保基础存储目录存在
+    if (!fs.existsSync(BASE_STORAGE_DIR)) {
+      fs.mkdirSync(BASE_STORAGE_DIR, { recursive: true });
+      console.error('📁 创建基础存储目录:', BASE_STORAGE_DIR);
+    }
+    
+    // 确保缓存目录存在
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR, { recursive: true });
+      console.error('📁 创建缓存目录:', CACHE_DIR);
+    }
+    
+    // 确保缓存索引文件存在
+    if (!fs.existsSync(CACHE_INDEX_FILE)) {
+      const initialIndex = {};
+      fs.writeFileSync(CACHE_INDEX_FILE, JSON.stringify(initialIndex, null, 2), 'utf-8');
+      console.error('📄 创建缓存索引文件:', CACHE_INDEX_FILE);
+    }
+  } catch (error) {
+    console.error('❌ 缓存系统初始化失败:', error);
+    throw new Error(`缓存系统初始化失败: ${error}`);
+  }
+}
+
+// 在模块加载时确保缓存系统存在
+ensureCacheSystem();
+
+/**
+ * 检查并初始化缓存系统
+ * 供其他模块调用的公开函数
+ */
+export function checkAndInitializeCache(): void {
+  try {
+    ensureCacheSystem();
+    console.error('✅ 缓存系统检查完成');
+  } catch (error) {
+    console.error('❌ 缓存系统检查失败:', error);
+    throw error;
+  }
 }
 
 export interface CacheEntry {
@@ -60,14 +101,28 @@ function isCacheValid(entry: CacheEntry): boolean {
  */
 async function getCacheIndex(): Promise<CacheIndex> {
   try {
+    // 确保缓存系统存在
+    ensureCacheSystem();
+    
     if (!fs.existsSync(CACHE_INDEX_FILE)) {
+      console.error('⚠️ 缓存索引文件不存在，创建新索引');
       return {};
     }
+    
     const data = await fs.promises.readFile(CACHE_INDEX_FILE, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
-    console.error('读取缓存索引失败，创建新索引', error);
-    return {};
+    console.error('❌ 读取缓存索引失败，创建新索引:', error);
+    // 尝试重新创建索引文件
+    try {
+      const initialIndex = {};
+      await fs.promises.writeFile(CACHE_INDEX_FILE, JSON.stringify(initialIndex, null, 2), 'utf-8');
+      console.error('✅ 重新创建缓存索引文件成功');
+      return initialIndex;
+    } catch (writeError) {
+      console.error('❌ 重新创建缓存索引文件失败:', writeError);
+      return {};
+    }
   }
 }
 
@@ -75,7 +130,15 @@ async function getCacheIndex(): Promise<CacheIndex> {
  * 保存缓存索引
  */
 async function saveCacheIndex(index: CacheIndex): Promise<void> {
-  await fs.promises.writeFile(CACHE_INDEX_FILE, JSON.stringify(index, null, 2), 'utf-8');
+  try {
+    // 确保缓存系统存在
+    ensureCacheSystem();
+    
+    await fs.promises.writeFile(CACHE_INDEX_FILE, JSON.stringify(index, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('❌ 保存缓存索引失败:', error);
+    throw new Error(`保存缓存索引失败: ${error}`);
+  }
 }
 
 /**
