@@ -231,7 +231,7 @@ promptMode: 'custom',
     },
     // Price & Volume
     // 地址：https://play.grafana.org/d/candlestick/candlestick?orgId=1&from=2021-07-13T22:13:30.740Z&to=2021-07-13T22:46:18.921Z&timezone=utc&viewPanel=panel-2
-    candlestick_priceAndVolume: {
+    candlestick_price_volume: {
       curl: `curl 'https://play.grafana.org/api/ds/query?ds_type=grafana-testdata-datasource&requestId=SQR272' \
   -H 'accept: application/json, text/plain, */*' \
   -H 'accept-language: zh-CN,zh;q=0.9' \
