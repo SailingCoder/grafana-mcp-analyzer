@@ -79,12 +79,20 @@ export interface CacheIndex {
 /**
  * 生成缓存ID
  * 确保不同查询名称生成不同的缓存ID，即使配置相似
+ * 添加时间戳和会话ID确保唯一性
  */
-function generateCacheId(queryName: string, queryConfig: any): string {
+function generateCacheId(queryName: string, queryConfig: any, sessionId?: string): string {
   // 将查询名称作为缓存ID的一部分，确保不同查询名称生成不同的缓存
   const configHash = JSON.stringify(queryConfig).replace(/[^a-zA-Z0-9]/g, '');
   const queryNameHash = queryName.replace(/[^a-zA-Z0-9]/g, '');
-  return `cache-${queryNameHash}-${configHash.substring(0, 8)}`;
+  
+  // 添加时间戳确保唯一性
+  const timestamp = Date.now().toString(36);
+  
+  // 如果有会话ID，也加入缓存ID中
+  const sessionHash = sessionId ? sessionId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4) : '';
+  
+  return `cache-${queryNameHash}-${configHash.substring(0, 8)}-${timestamp}${sessionHash ? `-${sessionHash}` : ''}`;
 }
 
 /**
@@ -144,25 +152,46 @@ async function saveCacheIndex(index: CacheIndex): Promise<void> {
 /**
  * 查找有效缓存
  */
-export async function findValidCache(queryName: string, queryConfig: any): Promise<CacheEntry | null> {
-  const cacheId = generateCacheId(queryName, queryConfig);
+export async function findValidCache(queryName: string, queryConfig: any, sessionId?: string): Promise<CacheEntry | null> {
+  const cacheId = generateCacheId(queryName, queryConfig, sessionId);
   const index = await getCacheIndex();
   
-  const entry = index[cacheId];
+  // 首先尝试精确匹配
+  let entry = index[cacheId];
+  
+  // 如果没有精确匹配，尝试查找相同queryName和配置的最新缓存
+  if (!entry) {
+    const baseCacheId = `cache-${queryName.replace(/[^a-zA-Z0-9]/g, '')}-${JSON.stringify(queryConfig).replace(/[^a-zA-Z0-9]/g, '').substring(0, 8)}`;
+    
+    // 查找所有匹配的缓存条目
+    const matchingEntries = Object.entries(index)
+      .filter(([id, entry]) => 
+        id.startsWith(baseCacheId) && 
+        entry.queryName === queryName &&
+        isCacheValid(entry)
+      )
+      .sort(([, a], [, b]) => new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime());
+    
+    if (matchingEntries.length > 0) {
+      entry = matchingEntries[0][1];
+      console.error(`📋 找到匹配的历史缓存: ${matchingEntries[0][0]} (访问时间: ${entry.lastAccessed})`);
+    }
+  }
+  
   if (!entry) {
     return null;
   }
   
   if (!isCacheValid(entry)) {
     // 缓存已过期，删除
-    await deleteCache(cacheId);
+    await deleteCache(entry.id);
     return null;
   }
   
   // 更新访问信息
   entry.lastAccessed = new Date().toISOString();
   entry.accessCount += 1;
-  index[cacheId] = entry;
+  index[entry.id] = entry;
   await saveCacheIndex(index);
   
   return entry;
@@ -179,7 +208,8 @@ export async function createCache(
   chunks: number,
   metadata: any
 ): Promise<string> {
-  const cacheId = generateCacheId(queryName, queryConfig);
+  const sessionId = metadata.sessionId;
+  const cacheId = generateCacheId(queryName, queryConfig, sessionId);
   const now = new Date();
   
   // 设置缓存过期时间（默认24小时）
@@ -204,9 +234,26 @@ export async function createCache(
   };
   
   const index = await getCacheIndex();
+  
+  // 检查是否存在相同queryName和配置的旧缓存，如果存在则删除
+  const baseCacheId = `cache-${queryName.replace(/[^a-zA-Z0-9]/g, '')}-${JSON.stringify(queryConfig).replace(/[^a-zA-Z0-9]/g, '').substring(0, 8)}`;
+  const oldEntries = Object.keys(index).filter(id => 
+    id.startsWith(baseCacheId) && 
+    index[id].queryName === queryName
+  );
+  
+  // 删除旧的缓存条目（保留最新的）
+  for (const oldId of oldEntries) {
+    if (oldId !== cacheId) {
+      delete index[oldId];
+      console.error(`🗑️ 删除旧缓存: ${oldId}`);
+    }
+  }
+  
   index[cacheId] = entry;
   await saveCacheIndex(index);
   
+  console.error(`💾 创建新缓存: ${cacheId} (会话: ${sessionId || '无'})`);
   return cacheId;
 }
 
@@ -239,6 +286,7 @@ export async function cleanupExpiredCache(): Promise<number> {
     if (!isCacheValid(entry)) {
       delete index[cacheId];
       cleanedCount++;
+      console.error(`🗑️ 清理过期缓存: ${cacheId}`);
     }
   }
   
@@ -247,6 +295,65 @@ export async function cleanupExpiredCache(): Promise<number> {
   }
   
   return cleanedCount;
+}
+
+/**
+ * 智能缓存清理 - 基于访问频率和大小
+ */
+export async function smartCleanupCache(maxEntries: number = 50, maxTotalSize: number = 100 * 1024 * 1024): Promise<{
+  deletedCount: number;
+  freedSize: number;
+  reason: string;
+}> {
+  const index = await getCacheIndex();
+  const validEntries = Object.entries(index).filter(([, entry]) => isCacheValid(entry));
+  
+  let deletedCount = 0;
+  let freedSize = 0;
+  let reason = '';
+  
+  // 计算当前总大小
+  const currentTotalSize = validEntries.reduce((sum, [, entry]) => sum + entry.dataSize, 0);
+  
+  // 如果缓存条目数量超过限制，删除最少访问的条目
+  if (validEntries.length > maxEntries) {
+    const sortedEntries = validEntries.sort(([, a], [, b]) => {
+      // 优先删除访问次数少且创建时间早的条目
+      const accessScore = a.accessCount - b.accessCount;
+      if (accessScore !== 0) return accessScore;
+      return new Date(a.created).getTime() - new Date(b.created).getTime();
+    });
+    
+    const toDelete = sortedEntries.slice(0, validEntries.length - maxEntries);
+    for (const [cacheId, entry] of toDelete) {
+      delete index[cacheId];
+      freedSize += entry.dataSize;
+      deletedCount++;
+    }
+    reason = `缓存条目数量超过限制 (${validEntries.length} > ${maxEntries})`;
+  }
+  // 如果总大小超过限制，删除最大的条目
+  else if (currentTotalSize > maxTotalSize) {
+    const sortedEntries = validEntries.sort(([, a], [, b]) => b.dataSize - a.dataSize);
+    
+    let remainingSize = currentTotalSize;
+    for (const [cacheId, entry] of sortedEntries) {
+      if (remainingSize <= maxTotalSize) break;
+      
+      delete index[cacheId];
+      freedSize += entry.dataSize;
+      remainingSize -= entry.dataSize;
+      deletedCount++;
+    }
+    reason = `缓存总大小超过限制 (${(currentTotalSize / 1024 / 1024).toFixed(2)}MB > ${(maxTotalSize / 1024 / 1024).toFixed(2)}MB)`;
+  }
+  
+  if (deletedCount > 0) {
+    await saveCacheIndex(index);
+    console.error(`🧹 智能清理完成: 删除 ${deletedCount} 个缓存，释放 ${(freedSize / 1024 / 1024).toFixed(2)}MB，原因: ${reason}`);
+  }
+  
+  return { deletedCount, freedSize, reason };
 }
 
 /**

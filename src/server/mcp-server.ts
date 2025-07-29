@@ -12,7 +12,7 @@ import {
   safeStoreAnalysis,
   getAnalysis
 } from '../services/data-store.js';
-import { findValidCache, createCache, listCache, getCacheStats, cleanupExpiredCache, checkAndInitializeCache } from '../services/data-cache-manager.js';
+import { findValidCache, createCache, listCache, getCacheStats, cleanupExpiredCache, smartCleanupCache, checkAndInitializeCache } from '../services/data-cache-manager.js';
 import type { 
   QueryConfig, 
   HttpRequest, 
@@ -280,13 +280,15 @@ Grafana MCP分析器 - 监控数据查询和分析工具
     'manage_cache',
     {
       title: '缓存管理',
-      description: '管理数据缓存，支持查看缓存状态、清理过期缓存、初始化缓存系统等操作',
+      description: '管理数据缓存，支持查看缓存状态、清理过期缓存、智能清理、初始化缓存系统等操作',
       inputSchema: {
-        action: z.enum(['list', 'stats', 'cleanup', 'clear', 'init']).describe('操作类型：list(列出缓存)/stats(统计信息)/cleanup(清理过期)/clear(清空所有)/init(初始化缓存系统)'),
-        limit: z.number().optional().describe('列出缓存时的数量限制').default(10)
+        action: z.enum(['list', 'stats', 'cleanup', 'smart_cleanup', 'clear', 'init']).describe('操作类型：list(列出缓存)/stats(统计信息)/cleanup(清理过期)/smart_cleanup(智能清理)/clear(清空所有)/init(初始化缓存系统)'),
+        limit: z.number().optional().describe('列出缓存时的数量限制').default(10),
+        maxEntries: z.number().optional().describe('智能清理时的最大缓存条目数').default(50),
+        maxTotalSize: z.number().optional().describe('智能清理时的最大总大小(MB)').default(100)
       }
     },
-    async ({ action, limit }) => {
+    async ({ action, limit, maxEntries, maxTotalSize }) => {
       try {
         switch (action) {
           case 'init':
@@ -321,6 +323,14 @@ Grafana MCP分析器 - 监控数据查询和分析工具
               action: 'cleanup',
               cleanedCount,
               message: `清理了 ${cleanedCount} 个过期缓存`
+            });
+
+          case 'smart_cleanup':
+            const smartCleanupResult = await smartCleanupCache(maxEntries, maxTotalSize * 1024 * 1024);
+            return createResponse({
+              action: 'smart_cleanup',
+              ...smartCleanupResult,
+              message: `智能清理完成：${smartCleanupResult.deletedCount} 个缓存被删除，释放 ${(smartCleanupResult.freedSize / 1024 / 1024).toFixed(2)}MB，原因：${smartCleanupResult.reason}`
             });
 
           case 'clear':
@@ -407,7 +417,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
         const queryConfig = validateQueryConfig(queryName);
 
         // 第一步：检查是否有有效缓存
-        const cachedEntry = await findValidCache(queryName, queryConfig);
+        const cachedEntry = await findValidCache(queryName, queryConfig, sessionId);
         let requestId: string;
         let result: ExtractedData;
         let storageResult: any;
@@ -546,7 +556,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
         sessionId: z.string().optional().describe('会话ID')
       }
     },
-    async ({ queryName, analysisRequest }) => {
+    async ({ queryName, analysisRequest, sessionId }) => {
       try {
         // 严格验证查询名称 - 防止AI使用错误的查询名称
         if (!queryName || typeof queryName !== 'string') {
@@ -555,7 +565,7 @@ Grafana MCP分析器 - 监控数据查询和分析工具
 
         // 检查是否有该查询的缓存数据
         const queryConfig = validateQueryConfig(queryName);
-        const cachedEntry = await findValidCache(queryName, queryConfig);
+        const cachedEntry = await findValidCache(queryName, queryConfig, sessionId);
 
         if (!cachedEntry) {
           return createErrorResponse(`未找到查询 '${queryName}' 的缓存数据。请先使用 analyze_query 工具获取数据。`);
