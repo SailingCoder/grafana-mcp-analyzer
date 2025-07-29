@@ -440,8 +440,6 @@ grafana-mcp-analyzer --help
 
 ## 配置示例
 
-### 业务场景配置
-
 <details>
 <summary>电商业务分析</summary>
 
@@ -537,8 +535,6 @@ user_engagement: {
 ```
 
 </details>
-
-### 系统监控配置
 
 <details>
 <summary>服务器性能监控</summary>
