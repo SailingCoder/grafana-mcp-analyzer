@@ -229,9 +229,9 @@ module.exports = config;
 
 ### 第四步：开始使用！
 
-**重启Cursor中的MCP Grafana服务**，然后开始体验智能分析！
+**重启Cursor**，然后开始体验智能分析！
 
-> ⚠️ **重要提醒**：修改 `mcp.json` 或 `grafana-config-play.js` 配置文件后，必须重启Cursor中的MCP Grafana服务才能生效。
+> ⚠️ **重要提醒**：修改 `mcp.json` 或 `grafana-config-play.js` 配置文件后，必须重启Cursor才能生效。
 
 **1、你想了解**：狗狗币最近的价格走势怎么样？
 
