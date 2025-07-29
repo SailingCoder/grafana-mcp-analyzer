@@ -294,6 +294,13 @@ module.exports = config;
 👤 "Analyze based on previous data" → 🤖 Call analyze_existing_data
 👤 "Check cache status" → 🤖 Call manage_cache
 👤 "Analyze large data volume" → 🤖 Call chunk_workflow
+
+// Cache management specific operations
+👤 "View cache statistics" → 🤖 manage_cache action: 'stats'
+👤 "List cache entries" → 🤖 manage_cache action: 'list'
+👤 "Clean expired cache" → 🤖 manage_cache action: 'cleanup'
+👤 "Smart cache cleanup" → 🤖 manage_cache action: 'smart_cleanup'
+👤 "Clear all cache" → 🤖 manage_cache action: 'clear'
 ```
 
 ## Advanced Configuration
@@ -388,11 +395,24 @@ The following content is for users who need to customize data sources or perform
 ```
 
 ### Cache Management
-The system automatically manages cache, and you can also manage it manually:
-- **Automatic Periodic Cleanup** - System regularly cleans expired cache to avoid unlimited storage growth (controlled by `DATA_EXPIRY_HOURS` environment variable, default 24 hours)
-- View cache statistics
-- Clean expired cache
-- Intelligent cache optimization
+
+#### **Simple Conversation Operations**
+```
+👤 You: Check cache
+🤖 AI: Display cache statistics
+
+👤 You: Delete CPU cache
+🤖 AI: Delete overall_cpu_utilization related cache
+
+👤 You: Clear all cache
+🤖 AI: Delete all cache data
+```
+
+#### **Supported Operations**
+- **Check Cache** - Display cache count and size
+- **Delete Specific Cache** - Delete cache for a specific query (e.g., "Delete CPU cache")
+- **Clear All Cache** - Delete all cache data
+- **Automatic Cleanup** - System periodically cleans expired cache
 
 </details>
 

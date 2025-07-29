@@ -357,6 +357,72 @@ export async function smartCleanupCache(maxEntries: number = 50, maxTotalSize: n
 }
 
 /**
+ * 清空所有缓存
+ */
+export async function clearAllCache(): Promise<{
+  deletedCount: number;
+  freedSize: number;
+}> {
+  try {
+    const index = await getCacheIndex();
+    const totalEntries = Object.keys(index).length;
+    const totalSize = Object.values(index).reduce((sum, entry) => sum + entry.dataSize, 0);
+    
+    // 清空索引文件
+    const emptyIndex = {};
+    await saveCacheIndex(emptyIndex);
+    
+    console.error(`🗑️ 清空所有缓存完成: 删除 ${totalEntries} 个缓存，释放 ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
+    
+    return {
+      deletedCount: totalEntries,
+      freedSize: totalSize
+    };
+  } catch (error) {
+    console.error('❌ 清空缓存失败:', error);
+    throw new Error(`清空缓存失败: ${error}`);
+  }
+}
+
+/**
+ * 按查询名称删除缓存
+ */
+export async function deleteCacheByQueryName(queryName: string): Promise<{
+  deletedCount: number;
+  freedSize: number;
+  deletedEntries: string[];
+}> {
+  try {
+    const index = await getCacheIndex();
+    const deletedEntries: string[] = [];
+    let freedSize = 0;
+    
+    // 查找并删除匹配的缓存
+    for (const [cacheId, entry] of Object.entries(index)) {
+      if (entry.queryName === queryName) {
+        delete index[cacheId];
+        deletedEntries.push(cacheId);
+        freedSize += entry.dataSize;
+      }
+    }
+    
+    if (deletedEntries.length > 0) {
+      await saveCacheIndex(index);
+      console.error(`🗑️ 删除查询缓存完成: 删除 ${deletedEntries.length} 个缓存，释放 ${(freedSize / 1024 / 1024).toFixed(2)}MB`);
+    }
+    
+    return {
+      deletedCount: deletedEntries.length,
+      freedSize,
+      deletedEntries
+    };
+  } catch (error) {
+    console.error('❌ 删除查询缓存失败:', error);
+    throw new Error(`删除查询缓存失败: ${error}`);
+  }
+}
+
+/**
  * 列出所有缓存
  */
 export async function listCache(limit: number = 20): Promise<CacheEntry[]> {

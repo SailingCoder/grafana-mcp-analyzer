@@ -12,7 +12,7 @@ import {
   safeStoreAnalysis,
   getAnalysis
 } from '../services/data-store.js';
-import { findValidCache, createCache, listCache, getCacheStats, cleanupExpiredCache, smartCleanupCache, checkAndInitializeCache } from '../services/data-cache-manager.js';
+import { findValidCache, createCache, listCache, getCacheStats, cleanupExpiredCache, smartCleanupCache, clearAllCache, deleteCacheByQueryName, checkAndInitializeCache } from '../services/data-cache-manager.js';
 import type { 
   QueryConfig, 
   HttpRequest, 
@@ -282,13 +282,14 @@ Grafana MCP分析器 - 监控数据查询和分析工具
       title: '缓存管理',
       description: '管理数据缓存，支持查看缓存状态、清理过期缓存、智能清理、初始化缓存系统等操作',
       inputSchema: {
-        action: z.enum(['list', 'stats', 'cleanup', 'smart_cleanup', 'clear', 'init']).describe('操作类型：list(列出缓存)/stats(统计信息)/cleanup(清理过期)/smart_cleanup(智能清理)/clear(清空所有)/init(初始化缓存系统)'),
+        action: z.enum(['list', 'stats', 'cleanup', 'smart_cleanup', 'clear', 'delete', 'init']).describe('操作类型：list(列出缓存)/stats(统计信息)/cleanup(清理过期)/smart_cleanup(智能清理)/clear(清空所有)/delete(删除指定查询缓存)/init(初始化缓存系统)'),
         limit: z.number().optional().describe('列出缓存时的数量限制').default(10),
         maxEntries: z.number().optional().describe('智能清理时的最大缓存条目数').default(50),
-        maxTotalSize: z.number().optional().describe('智能清理时的最大总大小(MB)').default(100)
+        maxTotalSize: z.number().optional().describe('智能清理时的最大总大小(MB)').default(100),
+        queryName: z.string().optional().describe('要删除的查询名称（仅在action为delete时使用）')
       }
     },
-    async ({ action, limit, maxEntries, maxTotalSize }) => {
+    async ({ action, limit, maxEntries, maxTotalSize, queryName }) => {
       try {
         switch (action) {
           case 'init':
@@ -334,10 +335,22 @@ Grafana MCP分析器 - 监控数据查询和分析工具
             });
 
           case 'clear':
-            // 这里可以实现清空所有缓存的逻辑
+            const clearResult = await clearAllCache();
             return createResponse({
               action: 'clear',
-              message: '清空缓存功能待实现'
+              ...clearResult,
+              message: `清空所有缓存完成：${clearResult.deletedCount} 个缓存被删除，释放 ${(clearResult.freedSize / 1024 / 1024).toFixed(2)}MB`
+            });
+
+          case 'delete':
+            if (!queryName) {
+              return createErrorResponse('删除缓存时必须指定queryName参数');
+            }
+            const deleteResult = await deleteCacheByQueryName(queryName);
+            return createResponse({
+              action: 'delete',
+              ...deleteResult,
+              message: `删除查询缓存完成：${deleteResult.deletedCount} 个缓存被删除，释放 ${(deleteResult.freedSize / 1024 / 1024).toFixed(2)}MB`
             });
 
           default:
