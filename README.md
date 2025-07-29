@@ -46,7 +46,8 @@ npm install -g grafana-mcp-analyzer
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
+        "MAX_CHUNK_SIZE": "100"
       }
     }
   }
@@ -271,7 +272,6 @@ module.exports = config;
 ![在这里插入图片描述](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
 
 
-
 ## MCP工具清单
 
 | 工具 | 功能 | 使用场景 |
@@ -302,66 +302,11 @@ module.exports = config;
 👤 "清空所有缓存" → 🤖 manage_cache
 ```
 
-## 配置建议
-
-受限于目前市场 AI 模型的上下文处理能力，为提高分析的准确性和效率，系统会自动将大数据量按 100KB 分块处理。
-
-- 100KB - 保守策略，兼容所有模型
-- 150KB - 平衡策略，推荐设置
-- 200KB - 激进策略，仅限新模型
-
-**推荐设置**：
-
-- **Claude 3.5 Sonnet / GPT-4 Turbo**: `MAX_CHUNK_SIZE=150`
-- **GPT-4 (8K)**: `MAX_CHUNK_SIZE=100`
-- **Claude 3**: `MAX_CHUNK_SIZE=200`
-
-建议分析的数据最大体积控制在 500KB 以内（可根据模型能力做适当调整），分析效果最佳。您可以通过调整查询的时间范围、数据源等参数来控制总数据量。
-
-## 环境变量说明
-
-```json
-{
-  "mcpServers": {
-    "grafana": {
-      "command": "grafana-mcp-analyzer",
-      "env": {
-        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
-        "MAX_CHUNK_SIZE": "50",
-        "DATA_EXPIRY_HOURS": "24",
-        "CONFIG_MAX_AGE": "300",
-        "SESSION_TIMEOUT_HOURS": "24"
-      }
-    }
-  }
-}
-```
-
-| 环境变量名 | 类型 | 默认值 | 说明 |
-| --------- | ---- | ------ | ---- |
-| `CONFIG_PATH` | string | 必填 | 配置文件路径（本地或 HTTPS 远程地址） |
-| `MAX_CHUNK_SIZE` | number | `50` | 单块最大数据体积（KB），影响数据切片大小 |
-| `DATA_EXPIRY_HOURS` | number | `24` | 数据过期时间（小时），控制缓存自动清理 |
-| `CONFIG_MAX_AGE` | number | `300` | 远程配置文件缓存时间（秒），设为 `0` 则禁用 |
-| `SESSION_TIMEOUT_HOURS` | number | `24` | 会话超时时间（小时），控制会话管理 |
-
-### 环境变量说明
-
-#### **数据管理**
-- **`MAX_CHUNK_SIZE`** - 控制大数据文件的分块大小，默认50KB，可根据AI模型上下文窗口调整
-- **`DATA_EXPIRY_HOURS`** - 控制数据缓存过期时间，系统会定期清理过期数据释放存储空间
-
-#### **配置管理**
-- **`CONFIG_PATH`** - 支持本地绝对路径或HTTPS远程地址，支持GitHub Raw、云存储等
-- **`CONFIG_MAX_AGE`** - 远程配置文件缓存时间，避免频繁网络请求，设为0可禁用缓存
-
-#### **会话管理**
-- **`SESSION_TIMEOUT_HOURS`** - 控制会话超时时间，过期会话会被自动清理
-
 
 ## 高级配置
 
 以下内容适用于需要自定义数据源或进行更高级使用场景的用户。
+
 <details>
 <summary>如何获取 Request 配置？</summary>
 
@@ -376,6 +321,74 @@ module.exports = config;
 2.  按F12打开开发者工具 → Network标签页
 3.  找到查询请求 → 右键点击 → Copy as cURL
 4.  将复制的 curl 粘贴至配置文件中即可
+</details>
+
+<details>
+<summary>配置建议（MAX_CHUNK_SIZE）</summary>
+
+```json
+"env": {
+  "MAX_CHUNK_SIZE": "100"
+}
+```
+受限于目前市场 AI 模型的上下文处理能力，为提高分析的准确性和效率，系统会自动将大数据量按 100KB 分块处理。
+
+- 100KB - 保守策略，兼容所有模型
+- 150KB - 平衡策略，推荐设置
+- 200KB - 激进策略，仅限新模型
+
+**推荐设置**：
+
+- **Claude 3.5 Sonnet / GPT-4 Turbo**: `MAX_CHUNK_SIZE=150`
+- **GPT-4 (8K)**: `MAX_CHUNK_SIZE=100`
+- **Claude 3**: `MAX_CHUNK_SIZE=200`
+
+建议分析的数据最大体积控制在 500KB 以内（可根据模型能力做适当调整），分析效果最佳。您可以通过调整查询的时间范围、数据源等参数来控制总数据量。
+
+</details>
+
+
+<details>
+<summary>环境变量说明</summary>
+
+```json
+{
+  "mcpServers": {
+    "grafana": {
+      "command": "grafana-mcp-analyzer",
+      "env": {
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
+        "MAX_CHUNK_SIZE": "100",
+        "DATA_EXPIRY_HOURS": "24",
+        "CONFIG_MAX_AGE": "300",
+        "SESSION_TIMEOUT_HOURS": "24"
+      }
+    }
+  }
+}
+```
+
+| 环境变量名 | 类型 | 默认值 | 说明 |
+| --------- | ---- | ------ | ---- |
+| `CONFIG_PATH` | string | 必填 | 配置文件路径（本地或 HTTPS 远程地址） |
+| `MAX_CHUNK_SIZE` | number | `100` | 单块最大数据体积（KB），影响数据切片大小 |
+| `DATA_EXPIRY_HOURS` | number | `24` | 数据过期时间（小时），控制缓存自动清理 |
+| `CONFIG_MAX_AGE` | number | `300` | 远程配置文件缓存时间（秒），设为 `0` 则禁用 |
+| `SESSION_TIMEOUT_HOURS` | number | `24` | 会话超时时间（小时），控制会话管理 |
+
+### 环境变量说明
+
+#### **数据管理**
+- **`MAX_CHUNK_SIZE`** - 控制大数据文件的分块大小，默认150KB，可根据AI模型上下文窗口调整
+- **`DATA_EXPIRY_HOURS`** - 控制数据缓存过期时间，系统会定期清理过期数据释放存储空间
+
+#### **配置管理**
+- **`CONFIG_PATH`** - 支持本地绝对路径或HTTPS远程地址，支持GitHub Raw、云存储等
+- **`CONFIG_MAX_AGE`** - 远程配置文件缓存时间，避免频繁网络请求，设为0可禁用缓存
+
+#### **会话管理**
+- **`SESSION_TIMEOUT_HOURS`** - 控制会话超时时间，过期会话会被自动清理
+
 </details>
 
 <details>
@@ -474,19 +487,6 @@ grafana-mcp-analyzer -h
 grafana-mcp-analyzer --help
 ```
 
-</details>
-
-
-<details>
-<summary>访问权限环境变量（可选）</summary>
-
-如需调用受保护的 Grafana API，可通过以下方式设置：
-
-```bash
-export GRAFANA_URL="https://your-grafana.com"
-export GRAFANA_TOKEN="your-api-token"
-```
-你也可以在配置文件中使用 Headers 方式直接注入 token 访问。
 </details>
 
 ## 配置示例
