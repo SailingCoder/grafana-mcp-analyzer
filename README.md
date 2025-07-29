@@ -58,7 +58,7 @@ npm install -g grafana-mcp-analyzer
 
 ### 第三步：编写配置文件
 
-如果你需要连接自己的数据，请在 `CONFIG_PATH` 路径下创建一个名为 [`grafana-config-play.js`](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js) 的配置文件。
+如果你需要连接自己的数据，请在 `CONFIG_PATH` 路径下创建一个名为 [`grafana-config-play.js`](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js) 的配置文件。
 
 > 如果你只想快速体验示例，可跳过此步骤，直接执行第四步。
 
@@ -385,15 +385,6 @@ module.exports = config;
 - **`SESSION_TIMEOUT_HOURS`** - 控制会话超时时间，过期会话会被自动清理
 
 </details>
-
-<details>
-<summary>配置文件示例</summary>
-
-- [远程真实配置 grafana-config-play.js 示例](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
-- [基础版配置 grafana-config.simple.js 真实数据示例](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
-</details>
-
-<details>
 
 <details>
 <summary>支持配置类型：本地绝对路径 / 远程路径</summary>
