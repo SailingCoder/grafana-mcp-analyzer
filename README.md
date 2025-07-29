@@ -25,7 +25,8 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 -   **全数据源支持** - Prometheus、MySQL、ES 等通通支持
 -   **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 
-> 💡 **架构模式**：会话缓存 → 渐进式分析 → 缓存复用，让AI分析更自然、更高效
+> 💡 **架构新模式**：会话缓存 → 逐步获取数据 → 渐进式深入分析 → 智能缓存复用，让AI分析更自然、更高效
+
 
 ## 🛠️ 快速开始
 
@@ -237,7 +238,7 @@ module.exports = config;
 **对话示例**：
 
 ```text
-👤 你：帮我分析一下dogecoin_panel_2的数据
+👤 你：帮我分析一下candlestick_priceOnly_hollowCandles的数据
 🤖 AI：好的，我来获取狗狗币的K线数据并分析...
 
 👤 你：这个分析太简单了，能详细说说支撑位和阻力位吗？
@@ -256,20 +257,20 @@ module.exports = config;
 🤖 AI：提供CPU分析报告
 
 👤 您：CPU使用率的变化趋势如何？
-🤖 AI：AI识别CPU使用率变化趋势
+🤖 AI：基于刚才的数据，分析CPU使用率变化趋势
 
 👤 您：这个峰值是什么时候出现的？
-🤖 AI：AI识别CPU峰值时间
+🤖 AI：基于我们之前的分析，识别CPU峰值时间
 
 👤 您：需要扩容吗？扩容的成本是多少？
-🤖 AI：AI提供扩容建议和成本评估
+🤖 AI：基于历史数据，提供扩容建议和成本评估
 ```
 
 **配置完成！**
 
 ![在这里插入图片描述](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
 
-**重要限制说明**：受限于AI模型的上下文处理能力，建议数据大小控制在300KB以内，分析效果最佳。对于大数据量，系统会自动分块处理。
+**重要限制说明**：受限于AI模型的上下文处理能力，建议数据大小控制在300KB以内（可根据模型能力做适当调整），分析效果最佳。
 
 
 ## MCP工具清单
@@ -379,7 +380,7 @@ module.exports = config;
 
 ### 使用场景
 ```
-👤 你：分析dogecoin_panel_2数据
+👤 你：分析candlestick_priceOnly_hollowCandles数据
 🤖 AI：获取数据并分析价格趋势...
 
 👤 你：这个趋势会持续多久？
