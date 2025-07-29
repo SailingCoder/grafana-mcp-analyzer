@@ -270,7 +270,6 @@ module.exports = config;
 
 ![在这里插入图片描述](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
 
-**重要限制说明**：受限于AI模型的上下文处理能力，建议数据大小控制在300KB以内（可根据模型能力做适当调整），分析效果最佳。
 
 
 ## MCP工具清单
@@ -302,6 +301,20 @@ module.exports = config;
 👤 "删除overall_cpu_utilization缓存" → 🤖 manage_cache
 👤 "清空所有缓存" → 🤖 manage_cache
 ```
+
+## 配置建议
+
+受限于目前市场 AI 模型的上下文处理能力，系统会自动将大数据量按 100KB 分块处理。建议数据最大体积控制在 500KB 以内（可根据模型能力做适当调整），分析效果最佳。您可以通过调整查询的时间范围、数据源等参数来控制总数据量。
+
+- 100KB - 保守策略，兼容所有模型
+- 150KB - 平衡策略，推荐设置
+- 200KB - 激进策略，仅限新模型
+
+**推荐设置**：
+
+- **Claude 3.5 Sonnet / GPT-4 Turbo**: `MAX_CHUNK_SIZE=150`
+- **GPT-4 (8K)**: `MAX_CHUNK_SIZE=100`
+- **Claude 3**: `MAX_CHUNK_SIZE=200`
 
 ## 高级配置
 
