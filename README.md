@@ -370,19 +370,11 @@ module.exports = config;
 
 | 环境变量名 | 类型 | 默认值 | 说明 |
 | --------- | ---- | ------ | ---- |
-| `CONFIG_PATH` | string | 必填 | 配置文件路径（本地或 HTTPS 远程地址） |
-| `MAX_CHUNK_SIZE` | number | `100` | 单块最大数据体积（KB），影响数据切片大小 |
-| `DATA_EXPIRY_HOURS` | number | `24` | 数据过期时间（小时），控制缓存自动清理 |
+| `MAX_CHUNK_SIZE` | number | `100` | 单块最大数据体积（KB），影响数据切片大小，可根据AI模型上下文窗口调整 |
+| `CONFIG_PATH` | string | 必填 | 配置文件路径（本地或 HTTPS 远程地址），支持GitHub Raw、云存储等 |
 | `CONFIG_MAX_AGE` | number | `300` | 远程配置文件缓存时间（秒），设为 `0` 则禁用 |
-| `SESSION_TIMEOUT_HOURS` | number | `24` | 会话超时时间（小时），控制会话管理 |
-
-### 环境变量说明
-
-- **`MAX_CHUNK_SIZE`** - 控制大数据文件的分块大小，默认100KB，可根据AI模型上下文窗口调整
-- **`DATA_EXPIRY_HOURS`** - 控制数据缓存过期时间，系统会定期清理过期数据释放存储空间
-- **`CONFIG_PATH`** - 支持本地绝对路径或HTTPS远程地址，支持GitHub Raw、云存储等
-- **`CONFIG_MAX_AGE`** - 远程配置文件缓存时间，避免频繁网络请求，设为0可禁用缓存
-- **`SESSION_TIMEOUT_HOURS`** - 控制会话超时时间，过期会话会被自动清理
+| `DATA_EXPIRY_HOURS` | number | `24` | 数据过期时间（小时），避免频繁网络请求，控制缓存自动清理 |
+| `SESSION_TIMEOUT_HOURS` | number | `24` | 会话超时时间（小时），控制会话管理，过期会话会被自动清理 |
 
 </details>
 
