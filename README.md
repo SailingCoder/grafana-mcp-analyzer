@@ -20,7 +20,7 @@
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
 -   **自然语言查询** - 轻松访问监控数据，AI 一键输出专业分析
--   **多轮对话支持** - 支持复杂的多轮对话分析，能够基于上下文进行深入分析，避免数据混淆
+-   **多轮对话支持** - 支持复杂的多轮对话分析，能够基于上下文进行深入分析
 -   **curl支持** - 直接使用浏览器 copy 的 curl 合成查询
 -   **全数据源支持** - Prometheus、MySQL、ES 等通通支持
 -   **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
@@ -58,7 +58,7 @@ npm install -g grafana-mcp-analyzer
 
 ### 第三步：编写配置文件
 
-如果你需要连接自己的数据，请在 `CONFIG_PATH` 路径下创建一个名为 `grafana-config-play.js` 的配置文件。
+如果你需要连接自己的数据，请在 `CONFIG_PATH` 路径下创建一个名为 [`grafana-config-play.js`](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js) 的配置文件。
 
 > 如果你只想快速体验示例，可跳过此步骤，直接执行第四步。
 
@@ -378,15 +378,10 @@ module.exports = config;
 
 ### 环境变量说明
 
-#### **数据管理**
-- **`MAX_CHUNK_SIZE`** - 控制大数据文件的分块大小，默认150KB，可根据AI模型上下文窗口调整
+- **`MAX_CHUNK_SIZE`** - 控制大数据文件的分块大小，默认100KB，可根据AI模型上下文窗口调整
 - **`DATA_EXPIRY_HOURS`** - 控制数据缓存过期时间，系统会定期清理过期数据释放存储空间
-
-#### **配置管理**
 - **`CONFIG_PATH`** - 支持本地绝对路径或HTTPS远程地址，支持GitHub Raw、云存储等
 - **`CONFIG_MAX_AGE`** - 远程配置文件缓存时间，避免频繁网络请求，设为0可禁用缓存
-
-#### **会话管理**
 - **`SESSION_TIMEOUT_HOURS`** - 控制会话超时时间，过期会话会被自动清理
 
 </details>
@@ -394,40 +389,11 @@ module.exports = config;
 <details>
 <summary>配置文件示例</summary>
 
-- [基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
-- [远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
+- [远程真实配置 grafana-config-play.js 示例](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
+- [基础版配置 grafana-config.simple.js 真实数据示例](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
 </details>
 
 <details>
-<summary>多轮对话功能</summary>
-
-### 核心特性
-- **智能缓存管理** - 自动缓存查询结果，避免重复获取数据
-- **会话上下文保持** - 在同一个对话中保持分析上下文
-- **数据隔离** - 不同会话的数据相互隔离，避免混淆
-- **缓存复用** - 基于已有数据进行深入分析，提升效率
-
-### 使用场景
-```
-👤 你：分析candlestick_priceOnly_hollowCandles数据
-🤖 AI：获取数据并分析价格趋势...
-
-👤 你：这个趋势会持续多久？
-🤖 AI：基于刚才的数据，分析趋势持续性...
-
-👤 你：如果趋势改变，会有什么影响？
-🤖 AI：基于我们之前的分析，预测趋势变化的影响...
-```
-
-### 缓存管理
-
-#### **支持的操作**
-- **查看缓存** - 显示缓存数量和大小
-- **删除指定缓存** - 删除某个查询的缓存（如"删除CPU缓存"）
-- **清空所有缓存** - 删除所有缓存数据
-- **自动清理** - 系统定期清理过期缓存
-
-</details>
 
 <details>
 <summary>支持配置类型：本地绝对路径 / 远程路径</summary>
