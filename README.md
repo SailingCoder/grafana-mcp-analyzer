@@ -20,11 +20,12 @@
 Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Claude、ChatGPT等AI助手具备以下超能力：
 
 -   **自然语言查询** - 轻松访问监控数据，AI 一键输出专业分析
+-   **多轮对话支持** - 支持复杂的多轮对话分析，能够基于上下文进行深入分析，避免数据混淆
 -   **curl支持** - 直接使用浏览器 copy 的 curl 合成查询
--   **聚合分析** - 单个查询或 Dashboard 级别综合分析
 -   **全数据源支持** - Prometheus、MySQL、ES 等通通支持
 -   **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
--   **多轮对话支持** - 支持复杂的多轮对话分析，能够基于上下文进行深入分析，避免数据混淆
+
+> 💡 **架构模式**：会话缓存 → 渐进式分析 → 缓存复用，让AI分析更自然、更高效
 
 ## 🛠️ 快速开始
 
@@ -270,25 +271,30 @@ module.exports = config;
 
 **重要限制说明**：受限于AI模型的上下文处理能力，建议数据大小控制在300KB以内，分析效果最佳。对于大数据量，系统会自动分块处理。
 
+
 ## MCP工具清单
 
 | 工具 | 功能 | 使用场景 |
 |------|------|----------|
-| `analyze_query` | 查询+AI分析 | 需要专业建议 |
-| `aggregate_analyze` | 聚合分析 | 多查询统一分析 |
+| `analyze_query` | 查询+AI分析 | 首次获取数据并分析 |
+| `analyze_existing_data` | 基于已有数据分析 | 多轮对话深入分析 |
 | `chunk_workflow` | 分块数据工作流 | 大数据量自动分块处理 |
-| `list_queries` | 查询列表 | 查看配置 |
-| `check_health` | 健康检查 | 状态监控 |
-| `manage_sessions` | 会话管理 | 管理分析会话 |
-| `list_data` | 数据列表 | 查看存储数据 |
-| `server_status` | 服务器状态 | 服务器信息 |
+| `manage_cache` | 缓存管理 | 缓存统计、清理和优化 |
+| `list_queries` | 查询列表 | 查看可用数据源 |
+| `check_health` | 健康检查 | 系统状态监控 |
+| `list_data` | 数据列表 | 查看存储的历史数据 |
+| `server_status` | 服务器状态 | 服务器运行信息 |
+
+> **说明**：系统采用智能会话缓存管理，支持渐进式分析和多轮对话，比传统的聚合分析更加灵活高效。
 
 ### 工具使用方式
 
 ```javascript
 // AI助手会自动选择合适的工具
 👤 "分析CPU使用情况" → 🤖 调用 analyze_query
-👤 "聚合分析系统指标" → 🤖 调用 aggregate_analyze
+👤 "基于刚才的数据深入分析" → 🤖 调用 analyze_existing_data
+👤 "查看缓存状态" → 🤖 调用 manage_cache
+👤 "分析大数据量" → 🤖 调用 chunk_workflow
 ```
 
 ## 高级配置
@@ -328,30 +334,67 @@ module.exports = config;
       "command": "grafana-mcp-analyzer",
       "env": {
         "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
-        "MAX_CHUNK_SIZE": "100",
-        "SESSION_TIMEOUT_HOURS": "24",
+        "MAX_CHUNK_SIZE": "50",
+        "DATA_EXPIRY_HOURS": "24",
         "CONFIG_MAX_AGE": "300",
+        "SESSION_TIMEOUT_HOURS": "24"
       }
     }
   }
 }
-
 ```
 
-
-|环境变量名 | 类型 | 默认值 | 说明 |
-| ----- | -- | --- | -- |
+| 环境变量名 | 类型 | 默认值 | 说明 |
+| --------- | ---- | ------ | ---- |
 | `CONFIG_PATH` | string | 必填 | 配置文件路径（本地或 HTTPS 远程地址） |
-| `MAX_CHUNK_SIZE` | number | `100` | 单块最大数据体积（KB），影响切片性能 |
-| `SESSION_TIMEOUT_HOURS` | number | `24` | 会话过期时间（小时） |
+| `MAX_CHUNK_SIZE` | number | `50` | 单块最大数据体积（KB），影响数据切片大小 |
+| `DATA_EXPIRY_HOURS` | number | `24` | 数据过期时间（小时），控制缓存自动清理 |
 | `CONFIG_MAX_AGE` | number | `300` | 远程配置文件缓存时间（秒），设为 `0` 则禁用 |
+| `SESSION_TIMEOUT_HOURS` | number | `24` | 会话超时时间（小时），控制会话管理 |
 
-缓存特性：
+### 环境变量说明
 
-- 智能缓存配置文件（默认缓存 5 分钟）
-- 网络失败时使用本地过期缓存
-- 启动自动清理缓存文件
-- 设置 CONFIG_MAX_AGE=0 可禁用缓存，每次请求都拉取最新配置
+#### **数据管理**
+- **`MAX_CHUNK_SIZE`** - 控制大数据文件的分块大小，默认50KB，可根据AI模型上下文窗口调整
+- **`DATA_EXPIRY_HOURS`** - 控制数据缓存过期时间，系统会定期清理过期数据释放存储空间
+
+#### **配置管理**
+- **`CONFIG_PATH`** - 支持本地绝对路径或HTTPS远程地址，支持GitHub Raw、云存储等
+- **`CONFIG_MAX_AGE`** - 远程配置文件缓存时间，避免频繁网络请求，设为0可禁用缓存
+
+#### **会话管理**
+- **`SESSION_TIMEOUT_HOURS`** - 控制会话超时时间，过期会话会被自动清理
+
+</details>
+
+
+<details>
+<summary>多轮对话功能</summary>
+
+### 核心特性
+- **智能缓存管理** - 自动缓存查询结果，避免重复获取数据
+- **会话上下文保持** - 在同一个对话中保持分析上下文
+- **数据隔离** - 不同会话的数据相互隔离，避免混淆
+- **缓存复用** - 基于已有数据进行深入分析，提升效率
+
+### 使用场景
+```
+👤 你：分析dogecoin_panel_2数据
+🤖 AI：获取数据并分析价格趋势...
+
+👤 你：这个趋势会持续多久？
+🤖 AI：基于刚才的数据，分析趋势持续性...
+
+👤 你：如果趋势改变，会有什么影响？
+🤖 AI：基于我们之前的分析，预测趋势变化的影响...
+```
+
+### 缓存管理
+系统会自动管理缓存，你也可以手动管理：
+- **自动定期清理** - 系统会定期清理过期缓存，避免存储空间无限增长（通过 `DATA_EXPIRY_HOURS` 环境变量控制，默认24小时）
+- 查看缓存统计信息
+- 清理过期缓存
+- 智能缓存优化
 
 </details>
 
@@ -611,47 +654,7 @@ app_error_analysis: {
 ```
 </details>
 
-### 聚合分析配置
 
-<details>
-<summary>全链路性能分析</summary>
-
-**用户问题**："我的系统整体性能怎么样？哪里是瓶颈？"
-
-```javascript
-// 前端性能
-frontend_performance: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"histogram_quantile(0.95, rate(page_load_time_seconds_bucket[5m]))","range":{"from":"now-1h","to":"now"}}]}'`,
-  systemPrompt: '前端性能专家：分析页面加载时间，识别前端性能瓶颈。'
-},
-
-// 后端性能
-backend_performance: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"histogram_quantile(0.95, rate(api_response_time_seconds_bucket[5m]))","range":{"from":"now-1h","to":"now"}}]}'`,
-  systemPrompt: '后端性能专家：分析API响应时间，识别后端性能问题。'
-},
-
-// 数据库性能
-database_performance: {
-  curl: `curl 'api/ds/query' \\
-    -X POST \\
-    -H 'Content-Type: application/json' \\
-    -d '{"queries":[{"refId":"A","expr":"rate(mysql_queries_total[5m])","range":{"from":"now-1h","to":"now"}}]}'`,
-  systemPrompt: '数据库性能专家：分析数据库查询性能，识别数据库瓶颈。'
-}
-```
-
-**使用方式**：
-> 👤 您：聚合分析全链路性能：frontend_performance, backend_performance, database_performance
-> 
-> 🤖 AI：综合分析前端、后端、数据库性能，提供完整的性能优化建议
-</details>
 
 ## 常见问题
 
@@ -688,6 +691,18 @@ database_performance: {
 *   确保使用正确的queryName，不同查询使用不同的名称
 *   系统会自动缓存不同查询的数据，避免混淆
 *   如果遇到数据混淆，可以重新调用analyze_query获取新数据
+*   使用analyze_existing_data进行基于缓存数据的深入分析
+*   系统支持会话隔离，不同会话的数据相互独立
+
+</details>
+
+<details>
+<summary>缓存管理问题</summary>
+
+*   查看缓存统计：使用manage_cache工具查看缓存状态
+*   清理过期缓存：定期清理过期缓存释放存储空间
+*   缓存性能优化：系统会自动进行智能缓存优化
+*   缓存冲突处理：相同queryName不同配置会自动去重
 
 </details>
 
