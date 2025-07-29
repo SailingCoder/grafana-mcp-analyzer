@@ -318,35 +318,7 @@ module.exports = config;
 
 建议分析的数据最大体积控制在 500KB 以内（可根据模型能力做适当调整），分析效果最佳。您可以通过调整查询的时间范围、数据源等参数来控制总数据量。
 
-## 高级配置
-
-以下内容适用于需要自定义数据源或进行更高级使用场景的用户。
-
-<details>
-<summary>如何获取 Request 配置？</summary>
-
-### 方式一：HTTP API（如 `dogecoin_panel_7`）
-
-1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
-2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
-
-### 方式二：curl（推荐，适用于所有面板，如`overall_cpu_utilization100`）：
-
-1.  在Grafana中执行查询
-2.  按F12打开开发者工具 → Network标签页
-3.  找到查询请求 → 右键点击 → Copy as cURL
-4.  将复制的 curl 粘贴至配置文件中即可
-</details>
-
-<details>
-<summary>配置文件示例</summary>
-
-- [基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
-- [远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
-</details>
-
-<details>
-<summary>环境变量说明</summary>
+## 环境变量说明
 
 ```json
 {
@@ -386,8 +358,32 @@ module.exports = config;
 #### **会话管理**
 - **`SESSION_TIMEOUT_HOURS`** - 控制会话超时时间，过期会话会被自动清理
 
+
+## 高级配置
+
+以下内容适用于需要自定义数据源或进行更高级使用场景的用户。
+<details>
+<summary>如何获取 Request 配置？</summary>
+
+### 方式一：HTTP API（如 `dogecoin_panel_7`）
+
+1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
+2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
+
+### 方式二：curl（推荐，适用于所有面板，如`overall_cpu_utilization100`）：
+
+1.  在Grafana中执行查询
+2.  按F12打开开发者工具 → Network标签页
+3.  找到查询请求 → 右键点击 → Copy as cURL
+4.  将复制的 curl 粘贴至配置文件中即可
 </details>
 
+<details>
+<summary>配置文件示例</summary>
+
+- [基础版配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
+- [远程真实配置](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
+</details>
 
 <details>
 <summary>多轮对话功能</summary>
