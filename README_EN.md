@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/npm/v/grafana-mcp-analyzer) ![License](https://img.shields.io/npm/l/grafana-mcp-analyzer) 
 
-**Let AI directly understand your monitoring data - Intelligent DevOps analysis assistant**
+**Let AI directly understand your monitoring data and become your dedicated intelligent DevOps assistant!**
 
 [English](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README_EN.md) | [中文文档](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README.md)
 
@@ -13,23 +13,23 @@ Imagine this scenario:
 * You ask AI: "How is my server doing right now?"
 * AI directly checks your Grafana monitoring and answers: "CPU usage is high, suggest checking these processes..."
 
-Complex monitoring charts, AI analyzes them with one click! Say goodbye to traditional manual monitoring methods and let AI become your dedicated DevOps assistant!
+Complex monitoring charts, AI helps you interpret them with one click. You no longer need to manually screen through charts, truly achieving a closed-loop analysis experience from **charts to insights**!
 
 ## 🚀 Core Features
 
 Grafana MCP Analyzer is based on **MCP (Model Context Protocol)** protocol, empowering AI assistants like Claude and ChatGPT with the following superpowers:
 
 -   **Natural Language Queries** - Easy access to monitoring data, AI outputs professional analysis with one click
--   **Multi-turn Conversation Support** - Support complex multi-turn conversation analysis, able to perform in-depth analysis based on context, avoiding data confusion
+-   **Multi-turn Conversation Support** - Support complex multi-turn conversation analysis, able to perform in-depth analysis based on context
 -   **curl Support** - Directly use browser-copied curl to compose queries
 -   **Full Data Source Support** - Prometheus, MySQL, ES, and more
 -   **Professional DevOps Recommendations** - Not just displaying data, but providing actionable optimization solutions, improving DevOps efficiency
 
-> 💡 **New Architecture Pattern**: Session Cache → Progressive Data Retrieval → Progressive Deep Analysis → Intelligent Cache Reuse, making AI analysis more natural and efficient
+> 💡 **New Architecture Pattern**: Session Cache → Progressive Data Retrieval → Progressive Deep Analysis → Intelligent Cache Reuse, making AI analysis more accurate and efficient.
 
 ## 🛠️ Quick Start
 
-### Step 1: Installation
+### Step 1: Lightning Fast Installation (30 seconds)
 
 ```bash
 npm install -g grafana-mcp-analyzer
@@ -37,7 +37,9 @@ npm install -g grafana-mcp-analyzer
 
 > **Environment Requirements**: Node.js 18+ | [Installation Guide](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
-### Step 2: Configure AI Assistant (Using Cursor as example)
+### Step 2: AI Assistant Integration (30 seconds)
+
+Cursor Settings → "MCP" → Service Configuration (using Cursor as example):
 
 ```json
 {
@@ -45,7 +47,8 @@ npm install -g grafana-mcp-analyzer
     "grafana": {
       "command": "grafana-mcp-analyzer",
       "env": {
-        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js"
+        "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
+        "MAX_CHUNK_SIZE": "100"
       }
     }
   }
@@ -54,9 +57,9 @@ npm install -g grafana-mcp-analyzer
 
 Note: `CONFIG_PATH` supports absolute paths and remote paths. Remote paths are recommended for quick experience.
 
-### Step 3: Create Configuration File
+### Step 3: Create Configuration File (1 minute)
 
-If you need to connect to your own data, create a configuration file named `grafana-config-play.js` at the `CONFIG_PATH` location.
+If you need to connect to your own data, create a configuration file at the `CONFIG_PATH` location: (grafana-config-play.js example 👉 [Click to view](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js))
 
 > If you just want to quickly experience the example, you can skip this step and go directly to step 4.
 
@@ -228,9 +231,13 @@ module.exports = config;
 
 ### Step 4: Start Using!
 
-**Restart the MCP Grafana service in Cursor**, then start experiencing intelligent analysis!
+After modifying the configuration, restart Cursor to start using:
 
-> ⚠️ **Important Reminder**: After modifying `mcp.json` or `grafana-config-play.js` configuration files, you must restart the MCP Grafana service in Cursor for changes to take effect.
+![Demo Screenshot](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
+
+> ⚠️ **Note**: After modifying `mcp.json` or configuration files, you need to restart Cursor.
+
+Then, experience AI intelligent analysis:
 
 **1. You want to know**: How is Dogecoin's recent price trend?
 
@@ -243,8 +250,11 @@ module.exports = config;
 👤 You: This analysis is too simple, can you explain support and resistance levels in detail?
 🤖 AI: Based on the previous data, let me do an in-depth analysis of technical indicators...
 
-👤 You: What's the current price position? Any investment opportunities?
-🤖 AI: According to technical analysis, the current price is at...
+👤 You: Now look at candlestick_price_volume data
+🤖 AI: Switch to price and volume data, analyze market activity...
+
+👤 You: Combining candlestick_priceOnly_hollowCandles and candlestick_price_volume data, how is the market?
+🤖 AI: Combining both data sources, the market currently...
 ```
 
 **2. You want to know**: How is the system's overall CPU performance?
@@ -265,11 +275,7 @@ module.exports = config;
 🤖 AI: Based on historical data, provide scaling recommendations and cost assessment
 ```
 
-**Configuration Complete!**
-
-![Demo Screenshot](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
-
-**Important Limitation Notice**: Due to AI model context processing limitations, it's recommended to control data size within 300KB (can be adjusted based on model capabilities) for optimal analysis results.
+In summary: **AI is no longer just "chatting", now it can also understand your monitoring charts.**
 
 ## MCP Tool List
 
@@ -284,9 +290,9 @@ module.exports = config;
 | `list_data` | Data list | View stored historical data |
 | `server_status` | Server status | Server running information |
 
-> **Note**: The system adopts intelligent session cache management, supporting progressive analysis and multi-turn conversations, more flexible and efficient than traditional aggregate analysis.
+> **Note**: The system adopts session cache management, supporting progressive analysis and multi-turn conversations, more flexible and efficient than traditional aggregate analysis.
 
-### Tool Usage
+#### Tool Usage
 
 ```javascript
 // AI assistant automatically selects appropriate tools
@@ -295,12 +301,10 @@ module.exports = config;
 👤 "Check cache status" → 🤖 Call manage_cache
 👤 "Analyze large data volume" → 🤖 Call chunk_workflow
 
-// Cache management specific operations
-👤 "View cache statistics" → 🤖 manage_cache action: 'stats'
-👤 "List cache entries" → 🤖 manage_cache action: 'list'
-👤 "Clean expired cache" → 🤖 manage_cache action: 'cleanup'
-👤 "Smart cache cleanup" → 🤖 manage_cache action: 'smart_cleanup'
-👤 "Clear all cache" → 🤖 manage_cache action: 'clear'
+// Cache management operations
+👤 "Check cache" → 🤖 Call manage_cache
+👤 "Delete overall_cpu_utilization cache" → 🤖 Call manage_cache
+👤 "Clear all cache" → 🤖 Call manage_cache
 ```
 
 ## Advanced Configuration
@@ -310,12 +314,12 @@ The following content is for users who need to customize data sources or perform
 <details>
 <summary>How to Get Request Configuration?</summary>
 
-### Method 1: HTTP API (like `candlestick_priceOnly_hollowCandles`)
+#### Method 1: HTTP API (like `candlestick_priceOnly_hollowCandles`)
 
 1.  Get Data parameters: Enter chart → "Query Inspector" → "JSON" parse → Copy request body
 2.  Get URL and Headers Token: View request parameters through Network panel, manually construct HTTP configuration.
 
-### Method 2: curl (Recommended, applicable to all panels, like `overall_cpu_utilization`):
+#### Method 2: curl (Recommended, applicable to all panels, like `overall_cpu_utilization`):
 
 1.  Execute query in Grafana
 2.  Press F12 to open developer tools → Network tab
@@ -324,10 +328,26 @@ The following content is for users who need to customize data sources or perform
 </details>
 
 <details>
-<summary>Configuration File Examples</summary>
+<summary>Configuration Recommendations (MAX_CHUNK_SIZE)</summary>
 
-- [Basic Configuration](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config.simple.js)
-- [Remote Real Configuration](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js)
+```json
+"env": {
+  "MAX_CHUNK_SIZE": "100"
+}
+```
+Due to current AI model context processing limitations, to improve analysis accuracy and efficiency, the system automatically chunks large data volumes by 100KB.
+
+- 100KB - Conservative strategy, compatible with all models
+- 150KB - Balanced strategy, recommended setting
+- 200KB - Aggressive strategy, limited to new models
+
+**Recommended Settings**:
+
+- **Claude 3.5 Sonnet / GPT-4 Turbo**: `MAX_CHUNK_SIZE=150`
+- **GPT-4 (8K)**: `MAX_CHUNK_SIZE=100`
+- **Claude 3**: `MAX_CHUNK_SIZE=200`
+
+It's recommended to control the maximum data volume for analysis within 500KB (can be adjusted based on model capabilities) for optimal analysis results. You can control the total data volume by adjusting query time ranges, data sources, and other parameters.
 </details>
 
 <details>
@@ -340,7 +360,7 @@ The following content is for users who need to customize data sources or perform
       "command": "grafana-mcp-analyzer",
       "env": {
         "CONFIG_PATH": "https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js",
-        "MAX_CHUNK_SIZE": "50",
+        "MAX_CHUNK_SIZE": "100",
         "DATA_EXPIRY_HOURS": "24",
         "CONFIG_MAX_AGE": "300",
         "SESSION_TIMEOUT_HOURS": "24"
@@ -352,24 +372,11 @@ The following content is for users who need to customize data sources or perform
 
 | Environment Variable | Type | Default | Description |
 | -------------------- | ---- | ------- | ----------- |
-| `CONFIG_PATH` | string | Required | Configuration file path (local or HTTPS remote address) |
-| `MAX_CHUNK_SIZE` | number | `50` | Maximum data chunk size (KB), affects data slicing size |
-| `DATA_EXPIRY_HOURS` | number | `24` | Data expiration time (hours), controls cache automatic cleanup |
+| `MAX_CHUNK_SIZE` | number | `100` | Maximum data chunk size (KB), affects data slicing size, can be adjusted based on AI model context window |
+| `CONFIG_PATH` | string | Required | Configuration file path (local or HTTPS remote address), supports GitHub Raw, cloud storage, etc. |
 | `CONFIG_MAX_AGE` | number | `300` | Remote configuration file cache time (seconds), set to `0` to disable |
-| `SESSION_TIMEOUT_HOURS` | number | `24` | Session timeout (hours), controls session management |
-
-### Environment Variable Description
-
-#### **Data Management**
-- **`MAX_CHUNK_SIZE`** - Controls large data file chunking size, default 50KB, can be adjusted based on AI model context window
-- **`DATA_EXPIRY_HOURS`** - Controls data cache expiration time, system regularly cleans expired data to free storage space
-
-#### **Configuration Management**
-- **`CONFIG_PATH`** - Supports local absolute paths or HTTPS remote addresses, supports GitHub Raw, cloud storage, etc.
-- **`CONFIG_MAX_AGE`** - Remote configuration file cache time, avoids frequent network requests, set to 0 to disable cache
-
-#### **Session Management**
-- **`SESSION_TIMEOUT_HOURS`** - Controls session timeout time, expired sessions are automatically cleaned
+| `DATA_EXPIRY_HOURS` | number | `24` | Data expiration time (hours), avoids frequent network requests, controls cache automatic cleanup |
+| `SESSION_TIMEOUT_HOURS` | number | `24` | Session timeout (hours), controls session management, expired sessions are automatically cleaned |
 
 </details>
 
@@ -419,7 +426,7 @@ The following content is for users who need to customize data sources or perform
 <details>
 <summary>Supported Configuration Types: Local Absolute Path / Remote Path</summary>
     
-### 1. Remote Paths
+#### 1. Remote Paths
     
 Support accessing remote configuration files via HTTPS URL, suitable for team collaboration and multi-environment deployment:
 
@@ -443,7 +450,7 @@ Note:
 - ✅ Must use GitHub Raw format to get raw JS file, like https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js
 
 
-### 2. Local Paths
+#### 2. Local Paths
     
 Support configuring local absolute paths for quick testing analysis:
     
@@ -461,37 +468,7 @@ Support configuring local absolute paths for quick testing analysis:
 ```
 </details>
 
-<details>
-<summary>Command Line Options</summary>
-
-```bash
-# Show version information
-grafana-mcp-analyzer -v
-grafana-mcp-analyzer --version
-
-# Show help information
-grafana-mcp-analyzer -h
-grafana-mcp-analyzer --help
-```
-
-</details>
-
-
-<details>
-<summary>Access Permission Environment Variables (Optional)</summary>
-
-If you need to call protected Grafana APIs, you can set:
-
-```bash
-export GRAFANA_URL="https://your-grafana.com"
-export GRAFANA_TOKEN="your-api-token"
-```
-You can also directly inject tokens via Headers in the configuration file for access.
-</details>
-
 ## Configuration Examples
-
-### Business Scenario Configuration
 
 <details>
 <summary>E-commerce Business Analysis</summary>
@@ -588,8 +565,6 @@ Please provide personalized operational suggestions based on user lifecycle.`
 ```
 
 </details>
-
-### System Monitoring Configuration
 
 <details>
 <summary>Server Performance Monitoring</summary>
