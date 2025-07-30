@@ -310,12 +310,12 @@ module.exports = config;
 <details>
 <summary>如何获取 Request 配置？</summary>
 
-### 方式一：HTTP API（如 `dogecoin_panel_7`）
+### 方式一：HTTP API（如 `candlestick_priceOnly_hollowCandles`）
 
 1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
 2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
 
-### 方式二：curl（推荐，适用于所有面板，如`overall_cpu_utilization100`）：
+### 方式二：curl（推荐，适用于所有面板，如`overall_cpu_utilization`）：
 
 1.  在Grafana中执行查询
 2.  按F12打开开发者工具 → Network标签页
