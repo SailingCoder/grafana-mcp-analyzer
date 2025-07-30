@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/npm/v/grafana-mcp-analyzer) ![License](https://img.shields.io/npm/l/grafana-mcp-analyzer) 
 
-**让AI直接读懂你的监控数据，智能化运维分析助手**
+**让 AI 直接读懂你的监控数据，成为你的专属智能运维助手！**
 
 [English](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README_EN.md) | [中文文档](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/README.md)
 
@@ -13,7 +13,7 @@
 * 您问AI："我的服务器现在怎么样？"
 * AI直接查看您的Grafana监控，回答："CPU使用率偏高，建议检查这几个进程..."
 
-复杂的监控图表，AI帮您一键分析！告别传统的手动监控方式，让AI成为您的专属运维助手！
+繁杂的监控图表，AI 辅助你一键解读。你无需再逐图筛查，真正实现从 **图表到洞察** 的闭环分析体验！
 
 ## 🚀 核心特性
 
@@ -25,12 +25,12 @@ Grafana MCP Analyzer 基于 **MCP (Model Context Protocol)** 协议，赋能Clau
 -   **全数据源支持** - Prometheus、MySQL、ES 等通通支持
 -   **专业 DevOps 建议** - 不只是展示数据，更提供可执行的优化方案，提升DevOps效率
 
-> 💡 **架构新模式**：会话缓存 → 逐步获取数据 → 渐进式深入分析 → 缓存复用，让AI分析更准确、更高效
+> 💡 **架构新模式**：会话缓存 → 逐步获取数据 → 渐进式深入分析 → 缓存复用，让AI分析更准确、更高效。
 
 
 ## 🛠️ 快速开始
 
-### 第一步：安装
+### 第一步：极速安装（30秒）
 
 ```bash
 npm install -g grafana-mcp-analyzer
@@ -38,7 +38,9 @@ npm install -g grafana-mcp-analyzer
 
 > **环境要求**：Node.js 18+ | [安装指南](https://blog.csdn.net/qq_37834631/article/details/148457021?spm=1001.2014.3001.5501)
 
-### 第二步：配置AI助手（以Cursor为例）
+### 第二步：AI 助手集成（30秒）
+
+Cursor设置 → “MCP” → 服务配置（以Cursor为例），或者创建 .cursor/mcp.json 中添加配置：
 
 ```json
 {
@@ -56,9 +58,9 @@ npm install -g grafana-mcp-analyzer
 
 注：`CONFIG_PATH`支持绝对路径、远程路径，推荐使用远程路径快速体验。
 
-### 第三步：编写配置文件
+### 第三步：编写配置文件（1分钟）
 
-如果你需要连接自己的数据，请在 `CONFIG_PATH` 路径下创建一个名为 [`grafana-config-play.js`](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js) 的配置文件。
+如需连接自有数据，可在 `CONFIG_PATH` 路径下创建配置文件：（grafana-config-play.js 示例 👉 [点此查看](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/config/grafana-config-play.js) ）
 
 > 如果你只想快速体验示例，可跳过此步骤，直接执行第四步。
 
@@ -230,9 +232,13 @@ module.exports = config;
 
 ### 第四步：开始使用！
 
-**重启Cursor**，然后开始体验智能分析！
+修改完配置后，重启 Cursor 即可开始使用：
 
-> ⚠️ **重要提醒**：修改 `mcp.json` 或 `grafana-config-play.js` 配置文件后，必须重启Cursor才能生效。
+![在这里插入图片描述](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
+
+> ⚠️ **注意：** 修改 `mcp.json` 或配置文件后，都需要重启 Cursor。
+
+然后，体验 AI 智能分析：
 
 **1、你想了解**：狗狗币最近的价格走势怎么样？
 
@@ -267,10 +273,7 @@ module.exports = config;
 🤖 AI：基于历史数据，提供扩容建议和成本评估
 ```
 
-**配置完成！**
-
-![在这里插入图片描述](https://github.com/SailingCoder/grafana-mcp-analyzer/blob/main/docs/image(1).png)
-
+一句话总结：**AI 不再只是“聊天”，现在它也能读懂你的监控图表了。**
 
 ## MCP工具清单
 
@@ -297,9 +300,9 @@ module.exports = config;
 👤 "分析大数据量" → 🤖 调用 chunk_workflow
 
 // 缓存管理操作
-👤 "查看缓存" → 🤖 manage_cache
-👤 "删除overall_cpu_utilization缓存" → 🤖 manage_cache
-👤 "清空所有缓存" → 🤖 manage_cache
+👤 "查看缓存" → 🤖 调用 manage_cache
+👤 "删除overall_cpu_utilization缓存" → 🤖 调用 manage_cache
+👤 "清空所有缓存" → 🤖 调用 manage_cache
 ```
 
 
