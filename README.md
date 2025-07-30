@@ -40,7 +40,7 @@ npm install -g grafana-mcp-analyzer
 
 ### 第二步：AI 助手集成（30秒）
 
-Cursor设置 → “MCP” → 服务配置（以Cursor为例），或者创建 .cursor/mcp.json 中添加配置：
+Cursor设置 → “MCP” → 服务配置（以Cursor为例）:
 
 ```json
 {
@@ -251,8 +251,11 @@ module.exports = config;
 👤 你：这个分析太简单了，能详细说说支撑位和阻力位吗？
 🤖 AI：基于刚才的数据，我来深入分析技术指标...
 
-👤 你：现在价格在什么位置？有投资机会吗？
-🤖 AI：根据技术分析，当前价格在...
+👤 你：现在看看candlestick_price_volume数据
+🤖 AI：切换到价格成交量数据，分析市场活跃度...
+
+👤 你：candlestick_priceOnly_hollowCandles和candlestick_price_volume这两个数据结合起来看，市场怎么样？
+🤖 AI：综合两个数据源，市场目前...
 ```
 
 **2、你想了解**：系统CPU整体运行状况如何？
