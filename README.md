@@ -275,6 +275,7 @@ module.exports = config;
 
 一句话总结：**AI 不再只是“聊天”，现在它也能读懂你的监控图表了。**
 
+
 ## MCP工具清单
 
 | 工具 | 功能 | 使用场景 |
@@ -290,7 +291,7 @@ module.exports = config;
 
 > **说明**：系统采用会话缓存管理，支持渐进式分析和多轮对话，比传统的聚合分析更加灵活高效。
 
-### 工具使用方式
+#### 工具使用方式
 
 ```javascript
 // AI助手会自动选择合适的工具
@@ -305,7 +306,6 @@ module.exports = config;
 👤 "清空所有缓存" → 🤖 调用 manage_cache
 ```
 
-
 ## 高级配置
 
 以下内容适用于需要自定义数据源或进行更高级使用场景的用户。
@@ -313,12 +313,12 @@ module.exports = config;
 <details>
 <summary>如何获取 Request 配置？</summary>
 
-### 方式一：HTTP API（如 `candlestick_priceOnly_hollowCandles`）
+#### 方式一：HTTP API（如 `candlestick_priceOnly_hollowCandles`）
 
 1.  获取 Data 传参：进入图表 → "Query Inspector" → "JSON"解析 → 拷贝请求体(request)
 2.  获取 Url 和 Headers Token：通过 Network 面板查看请求参数，手动构造 HTTP 配置。
 
-### 方式二：curl（推荐，适用于所有面板，如`overall_cpu_utilization`）：
+#### 方式二：curl（推荐，适用于所有面板，如`overall_cpu_utilization`）：
 
 1.  在Grafana中执行查询
 2.  按F12打开开发者工具 → Network标签页
@@ -384,7 +384,7 @@ module.exports = config;
 <details>
 <summary>支持配置类型：本地绝对路径 / 远程路径</summary>
     
-### 1. 远程路径
+#### 1. 远程路径
     
 支持通过HTTPS URL访问远程配置文件，适用于团队协作和多环境部署：
 
@@ -408,7 +408,7 @@ module.exports = config;
 - ✅ 必须使用 GitHub Raw 格式获取原始 JS 文件，如 https://raw.githubusercontent.com/SailingCoder/grafana-mcp-analyzer/main/config/grafana-config-play.js
 
 
-### 2. 本地路径
+#### 2. 本地路径
     
 支持传入本地绝对路径，适用于快速测试分析：
     
