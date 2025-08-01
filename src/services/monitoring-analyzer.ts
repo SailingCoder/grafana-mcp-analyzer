@@ -1,7 +1,33 @@
 import type { ExtractedData } from '../types/index.js';
 
-const DEFAULT_SYSTEM_PROMPT = `您是一位资深的Grafana数据分析专家，具备丰富的数据可视化和洞察挖掘经验。您擅长从各类数据源中发现有价值的信息，并提供可执行的业务建议。请对数据进行专业分析，重点关注：
+// 获取分析模式配置
+function getAnalysisMode(): 'guide' | 'custom' {
+  return (process.env.ANALYSIS_MODE || 'guide') as 'guide' | 'custom';
+}
 
+// 基础分析能力描述（不强制特定方向）
+const BASE_ANALYSIS_CAPABILITIES = `您是一位资深的Grafana数据分析专家，具备丰富的数据可视化和洞察挖掘经验。您可以根据用户的具体需求进行灵活的数据分析。
+
+## 可用的分析能力
+- **数据探索**：了解数据结构、范围和特征
+- **趋势分析**：识别数据变化趋势和模式
+- **异常检测**：发现异常值和异常模式
+- **对比分析**：与历史数据、目标值进行对比
+- **关联分析**：分析不同指标间的关联关系
+- **预测分析**：基于历史数据预测未来趋势
+- **业务洞察**：从数据中发现业务价值和机会
+- **技术分析**：进行技术指标和图表分析
+- **性能评估**：评估系统性能和效率
+- **风险评估**：识别潜在风险和问题
+
+## 分析原则
+- **用户导向**：优先满足用户的具体分析需求
+- **数据驱动**：基于数据事实进行分析
+- **灵活适应**：根据数据类型和用户需求调整分析方式
+- **可操作建议**：提供具体、可执行的建议`;
+
+// 预设的分析框架（仅在guided模式下使用）
+const GUIDED_ANALYSIS_FRAMEWORK = `
 ## 核心分析目标
 - **数据洞察挖掘**：从数据中发现有价值的业务洞察和趋势
 - **异常模式识别**：识别数据中的异常模式和潜在问题
@@ -76,6 +102,21 @@ function getDataTypeSpecificGuidance(dataType: string): string {
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateAnalysisTemplate(_prompt: string, _hasAggregateData: boolean = false): string {
+  const analysisMode = getAnalysisMode();
+  
+  if (analysisMode === 'custom') {
+    // 自定义分析模式 - 不提供固定模板
+    return `
+## 分析指导原则
+- **用户导向**: 优先满足用户的具体分析需求，不要偏离用户的要求
+- **灵活适应**: 根据用户需求调整分析重点和方法
+- **数据驱动**: 基于数据事实进行分析，避免主观臆断
+- **可操作建议**: 提供具体、可执行的建议
+
+**重要提醒**: 请严格按照用户的具体分析需求执行！不要被预设的分析框架限制，要以用户需求为主导。`;
+  }
+  
+  // 引导分析模式 - 提供结构化模板
   const baseTemplate = `
 ## 分析报告结构要求
 
@@ -327,7 +368,17 @@ function buildFullAnalysisGuidance(
   
   const analysisTemplate = generateAnalysisTemplate(prompt, false);
   
-  return `${DEFAULT_SYSTEM_PROMPT}
+  const analysisMode = getAnalysisMode();
+  
+  // 根据分析模式选择不同的指导内容
+  let analysisFramework = '';
+  if (analysisMode === 'guide') {
+    analysisFramework = GUIDED_ANALYSIS_FRAMEWORK;
+  }
+  
+  return `${BASE_ANALYSIS_CAPABILITIES}
+
+${analysisFramework}
 
 ${dataTypeGuidance}
 
@@ -343,12 +394,16 @@ ${analysisTemplate}
 ${storageResult?.type === 'chunked' ? `- **分块数量**: ${storageResult.chunks}` : ''}
 ${storageResult?.type === 'chunked' ? `- **分块策略**: ${storageResult.chunkingStrategy}` : ''}
 
-## 分析任务
+## 用户分析需求
 **用户具体需求**: ${prompt}
 
-**重要提醒**: 请严格按照用户的具体分析需求执行，不要偏离用户的要求！如果用户要求分析特定内容（如支撑位和阻力位、技术指标等），请重点关注这些内容并提供详细分析。
+## 分析模式
+**当前模式**: ${analysisMode === 'guide' ? '引导分析模式' : '自定义分析模式'}
+${analysisMode === 'guide' ? '- 使用预设的分析框架和结构化模板' : '- 完全以用户需求为主导，不受预设框架限制'}
 
-请基于以上指导，对数据进行专业、深入的分析，并提供有价值的业务洞察和建议。`;
+**重要提醒**: 请严格按照用户的具体分析需求执行！${analysisMode === 'custom' ? '不要被预设的分析框架限制，要以用户需求为主导。' : '在预设框架基础上，重点关注用户提到的具体内容。'}
+
+请基于以上指导，对数据进行专业、深入的分析，并提供有价值的洞察和建议。`;
 }
 
 /**

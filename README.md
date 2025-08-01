@@ -367,7 +367,8 @@ module.exports = config;
         "MAX_CHUNK_SIZE": "100",
         "DATA_EXPIRY_HOURS": "24",
         "CONFIG_MAX_AGE": "300",
-        "SESSION_TIMEOUT_HOURS": "24"
+        "SESSION_TIMEOUT_HOURS": "24",
+        "ANALYSIS_MODE": "guide"
       }
     }
   }
@@ -381,6 +382,7 @@ module.exports = config;
 | `CONFIG_MAX_AGE` | number | `300` | 远程配置文件缓存时间（秒），设为 `0` 则禁用 |
 | `DATA_EXPIRY_HOURS` | number | `24` | 数据过期时间（小时），避免频繁网络请求，控制缓存自动清理 |
 | `SESSION_TIMEOUT_HOURS` | number | `24` | 会话超时时间（小时），控制会话管理，过期会话会被自动清理 |
+| `ANALYSIS_MODE` | string | `guide` | 分析模式，可选值：`guide`（引导分析，使用预设框架）或 `custom`（自定义分析，完全以用户需求为主导） |
 
 </details>
 
@@ -445,6 +447,26 @@ grafana-mcp-analyzer --help
 </details>
 
 ## 配置示例
+
+<details>
+<summary>分析模式配置</summary>
+
+有的用户需要分析特定要求，而目前是结构化分析。可以通过设置 `ANALYSIS_MODE` 环境变量来切换分析模式：
+
+```json
+{
+  "env": {
+    "ANALYSIS_MODE": "guide"  // 默认：引导模式
+  }
+}
+```
+
+| 模式 | 分析方式 | 适用场景 |
+|------|----------|----------|
+| `guide`（默认） | 预设框架：趋势分析 → 异常检测 → 业务影响 → 建议 | 定期监控报告、标准化分析 |
+| `custom` | 完全按用户需求，专注特定问题 | 个性化分析、探索性分析 |
+
+</details>
 
 <details>
 <summary>电商业务分析</summary>
